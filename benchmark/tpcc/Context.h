@@ -33,7 +33,7 @@ public:
     return c;
   }
 
-  std::size_t getGranule(std::size_t key) { return key;}
+//   std::size_t getGranule(std::size_t key) { return key;}
 
   int newOrderCrossPartitionProbability = 10; // out of 100
   int paymentCrossPartitionProbability = 15;  // out of 100

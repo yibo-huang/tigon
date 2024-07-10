@@ -1087,11 +1087,6 @@ public:
         return;
       }
 
-      if (txn.is_single_partition() == false || this->context.granules_per_partition != 1) {
-        int granuleId = this->context.getGranule(*(int32_t*)key); // for granule-locking overhead expriment
-        CHECK(granuleId == granule_id);
-      }
-
       auto lock_index = txn.readSet[key_offset].get_lock_index();
       DCHECK(lock_index != -1);
       auto success_state = txn.lock_status.get_lock(lock_index).get_success() ;
