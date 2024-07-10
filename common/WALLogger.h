@@ -35,7 +35,7 @@ public:
     CHECK(fd >= 0);
     CHECK(BUFFER_SIZE % block_size == 0);
     bytes_total = 0;
-    posix_memalign((void**)&buffer, block_size, BUFFER_SIZE);
+    CHECK(posix_memalign((void**)&buffer, block_size, BUFFER_SIZE) == 0);
   }
 
   ~BufferedDirectFileWriter() {

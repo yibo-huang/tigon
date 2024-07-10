@@ -3722,7 +3722,7 @@ public:
         DCHECK(is_replica_worker);
       else
         DCHECK(!is_replica_worker);
-      int message_type = 0;
+//       int message_type = 0;
 
       int msg_idx = 0;
       bool acquire_partition_lock_requests_successful = true;
@@ -3756,7 +3756,7 @@ public:
         msg_count++;
         MessagePiece messagePiece = *it;
         auto type = messagePiece.get_message_type();
-        message_type = type;
+        // message_type = type;
         //LOG(INFO) << "Message type " << type;
         // auto message_partition_owner_cluster_worker_id = partition_owner_cluster_worker(message_partition_id);
         
