@@ -9,6 +9,7 @@
 #include "benchmark/ycsb/Schema.h"
 #include "common/Operation.h"
 #include "common/ThreadPool.h"
+#include "core/Macros.h"
 #include "core/Partitioner.h"
 #include "core/Table.h"
 #include <algorithm>
@@ -69,7 +70,7 @@ public:
   }
 
   void initialize(const Context &context) {
-    if (context.lotus_checkpoint) {
+    if (context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
       for (int i = 0; i < 6; ++i) {
         threadpools.push_back(new ThreadPool(1));
       }
@@ -93,7 +94,7 @@ public:
           std::make_unique<Table<997, ycsb::key, ycsb::value>>(ycsbTableID,
                                                                 partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_ycsb_vec.push_back(
           std::make_unique<HStoreCOWTable<997, ycsb::key, ycsb::value>>(ycsbTableID,
                                                                 partitionID));

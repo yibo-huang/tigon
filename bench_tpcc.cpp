@@ -57,13 +57,20 @@ int main(int argc, char *argv[]) {
     } else {
       context.logger = new star::GroupCommitLogger(redo_filename, context.group_commit_batch_size, context.wal_group_commit_time, context.emulated_persist_latency);
     }
-    LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
+    LOG(INFO) << "WAL Group Commiting to file " << redo_filename << " using " << logger_type;
   } else {
     std::string redo_filename =
           context.log_path + "_non_group_commit.txt";
-    context.logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
-    LOG(INFO) << "WAL Group Commiting off";
+		std::string logger_type = "SimpleWAL Logger";
+		if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF || context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) {
+			logger_type = "Blackhole Logger";
+    	context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
+		} else {
+    	context.logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
+		}
+    LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
   }
+
   star::tpcc::Database db;
   db.initialize(context);
 

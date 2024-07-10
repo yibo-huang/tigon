@@ -52,16 +52,18 @@ DEFINE_int32(stragglers_per_batch, 0, "# stragglers in a batch");
 DEFINE_int32(stragglers_num_txn_len, 10, "# straggler transaction length types"); 
 DEFINE_int32(stragglers_partition, -1, "straggler partition");
 DEFINE_bool(lotus_async_repl, false, "Lotus async replication");
-enum LotusCheckpointScheme {
-  COW_OFF_CHECKPOINT_OFF_LOGGING_ON = 0,
-  COW_ON_CHECKPOINT_OFF_LOGGING_ON = 1,
-  COW_ON_CHECKPOINT_ON_LOGGING_ON = 2,
-  COW_ON_CHECKPOINT_ON_LOGGING_OFF = 3
-};
-// lotus_checkpoint = 0, COW table off, checkpoint trigger off, logging on
-// lotus_checkpoint = 1, COW table on, checkpoint trigger off, logging on
-// lotus_checkpoint = 2, COW table on, checkpoint trigger on, logging on, log files and checkpoints are stored on the same disk
+// lotus_checkpoint = 0, COW table off, checkpoint trigger off, logging off
+// lotus_checkpoint = 1, COW table off, checkpoint trigger off, logging on
+// lotus_checkpoint = 2, COW table on, checkpoint trigger off, logging on
 // lotus_checkpoint = 3, COW table on, checkpoint trigger on, logging off
+// lotus_checkpoint = 4, COW table on, checkpoint trigger on, logging on, log files and checkpoints are stored on the same disk
+enum LotusCheckpointScheme {
+  COW_OFF_CHECKPOINT_OFF_LOGGING_OFF = 0,
+  COW_OFF_CHECKPOINT_OFF_LOGGING_ON = 1,
+  COW_ON_CHECKPOINT_OFF_LOGGING_ON = 2,
+  COW_ON_CHECKPOINT_ON_LOGGING_OFF = 3,
+  COW_ON_CHECKPOINT_ON_LOGGING_ON = 4
+};
 DEFINE_int32(lotus_checkpoint, 0, "Lotus COW checkpoint scheme");
 DEFINE_string(lotus_checkpoint_location, "", "Path to store checkpoint files");
 DEFINE_double(stragglers_zipf_factor, 0, "straggler zipfian factor");

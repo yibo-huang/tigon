@@ -69,9 +69,15 @@ int main(int argc, char *argv[]) {
     LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
   } else {
     std::string redo_filename =
-          context.log_path + "_non_group_commit.txt";
-    context.logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
-    LOG(INFO) << "WAL Group Commiting off";
+    context.log_path + "_non_group_commit.txt";
+		std::string logger_type = "SimpleWAL Logger";
+		if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF) {
+			logger_type = "Blackhole Logger";
+			context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
+    } else {
+			context.logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
+    }
+    LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
   }
 
   star::ycsb::Database db;

@@ -19,6 +19,7 @@
 #include "common/ThreadPool.h"
 #include "common/WALLogger.h"
 #include "common/Time.h"
+#include "core/Macros.h"
 #include "core/Partitioner.h"
 #include "core/Table.h"
 #include <glog/logging.h>
@@ -125,7 +126,7 @@ public:
   }
 
   void initialize(const Context &context) {
-    if (context.lotus_checkpoint) {
+    if (context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
       for (int i = 0; i < 6; ++i) {
         threadpools.push_back(new ThreadPool(1));
       }
@@ -153,7 +154,7 @@ public:
           std::make_unique<Table<997, warehouse::key, warehouse::value>>(
             warehouseTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_warehouse_vec.push_back(
           std::make_unique<HStoreCOWTable<997, warehouse::key, warehouse::value>>(
               warehouseTableID, partitionID));
@@ -174,7 +175,7 @@ public:
           std::make_unique<Table<997, district::key, district::value>>(
               districtTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_district_vec.push_back(
             std::make_unique<HStoreCOWTable<997, district::key, district::value>>(
               districtTableID, partitionID));
@@ -195,7 +196,7 @@ public:
             std::make_unique<Table<997, customer::key, customer::value>>(
                 customerTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_customer_vec.push_back(
             std::make_unique<HStoreCOWTable<997, customer::key, customer::value>>(
                 customerTableID, partitionID));
@@ -229,7 +230,7 @@ public:
           std::make_unique<Table<997, history::key, history::value>>(
               historyTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_history_vec.push_back(
             std::make_unique<HStoreCOWTable<997, history::key, history::value>>(
               historyTableID, partitionID));
@@ -250,7 +251,7 @@ public:
           std::make_unique<Table<997, new_order::key, new_order::value>>(
               newOrderTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_new_order_vec.push_back(
             std::make_unique<HStoreCOWTable<997, new_order::key, new_order::value>>(
               newOrderTableID, partitionID));
@@ -271,7 +272,7 @@ public:
           std::make_unique<Table<997, order::key, order::value>>(
               orderTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_order_vec.push_back(
             std::make_unique<HStoreCOWTable<997, order::key, order::value>>(
               orderTableID, partitionID));
@@ -291,7 +292,7 @@ public:
           std::make_unique<Table<997, order_line::key, order_line::value>>(
               orderLineTableID, partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_order_line_vec.push_back(
             std::make_unique<HStoreCOWTable<997, order_line::key, order_line::value>>(
               orderLineTableID, partitionID));
@@ -312,7 +313,7 @@ public:
           std::make_unique<Table<997, stock::key, stock::value>>(stockTableID,
                                                                  partitionID));
       } else {
-        if (context.lotus_checkpoint) {
+        if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
           tbl_stock_vec.push_back(
             std::make_unique<HStoreCOWTable<997, stock::key, stock::value>>(stockTableID,
                                                                  partitionID));
@@ -331,7 +332,7 @@ public:
       tbl_item_vec.push_back(
         std::make_unique<Table<997, item::key, item::value>>(itemTableID, 0));
     } else {
-      if (context.lotus_checkpoint) {
+      if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
         tbl_item_vec.push_back(
           std::make_unique<HStoreCOWTable<997, item::key, item::value>>(itemTableID, 0));
       } else {
