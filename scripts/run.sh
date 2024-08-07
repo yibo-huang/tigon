@@ -1,0 +1,147 @@
+#! /bin/bash
+
+set -uo pipefail
+# set -x
+
+typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+typeset current_date_time="`date +%Y%m%d%H%M`"
+
+source $SCRIPT_DIR/utilities.sh
+
+function print_usage {
+        echo "[Usage] ./run.sh [TPCC/YCSB/KILL/COMPILE] EXP-SPECIFIC"
+        echo "KILL: None"
+        echo "COMPILE: None"
+        echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC"
+        echo "YCSB: PROTOCOL HOST_NUM"
+}
+
+function kill_prev_exps {
+        typeset MAX_HOST_NUM=8
+        typeset i=0
+
+        echo "Killing previous experiments..."
+        for (( i=0; i < $MAX_HOST_NUM; ++i ))
+        do
+                ssh_command "pkill bench_tpcc" $i
+                ssh_command "pkill bench_ycsb" $i
+        done
+}
+
+function gather_other_output {
+        typeset HOST_NUM=$1
+
+        typeset i=0
+
+        for (( i=1; i < $HOST_NUM; ++i ))
+        do
+                ssh_command "cat lotus/output.txt" $i
+                ssh_command "rm lotus/output.txt" $i
+        done
+}
+
+function sync_binaries {
+        typeset HOST_NUM=$1
+
+        cd $SCRIPT_DIR
+        echo "Syncing executables and configs..."
+        sync_files $SCRIPT_DIR/../build /root/lotus $HOST_NUM
+}
+
+function print_server_string {
+        typeset HOST_NUM=$1
+
+        typeset base=2
+        typeset i=0
+
+        for (( i=0; i < $HOST_NUM; ++i ))
+        do
+                typeset ip=$(expr $base + $i)
+                if [ $i = 0 ]; then
+                        echo -n "192.168.100.$ip:1234"
+                else
+                        echo -n ";192.168.100.$ip:1234"
+                fi
+        done
+}
+
+function run_exp_tpcc {
+        typeset PROTOCOL=$1
+        typeset HOST_NUM=$2
+        typeset WORKER_NUM=$3
+        typeset REMOTE_NEWORDER_PERC=$4
+        typeset REMOTE_PAYMENT_PERC=$5
+
+        typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
+        typeset SERVER_STRING=$(print_server_string $HOST_NUM)
+        typeset i=0
+
+        echo $PARTITION_NUM
+
+        if [ $PROTOCOL = "Sundial" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd lotus; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=0
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
+                                --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd lotus; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=0
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
+                        --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+
+                gather_other_output $HOST_NUM
+        else
+                echo "Protocol not supported!"
+                exit -1
+        fi
+
+}
+
+if [ $# -le 1 ]; then
+        print_usage
+        exit -1
+fi
+
+typeset RUN_TYPE=$1
+
+if [ $RUN_TYPE = "TPCC" ]; then
+        if [ $# != 6 ]; then
+                print_usage
+                exit -1
+        fi
+
+        typeset PROTOCOL=$2
+        typeset HOST_NUM=$3
+        typeset WORKER_NUM=$4
+        typeset REMOTE_NEWORDER_PERC=$5
+        typeset REMOTE_PAYMENT_PERC=$6
+
+        typeset i=0
+
+        sync_binaries $HOST_NUM
+
+        kill_prev_exps
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC
+        kill_prev_exps
+
+        exit 0
+elif [ $RUN_TYPE = "YCSB" ]; then
+        exit 0
+elif [ $RUN_TYPE = "KILL" ]; then
+        kill_prev_exps $HOST_NUM
+        exit 0
+elif [ $RUN_TYPE = "COMPILE" ]; then
+        exit 0
+else
+        print_usage
+        exit -1
+fi
