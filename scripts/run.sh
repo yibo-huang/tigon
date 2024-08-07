@@ -81,22 +81,43 @@ function run_exp_tpcc {
                 for (( i=1; i < $HOST_NUM; ++i ))
                 do
                         ssh_command "cd lotus; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
-                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=0
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
-                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
                 ssh_command "cd lotus; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
-                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=0
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
-                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
-                gather_other_output $HOST_NUM
+                # gather_other_output $HOST_NUM
+        elif [ $PROTOCOL = "Lotus" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd lotus; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --protocol=HStore --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd lotus; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --protocol=HStore --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+
+                # gather_other_output $HOST_NUM
         else
                 echo "Protocol not supported!"
                 exit -1
@@ -123,7 +144,7 @@ function run_exp_ycsb {
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
-                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -132,10 +153,31 @@ function run_exp_ycsb {
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
-                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
-                gather_other_output $HOST_NUM
+                # gather_other_output $HOST_NUM
+        elif [ $PROTOCOL = "Lotus" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd lotus; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --protocol=HStore --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd lotus; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --protocol=HStore --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+
+                # gather_other_output $HOST_NUM
         else
                 echo "Protocol not supported!"
                 exit -1
