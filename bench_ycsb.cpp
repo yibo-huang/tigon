@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
   context.granules_per_partition = FLAGS_granule_count;
   context.keysPerGranule = context.keysPerPartition / context.granules_per_partition;
 
+  LOG(INFO) << "RW_RATIO = " << context.readWriteRatio << ", ZIPF_THETA = " << FLAGS_zipf << ", CROSS_RATIO = " << context.crossPartitionProbability;
   LOG(INFO) << "checkpoint " << context.lotus_checkpoint << " to " << context.lotus_checkpoint_location;
   LOG(INFO) << "cross_part_num " << FLAGS_cross_part_num;
   LOG(INFO) << "lotus_sp_parallel_exec_commit " << FLAGS_lotus_sp_parallel_exec_commit;

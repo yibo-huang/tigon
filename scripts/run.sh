@@ -11,7 +11,7 @@ source $SCRIPT_DIR/utilities.sh
 function print_usage {
         echo "[Usage] ./run.sh [TPCC/YCSB/KILL/COMPILE] EXP-SPECIFIC"
         echo "KILL: None"
-        echo "COMPILE: None"
+        echo "COMPILE_SYNC: HOST_NUM"
         echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC"
         echo "YCSB: PROTOCOL HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO"
 }
@@ -76,8 +76,6 @@ function run_exp_tpcc {
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
-        echo $PARTITION_NUM
-
         if [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
                 for (( i=1; i < $HOST_NUM; ++i ))
@@ -117,23 +115,21 @@ function run_exp_ycsb {
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
-        echo $PARTITION_NUM
-
         if [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
                 for (( i=1; i < $HOST_NUM; ++i ))
                 do
                         ssh_command "cd lotus; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
-                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=0
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
-                                --protocol=Sundial --keys=100000 --read_write_ratio=100 --zipf=0 --cross_ratio=10 --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
                 ssh_command "cd lotus; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
-                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=0
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=false --batch_size=0
@@ -168,8 +164,6 @@ if [ $RUN_TYPE = "TPCC" ]; then
 
         typeset i=0
 
-        sync_binaries $HOST_NUM
-
         kill_prev_exps
         run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC
         kill_prev_exps
@@ -190,17 +184,38 @@ elif [ $RUN_TYPE = "YCSB" ]; then
 
         typeset i=0
 
-        sync_binaries $HOST_NUM
-
         kill_prev_exps
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO
         kill_prev_exps
 
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
+        if [ $# != 2 ]; then
+                print_usage
+                exit -1
+        fi
+
+        typeset HOST_NUM=$2
+
         kill_prev_exps $HOST_NUM
         exit 0
-elif [ $RUN_TYPE = "COMPILE" ]; then
+elif [ $RUN_TYPE = "COMPILE_SYNC" ]; then
+        if [ $# != 2 ]; then
+                print_usage
+                exit -1
+        fi
+
+        typeset HOST_NUM=$2
+
+        # compile
+        cd $SCRIPT_DIR/../
+        mkdir -p build
+        cd build
+        make -j
+
+        # sync
+        sync_binaries $HOST_NUM
+
         exit 0
 else
         print_usage
