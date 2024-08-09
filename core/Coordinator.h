@@ -26,14 +26,13 @@ bool warmed_up = false;
 class Coordinator {
     public:
 	template <class Database, class Context>
-	Coordinator(std::size_t id, Database &db, const Context &context, CXLMemory &cxl_mem)
+	Coordinator(std::size_t id, Database &db, const Context &context)
 		: id(id)
 		, coordinator_num(context.peers.size())
 		, peers(context.peers)
 		, context(context)
-                , cxl_mem(cxl_mem)
 	{
-                cxl_mem.init_cxlalloc_for_given_thread(0);
+                star::CXLMemory::init_cxlalloc_for_given_thread(context.worker_num, 0, context.coordinator_num, context.coordinator_id);
 
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
@@ -468,7 +467,5 @@ class Coordinator {
 	// Side channel that connects oDispatcher to iDispatcher.
 	// Useful for transfering messages between partitions for HStore.
 	LockfreeQueue<Message *> out_to_in_queue;
-
-        CXLMemory &cxl_mem;
 };
 } // namespace star
