@@ -2,6 +2,7 @@
 #include "core/Coordinator.h"
 #include "core/Macros.h"
 #include "common/WALLogger.h"
+#include "common/CXLMemory.h"
 
 DEFINE_bool(lotus_sp_parallel_exec_commit, false, "parallel execution and commit for Lotus");
 DEFINE_int32(read_write_ratio, 80, "read write ratio");

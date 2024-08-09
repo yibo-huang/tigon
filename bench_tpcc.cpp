@@ -1,6 +1,8 @@
 #include "benchmark/tpcc/Database.h"
 #include "core/Coordinator.h"
 #include "core/Macros.h"
+#include "common/CXLMemory.h"
+
 
 DEFINE_bool(operation_replication, false, "use operation replication");
 DEFINE_string(query, "neworder", "tpcc query, mixed, neworder, payment");
