@@ -12,6 +12,7 @@ function print_usage {
         echo "[Usage] ./run.sh [TPCC/YCSB/KILL/COMPILE] EXP-SPECIFIC"
         echo "KILL: None"
         echo "COMPILE_SYNC: HOST_NUM"
+        echo "CI: HOST_NUM"
         echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC"
         echo "YCSB: PROTOCOL HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO"
 }
@@ -299,6 +300,25 @@ elif [ $RUN_TYPE = "COMPILE_SYNC" ]; then
 
         # sync
         sync_binaries $HOST_NUM
+
+        exit 0
+elif [ $RUN_TYPE = "CI" ]; then
+        if [ $# != 2 ]; then
+                print_usage
+                exit -1
+        fi
+
+        typeset HOST_NUM=$2
+
+        kill_prev_exps
+        run_exp_tpcc Sundial $HOST_NUM 2 10 15
+        run_exp_tpcc Lotus $HOST_NUM 2 10 15
+        run_exp_tpcc Calvin $HOST_NUM 2 10 15
+        kill_prev_exps
+        run_exp_ycsb Sundial $HOST_NUM 2 50 0 10
+        run_exp_ycsb Lotus $HOST_NUM 2 50 0 10
+        run_exp_ycsb Calvin $HOST_NUM 2 50 0 10
+        kill_prev_exps
 
         exit 0
 else
