@@ -126,7 +126,7 @@ function run_exp_tpcc {
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
-                                --replica_group=1 --lock_manager=1 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=20
                                 --protocol=Calvin --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -135,7 +135,7 @@ function run_exp_tpcc {
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
-                        --replica_group=1 --lock_manager=1 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=20
                         --protocol=Calvin --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
                 # gather_other_output $HOST_NUM
@@ -207,7 +207,7 @@ function run_exp_ycsb {
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
-                                --replica_group=1 --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1000
+                                --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1200
                                 --protocol=Calvin --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -216,7 +216,7 @@ function run_exp_ycsb {
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
-                        --replica_group=1 --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1000
+                        --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1200
                         --protocol=Calvin --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
                 # gather_other_output $HOST_NUM
