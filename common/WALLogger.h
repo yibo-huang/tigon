@@ -179,13 +179,13 @@ class BlackholeLogger : public WALLogger {
 	{
 		return 0;
 	}
-	void sync(
-		size_t lsn, std::function<void()> on_blocking = []() {})
+	void sync (
+		size_t lsn, std::function<void()> on_blocking = []() {}) override
 	{
 		return;
 	}
 
-	void close()
+	void close() override
 	{
 		writer.close();
 	}

@@ -443,7 +443,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		return partitionID_;
 	}
 
-	virtual void turn_on_cow()
+	virtual void turn_on_cow() override
 	{
 		CHECK(cow == false);
 		CHECK(shadow_map_ == nullptr);
@@ -452,7 +452,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		cow.store(true);
 	}
 
-	virtual void dump_copy(std::function<void(const void *, const void *)> dump_processor, std::function<void()> dump_unlock)
+	virtual void dump_copy(std::function<void(const void *, const void *)> dump_processor, std::function<void()> dump_unlock) override
 	{
 		CHECK(cow == true);
 		CHECK(dump_finished == false);
@@ -471,12 +471,12 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		map_.iterate_non_const(clear_COW_status_bits_processor, []() {});
 	}
 
-	virtual bool cow_dump_finished()
+	virtual bool cow_dump_finished() override
 	{
 		return dump_finished;
 	}
 
-	virtual std::function<void()> turn_off_cow()
+	virtual std::function<void()> turn_off_cow() override
 	{
 		CHECK(cow == true);
 		auto shadow_map_ptr = shadow_map_;
