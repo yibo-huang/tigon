@@ -7,6 +7,7 @@
 #include "common/LockfreeQueue.h"
 #include "common/Message.h"
 #include "common/Socket.h"
+#include "common/CXLMemory.h"
 #include "core/ControlMessage.h"
 #include "core/Dispatcher.h"
 #include "core/Executor.h"
@@ -25,12 +26,15 @@ bool warmed_up = false;
 class Coordinator {
     public:
 	template <class Database, class Context>
-	Coordinator(std::size_t id, Database &db, const Context &context)
+	Coordinator(std::size_t id, Database &db, const Context &context, CXLMemory &cxl_mem)
 		: id(id)
 		, coordinator_num(context.peers.size())
 		, peers(context.peers)
 		, context(context)
+                , cxl_mem(cxl_mem)
 	{
+                cxl_mem.init_cxlalloc_for_given_thread(0);
+
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
 		LOG(INFO) << "Coordinator initializes " << context.worker_num << " workers.";
@@ -464,5 +468,7 @@ class Coordinator {
 	// Side channel that connects oDispatcher to iDispatcher.
 	// Useful for transfering messages between partitions for HStore.
 	LockfreeQueue<Message *> out_to_in_queue;
+
+        CXLMemory &cxl_mem;
 };
 } // namespace star

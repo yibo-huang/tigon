@@ -84,13 +84,12 @@ int main(int argc, char *argv[])
 	}
 
         star::CXLMemory cxl_mem(context.worker_num + context.io_thread_num, context.coordinator_num, context.coordinator_id);
-        cxl_mem.init_cxlalloc_for_given_thread(0);
 
 	star::ycsb::Database db;
 	db.initialize(context);
 
 	do_tid_check = false;
-	star::Coordinator c(FLAGS_id, db, context);
+	star::Coordinator c(FLAGS_id, db, context, cxl_mem);
 	c.connectToPeers();
 	c.start();
 	return 0;
