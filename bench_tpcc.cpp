@@ -62,6 +62,9 @@ int main(int argc, char *argv[])
 		LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
 	}
 
+        star::CXLMemory cxl_mem(context.worker_num + context.io_thread_num, context.coordinator_num, context.coordinator_id);
+        cxl_mem.init_cxlalloc_for_given_thread(0);
+
 	star::tpcc::Database db;
 	db.initialize(context);
 

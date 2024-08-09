@@ -9,7 +9,7 @@ typeset current_date_time="`date +%Y%m%d%H%M`"
 source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
-        echo "[Usage] ./run.sh [TPCC/YCSB/KILL/COMPILE] EXP-SPECIFIC"
+        echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE] EXP-SPECIFIC"
         echo "KILL: None"
         echo "COMPILE_SYNC: HOST_NUM"
         echo "CI: HOST_NUM"
@@ -21,7 +21,7 @@ function kill_prev_exps {
         typeset MAX_HOST_NUM=8
         typeset i=0
 
-        echo "Killing previous experiments..."
+        echo "killing previous experiments..."
         for (( i=0; i < $MAX_HOST_NUM; ++i ))
         do
                 ssh_command "pkill bench_tpcc" $i
@@ -76,6 +76,9 @@ function run_exp_tpcc {
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
+
+        kill_prev_exps
+        init_cxl_for_vms $HOST_NUM
 
         if [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
@@ -144,6 +147,8 @@ function run_exp_tpcc {
                 echo "Protocol not supported!"
                 exit -1
         fi
+
+        kill_prev_exps
 }
 
 function run_exp_ycsb {
@@ -157,6 +162,9 @@ function run_exp_ycsb {
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
+
+        kill_prev_exps
+        init_cxl_for_vms $HOST_NUM
 
         if [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
@@ -225,6 +233,8 @@ function run_exp_ycsb {
                 echo "Protocol not supported!"
                 exit -1
         fi
+
+        kill_prev_exps
 }
 
 # process arguments
@@ -249,9 +259,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
 
         typeset i=0
 
-        kill_prev_exps
         run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC
-        kill_prev_exps
 
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
@@ -269,9 +277,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
 
         typeset i=0
 
-        kill_prev_exps
         run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO
-        kill_prev_exps
 
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
@@ -283,6 +289,7 @@ elif [ $RUN_TYPE = "KILL" ]; then
         typeset HOST_NUM=$2
 
         kill_prev_exps $HOST_NUM
+
         exit 0
 elif [ $RUN_TYPE = "COMPILE_SYNC" ]; then
         if [ $# != 2 ]; then
@@ -310,15 +317,13 @@ elif [ $RUN_TYPE = "CI" ]; then
 
         typeset HOST_NUM=$2
 
-        kill_prev_exps
         run_exp_tpcc Sundial $HOST_NUM 2 10 15
         run_exp_tpcc Lotus $HOST_NUM 2 10 15
         run_exp_tpcc Calvin $HOST_NUM 2 10 15
-        kill_prev_exps
+
         run_exp_ycsb Sundial $HOST_NUM 2 50 0 10
         run_exp_ycsb Lotus $HOST_NUM 2 50 0 10
         run_exp_ycsb Calvin $HOST_NUM 2 50 0 10
-        kill_prev_exps
 
         exit 0
 else

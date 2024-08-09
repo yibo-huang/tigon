@@ -117,8 +117,8 @@ class Coordinator {
 		oDispatchers.resize(context.io_thread_num);
 
 		// measure_round_trip();
-		//  start dispatcher threads
 
+		// start dispatcher threads
 		std::vector<std::thread> iDispatcherThreads, oDispatcherThreads;
 
 		for (auto i = 0u; i < context.io_thread_num; i++) {
