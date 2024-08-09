@@ -7,7 +7,7 @@ typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null &
 typeset current_date_time="`date +%Y%m%d%H%M`"
 
 if [ $# != 2 ]; then
-        echo "[Usage] ./setup.sh [deps/baselines/vms] HOST_NUM"
+        echo "[Usage] ./setup.sh [deps/vms] HOST_NUM"
         exit -1
 fi
 
@@ -19,11 +19,13 @@ source $SCRIPT_DIR/utilities.sh
 if [ $TASK_TYPE = "deps" ]; then
         echo "Setting up dependencies..."
 
-        # # build cxl_shmem
-        # cd $SCRIPT_DIR/../deps/cxl_shmem
-        # task install_deps
-        # task check_driver
-        # task build_clang_release
+        git submodule update --init --recursive
+
+        # build cxl_shmem
+        cd $SCRIPT_DIR/../dependencies/cxl_shmem
+        task install_deps
+        task check_driver
+        task build_clang_release
 
         echo "Finished!"
         exit 0
@@ -31,11 +33,11 @@ if [ $TASK_TYPE = "deps" ]; then
 elif [ $TASK_TYPE = "vms" ]; then
         echo "Setting up VMs..."
 
-        # # sync cxl_shmem
-        # echo "Sync cxl_shmem..."
-        # sync_files $SCRIPT_DIR/../deps/cxl_shmem/build_clang_release/cxl-init /root/cxl-init $HOST_NUM
-        # sync_files $SCRIPT_DIR/../deps/cxl_shmem/build_clang_release/bin/cxl_recover_meta /root/cxl_recover_meta $HOST_NUM
-        # sync_files $SCRIPT_DIR/../deps/cxl_shmem/driver_futex/jj_abortable_spin/byte/cxl_ivpci.ko /root/cxl_ivpci.ko $HOST_NUM
+        # sync cxl_shmem
+        echo "Sync cxl_shmem..."
+        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/build_clang_release/cxl-init /root/cxl-init $HOST_NUM
+        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/build_clang_release/bin/cxl_recover_meta /root/cxl_recover_meta $HOST_NUM
+        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/driver_futex/jj_abortable_spin/byte/cxl_ivpci.ko /root/cxl_ivpci.ko $HOST_NUM
 
         # sync dependencies
         echo "Sync dependencies..."
@@ -44,13 +46,13 @@ elif [ $TASK_TYPE = "vms" ]; then
         sync_files /lib/x86_64-linux-gnu/libglog.so.0  /lib/x86_64-linux-gnu/libglog.so.0 $HOST_NUM
         sync_files /lib/x86_64-linux-gnu/libgflags.so.2.2 /lib/x86_64-linux-gnu/libgflags.so.2.2 $HOST_NUM
 
-        # # setup the VM(s)
-        # echo "Loading kernel module..."
-        # for (( i=0; i < $HOST_NUM; ++i ))
-        # do
-        #         ssh_command "rmmod cxl_ivpci" $i
-        #         ssh_command "insmod ./cxl_ivpci.ko" $i
-        # done
+        # setup the VM(s)
+        echo "Loading kernel module..."
+        for (( i=0; i < $HOST_NUM; ++i ))
+        do
+                ssh_command "rmmod cxl_ivpci" $i
+                ssh_command "insmod ./cxl_ivpci.ko" $i
+        done
 
         echo "Finished"
         exit 0
