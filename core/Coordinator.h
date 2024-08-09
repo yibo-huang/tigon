@@ -8,6 +8,7 @@
 #include "common/Message.h"
 #include "common/Socket.h"
 #include "common/CXLMemory.h"
+#include "common/MPSCRingBuffer.h"
 #include "core/ControlMessage.h"
 #include "core/Dispatcher.h"
 #include "core/Executor.h"
@@ -32,7 +33,7 @@ class Coordinator {
 		, peers(context.peers)
 		, context(context)
 	{
-                star::CXLMemory::init_cxlalloc_for_given_thread(context.worker_num, 0, context.coordinator_num, context.coordinator_id);
+                CXLMemory::init_cxlalloc_for_given_thread(context.worker_num, 0, context.coordinator_num, context.coordinator_id);
 
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
@@ -275,6 +276,29 @@ class Coordinator {
 		LOG(INFO) << "Coordinator exits.";
 	}
 
+        void initCXLTransport()
+        {
+                int i = 0;
+                void *tmp = NULL;
+
+                if (id == 0) {
+                        cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(MPSCRingBuffer) * coordinator_num));
+                        for (i = 0; i < coordinator_num; i++) {
+                                new(&cxl_ringbuffers[i]) MPSCRingBuffer(1024, 4096);
+                        }
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_transport_root_index, cxl_ringbuffers);
+                        LOG(INFO) << "Coordinator " << id << " initializes CXL transport metadata ("
+                                << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "
+                                << cxl_ringbuffers[0].get_entry_size() << " Bytes)";
+                } else {
+                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_transport_root_index, &tmp);
+                        cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(tmp);
+                        LOG(INFO) << "Coordinator " << id << " retrives CXL transport metadata ("
+                                << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "
+                                << cxl_ringbuffers[0].get_entry_size() << " Bytes)";
+                }
+        }
+
 	void connectToPeers()
 	{
 		// single node test mode
@@ -467,5 +491,7 @@ class Coordinator {
 	// Side channel that connects oDispatcher to iDispatcher.
 	// Useful for transfering messages between partitions for HStore.
 	LockfreeQueue<Message *> out_to_in_queue;
+
+        MPSCRingBuffer *cxl_ringbuffers;
 };
 } // namespace star
