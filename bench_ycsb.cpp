@@ -20,7 +20,6 @@ DEFINE_int64(n_nop, 0, "total number of nop");
 bool do_tid_check = false;
 
 int main(int argc, char *argv[]) {
-
   google::InitGoogleLogging(argv[0]);
   google::InstallFailureSignalHandler();
   google::ParseCommandLineFlags(&argc, &argv, true);
