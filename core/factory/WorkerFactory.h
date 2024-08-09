@@ -44,211 +44,168 @@
 
 #include <unordered_set>
 
-namespace star {
+namespace star
+{
 
-template <class Context> class InferType {};
+template <class Context> class InferType {
+};
 
 template <> class InferType<star::tpcc::Context> {
-public:
-  template <class Transaction>
-  using WorkloadType = star::tpcc::Workload<Transaction>;
+    public:
+	template <class Transaction> using WorkloadType = star::tpcc::Workload<Transaction>;
 };
 
 template <> class InferType<star::ycsb::Context> {
-public:
-  template <class Transaction>
-  using WorkloadType = star::ycsb::Workload<Transaction>;
+    public:
+	template <class Transaction> using WorkloadType = star::ycsb::Workload<Transaction>;
 };
 
 class WorkerFactory {
+    public:
+	template <class Database, class Context>
+	static std::vector<std::shared_ptr<Worker> > create_workers(std::size_t coordinator_id, Database &db, const Context &context,
+								    std::atomic<bool> &stop_flag)
+	{
+		std::unordered_set<std::string> protocols = { "Silo", "SiloGC", "Star", "Sundial", "TwoPL", "TwoPLGC", "Calvin", "HStore", "Aria" };
+		CHECK(protocols.count(context.protocol) == 1);
 
-public:
-  template <class Database, class Context>
-  static std::vector<std::shared_ptr<Worker>>
-  create_workers(std::size_t coordinator_id, Database &db,
-                 const Context &context, std::atomic<bool> &stop_flag) {
+		std::vector<std::shared_ptr<Worker> > workers;
 
-    std::unordered_set<std::string> protocols = {"Silo",  "SiloGC",  "Star", "Sundial",
-                                                 "TwoPL", "TwoPLGC", "Calvin", "HStore", "Aria"};
-    CHECK(protocols.count(context.protocol) == 1);
+		if (context.protocol == "Silo") {
+			using TransactionType = star::SiloTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-    std::vector<std::shared_ptr<Worker>> workers;
+			auto manager = std::make_shared<Manager>(coordinator_id, context.worker_num, context, stop_flag);
 
-    if (context.protocol == "Silo") {
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<SiloExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												manager->n_completed_workers, manager->n_started_workers));
+			}
 
-      using TransactionType = star::SiloTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			workers.push_back(manager);
 
-      auto manager = std::make_shared<Manager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+		} else if (context.protocol == "Sundial") {
+			using TransactionType = star::SundialTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<SiloExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->worker_status,
-            manager->n_completed_workers, manager->n_started_workers));
-      }
+			auto manager = std::make_shared<Manager>(coordinator_id, context.worker_num, context, stop_flag);
 
-      workers.push_back(manager);
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<SundialExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												   manager->n_completed_workers, manager->n_started_workers));
+			}
 
-    } else if (context.protocol == "Sundial") {
-      using TransactionType = star::SundialTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			workers.push_back(manager);
+		} else if (context.protocol == "SiloGC") {
+			using TransactionType = star::SiloTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      auto manager = std::make_shared<Manager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+			auto manager = std::make_shared<group_commit::Manager>(coordinator_id, context.worker_num, context, stop_flag);
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<SundialExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->worker_status,
-            manager->n_completed_workers, manager->n_started_workers));
-      }
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<SiloGCExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												  manager->n_completed_workers, manager->n_started_workers));
+			}
+			workers.push_back(manager);
 
-      workers.push_back(manager);
-    } else if (context.protocol == "SiloGC") {
+		} else if (context.protocol == "Star") {
+			CHECK(context.partition_num % (context.worker_num * context.coordinator_num) == 0)
+				<< "In Star, each partition is managed by only one thread.";
 
-      using TransactionType = star::SiloTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			using TransactionType = star::SiloTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      auto manager = std::make_shared<group_commit::Manager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+			auto manager = std::make_shared<StarManager>(coordinator_id, context.worker_num, context, stop_flag);
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<SiloGCExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->worker_status,
-            manager->n_completed_workers, manager->n_started_workers));
-      }
-      workers.push_back(manager);
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<StarExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->batch_size,
+												manager->worker_status, manager->n_completed_workers,
+												manager->n_started_workers));
+			}
+			workers.push_back(manager);
 
-    } else if (context.protocol == "Star") {
+		} else if (context.protocol == "TwoPL") {
+			using TransactionType = star::TwoPLTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      CHECK(context.partition_num %
-                (context.worker_num * context.coordinator_num) ==
-            0)
-          << "In Star, each partition is managed by only one thread.";
+			auto manager = std::make_shared<Manager>(coordinator_id, context.worker_num, context, stop_flag);
 
-      using TransactionType = star::SiloTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<TwoPLExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												 manager->n_completed_workers, manager->n_started_workers));
+			}
 
-      auto manager = std::make_shared<StarManager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+			workers.push_back(manager);
+		} else if (context.protocol == "TwoPLGC") {
+			using TransactionType = star::TwoPLTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<StarExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->batch_size,
-            manager->worker_status, manager->n_completed_workers,
-            manager->n_started_workers));
-      }
-      workers.push_back(manager);
+			auto manager = std::make_shared<group_commit::Manager>(coordinator_id, context.worker_num, context, stop_flag);
 
-    } else if (context.protocol == "TwoPL") {
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<TwoPLGCExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												   manager->n_completed_workers, manager->n_started_workers));
+			}
 
-      using TransactionType = star::TwoPLTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			workers.push_back(manager);
+		} else if (context.protocol == "HStore") {
+			using TransactionType = star::HStoreTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      auto manager = std::make_shared<Manager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+			auto manager = std::make_shared<Manager>(coordinator_id, context.worker_num, context, stop_flag);
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<TwoPLExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->worker_status,
-            manager->n_completed_workers, manager->n_started_workers));
-      }
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<HStoreExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												  manager->n_completed_workers, manager->n_started_workers));
+			}
+			workers.push_back(manager);
+		} else if (context.protocol == "Calvin") {
+			using TransactionType = star::CalvinTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      workers.push_back(manager);
-    } else if (context.protocol == "TwoPLGC") {
+			// create manager
 
-      using TransactionType = star::TwoPLTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			auto manager = std::make_shared<CalvinManager<WorkloadType> >(coordinator_id, context.worker_num, db, context, stop_flag);
 
-      auto manager = std::make_shared<group_commit::Manager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+			// create worker
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<TwoPLGCExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->worker_status,
-            manager->n_completed_workers, manager->n_started_workers));
-      }
+			std::vector<CalvinExecutor<WorkloadType> *> all_executors;
 
-      workers.push_back(manager);
-    } else if (context.protocol == "HStore") {
+			for (auto i = 0u; i < context.worker_num; i++) {
+				auto w = std::make_shared<CalvinExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->transactions,
+											 manager->storages, manager->lock_manager_status,
+											 manager->worker_status, manager->n_completed_workers,
+											 manager->n_started_workers, manager->active_transactions);
+				workers.push_back(w);
+				manager->add_worker(w);
+				all_executors.push_back(w.get());
+			}
+			// push manager to workers
+			workers.push_back(manager);
 
-      using TransactionType = star::HStoreTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			for (auto i = 0u; i < context.worker_num; i++) {
+				static_cast<CalvinExecutor<WorkloadType> *>(workers[i].get())->set_all_executors(all_executors);
+			}
+		} else if (context.protocol == "Aria") {
+			using TransactionType = star::AriaTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
 
-      auto manager = std::make_shared<Manager>(
-          coordinator_id, context.worker_num, context, stop_flag);
+			// create manager
 
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<HStoreExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->worker_status,
-            manager->n_completed_workers, manager->n_started_workers));
-      }
-      workers.push_back(manager);
-    } else if (context.protocol == "Calvin") {
+			auto manager = std::make_shared<AriaManager<WorkloadType> >(coordinator_id, context.worker_num, db, context, stop_flag);
 
-      using TransactionType = star::CalvinTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
+			// create worker
 
-      // create manager
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<AriaExecutor<WorkloadType> >(
+					coordinator_id, i, db, context, manager->transactions, manager->storages, manager->epoch, manager->worker_status,
+					manager->total_abort, manager->n_completed_workers, manager->n_started_workers));
+			}
 
-      auto manager = std::make_shared<CalvinManager<WorkloadType>>(
-          coordinator_id, context.worker_num, db, context, stop_flag);
+			workers.push_back(manager);
+		}
 
-      // create worker
-
-      std::vector<CalvinExecutor<WorkloadType> *> all_executors;
-
-      for (auto i = 0u; i < context.worker_num; i++) {
-
-        auto w = std::make_shared<CalvinExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->transactions,
-            manager->storages, manager->lock_manager_status,
-            manager->worker_status, manager->n_completed_workers,
-            manager->n_started_workers, manager->active_transactions);
-        workers.push_back(w);
-        manager->add_worker(w);
-        all_executors.push_back(w.get());
-      }
-      // push manager to workers
-      workers.push_back(manager);
-
-      for (auto i = 0u; i < context.worker_num; i++) {
-        static_cast<CalvinExecutor<WorkloadType> *>(workers[i].get())
-            ->set_all_executors(all_executors);
-      }
-    } else if (context.protocol == "Aria") {
-
-      using TransactionType = star::AriaTransaction;
-      using WorkloadType =
-          typename InferType<Context>::template WorkloadType<TransactionType>;
-
-      // create manager
-
-      auto manager = std::make_shared<AriaManager<WorkloadType>>(
-          coordinator_id, context.worker_num, db, context, stop_flag);
-
-      // create worker
-
-      for (auto i = 0u; i < context.worker_num; i++) {
-        workers.push_back(std::make_shared<AriaExecutor<WorkloadType>>(
-            coordinator_id, i, db, context, manager->transactions,
-            manager->storages, manager->epoch, manager->worker_status,
-            manager->total_abort, manager->n_completed_workers,
-            manager->n_started_workers));
-      }
-
-      workers.push_back(manager);
-    }
-
-    return workers;
-  }
+		return workers;
+	}
 };
 } // namespace star

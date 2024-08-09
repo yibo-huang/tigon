@@ -19,73 +19,75 @@ DEFINE_int64(n_nop, 0, "total number of nop");
 
 bool do_tid_check = false;
 
-int main(int argc, char *argv[]) {
-  google::InitGoogleLogging(argv[0]);
-  google::InstallFailureSignalHandler();
-  google::ParseCommandLineFlags(&argc, &argv, true);
+int main(int argc, char *argv[])
+{
+	google::InitGoogleLogging(argv[0]);
+	google::InstallFailureSignalHandler();
+	google::ParseCommandLineFlags(&argc, &argv, true);
 
-  star::ycsb::Context context;
-  SETUP_CONTEXT(context);
+	star::ycsb::Context context;
+	SETUP_CONTEXT(context);
 
-  context.readWriteRatio = FLAGS_read_write_ratio;
-  context.readOnlyTransaction = FLAGS_read_only_ratio;
-  context.crossPartitionProbability = FLAGS_cross_ratio;
-  context.keysPerPartition = FLAGS_keys;
-  context.lotus_sp_parallel_exec_commit = FLAGS_lotus_sp_parallel_exec_commit;
-  context.crossPartitionPartNum = FLAGS_cross_part_num;
-  context.nop_prob = FLAGS_nop_prob;
-  context.n_nop = FLAGS_n_nop;
+	context.readWriteRatio = FLAGS_read_write_ratio;
+	context.readOnlyTransaction = FLAGS_read_only_ratio;
+	context.crossPartitionProbability = FLAGS_cross_ratio;
+	context.keysPerPartition = FLAGS_keys;
+	context.lotus_sp_parallel_exec_commit = FLAGS_lotus_sp_parallel_exec_commit;
+	context.crossPartitionPartNum = FLAGS_cross_part_num;
+	context.nop_prob = FLAGS_nop_prob;
+	context.n_nop = FLAGS_n_nop;
 
-  context.granules_per_partition = FLAGS_granule_count;
-  context.keysPerGranule = context.keysPerPartition / context.granules_per_partition;
+	context.granules_per_partition = FLAGS_granule_count;
+	context.keysPerGranule = context.keysPerPartition / context.granules_per_partition;
 
-  LOG(INFO) << "RW_RATIO = " << context.readWriteRatio << ", ZIPF_THETA = " << FLAGS_zipf << ", CROSS_RATIO = " << context.crossPartitionProbability;
-  LOG(INFO) << "checkpoint " << context.lotus_checkpoint << " to " << context.lotus_checkpoint_location;
-  LOG(INFO) << "cross_part_num " << FLAGS_cross_part_num;
-  LOG(INFO) << "lotus_sp_parallel_exec_commit " << FLAGS_lotus_sp_parallel_exec_commit;
-  LOG(INFO) << "granules_per_partition " << context.granules_per_partition;
-  LOG(INFO) << "keysPerGranule " << context.keysPerGranule;
+	LOG(INFO) << "RW_RATIO = " << context.readWriteRatio << ", ZIPF_THETA = " << FLAGS_zipf << ", CROSS_RATIO = " << context.crossPartitionProbability;
+	LOG(INFO) << "checkpoint " << context.lotus_checkpoint << " to " << context.lotus_checkpoint_location;
+	LOG(INFO) << "cross_part_num " << FLAGS_cross_part_num;
+	LOG(INFO) << "lotus_sp_parallel_exec_commit " << FLAGS_lotus_sp_parallel_exec_commit;
+	LOG(INFO) << "granules_per_partition " << context.granules_per_partition;
+	LOG(INFO) << "keysPerGranule " << context.keysPerGranule;
 
-  star::ycsb::Context::unit_testing(&context);
-  if (FLAGS_zipf > 0) {
-    context.isUniform = false;
-    star::Zipf::globalZipf().init(context.keysPerPartition * context.partition_num, FLAGS_zipf);
-  }
+	star::ycsb::Context::unit_testing(&context);
+	if (FLAGS_zipf > 0) {
+		context.isUniform = false;
+		star::Zipf::globalZipf().init(context.keysPerPartition * context.partition_num, FLAGS_zipf);
+	}
 
-  if (FLAGS_stragglers_zipf_factor > 0) {
-    star::Zipf::globalZipfForStraggler().init(context.straggler_num_txn_len, FLAGS_stragglers_zipf_factor);
-  }
+	if (FLAGS_stragglers_zipf_factor > 0) {
+		star::Zipf::globalZipfForStraggler().init(context.straggler_num_txn_len, FLAGS_stragglers_zipf_factor);
+	}
 
-  if (context.log_path != "" && context.wal_group_commit_time != 0) {
-    std::string redo_filename =
-          context.log_path + "_group_commit.txt";
-    std::string logger_type = "GroupCommit Logger";
-    if (context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) { // logging off so that logging and checkpoint threads will not compete for bandwidth
-      logger_type = "Blackhole Logger";
-      context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
-    } else {
-      context.logger = new star::GroupCommitLogger(redo_filename, context.group_commit_batch_size, context.wal_group_commit_time, context.emulated_persist_latency);
-    }
-    LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
-  } else {
-    std::string redo_filename =
-    context.log_path + "_non_group_commit.txt";
+	if (context.log_path != "" && context.wal_group_commit_time != 0) {
+		std::string redo_filename = context.log_path + "_group_commit.txt";
+		std::string logger_type = "GroupCommit Logger";
+		if (context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) { // logging off so that logging and checkpoint threads
+													   // will not compete for bandwidth
+			logger_type = "Blackhole Logger";
+			context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
+		} else {
+			context.logger = new star::GroupCommitLogger(redo_filename, context.group_commit_batch_size, context.wal_group_commit_time,
+								     context.emulated_persist_latency);
+		}
+		LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]"
+			  << " using " << logger_type;
+	} else {
+		std::string redo_filename = context.log_path + "_non_group_commit.txt";
 		std::string logger_type = "SimpleWAL Logger";
 		if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF) {
 			logger_type = "Blackhole Logger";
 			context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
-    } else {
+		} else {
 			context.logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
-    }
-    LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
-  }
+		}
+		LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
+	}
 
-  star::ycsb::Database db;
-  db.initialize(context);
+	star::ycsb::Database db;
+	db.initialize(context);
 
-  do_tid_check = false;
-  star::Coordinator c(FLAGS_id, db, context);
-  c.connectToPeers();
-  c.start();
-  return 0;
+	do_tid_check = false;
+	star::Coordinator c(FLAGS_id, db, context);
+	c.connectToPeers();
+	c.start();
+	return 0;
 }

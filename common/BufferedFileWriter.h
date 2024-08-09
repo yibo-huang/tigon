@@ -12,76 +12,78 @@
 #include <stdio.h>
 
 class BufferedFileWriter {
+    public:
+	BufferedFileWriter(const char *filename, std::size_t emulated_persist_latency = 0)
+		: emulated_persist_latency(emulated_persist_latency)
+	{
+		fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		CHECK(fd >= 0);
+		bytes_total = 0;
+	}
 
-public:
-  BufferedFileWriter(const char *filename, std::size_t emulated_persist_latency = 0) 
-    : emulated_persist_latency(emulated_persist_latency) {
-    fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC,
-              S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    CHECK(fd >= 0);
-    bytes_total = 0;
-  }
+	void write(const char *str, long size)
+	{
+		if (bytes_total + size < BUFFER_SIZE) {
+			memcpy(buffer + bytes_total, str, size);
+			bytes_total += size;
+			return;
+		}
 
-  void write(const char *str, long size) {
+		auto copy_size = BUFFER_SIZE - bytes_total;
 
-    if (bytes_total + size < BUFFER_SIZE) {
-      memcpy(buffer + bytes_total, str, size);
-      bytes_total += size;
-      return;
-    }
+		memcpy(buffer + bytes_total, str, copy_size);
+		bytes_total += copy_size;
+		flush();
 
-    auto copy_size = BUFFER_SIZE - bytes_total;
+		str += copy_size;
+		size -= copy_size;
 
-    memcpy(buffer + bytes_total, str, copy_size);
-    bytes_total += copy_size;
-    flush();
+		if (size >= BUFFER_SIZE) {
+			int err = ::write(fd, str, size);
+			CHECK(err >= 0);
+			bytes_total = 0;
+		} else {
+			memcpy(buffer, str, size);
+			bytes_total += size;
+		}
+	}
 
-    str += copy_size;
-    size -= copy_size;
+	void flush()
+	{
+		DCHECK(fd >= 0);
+		if (bytes_total > 0) {
+			int err = ::write(fd, buffer, bytes_total);
+			CHECK(err >= 0);
+		}
+		bytes_total = 0;
+	}
 
-    if (size >= BUFFER_SIZE) {
-      int err = ::write(fd, str, size);
-      CHECK(err >= 0);
-      bytes_total = 0;
-    } else {
-      memcpy(buffer, str, size);
-      bytes_total += size;
-    }
-  }
+	void sync()
+	{
+		flush();
+		DCHECK(fd >= 0);
+		int err = 0;
+		if (emulated_persist_latency != 0) {
+			std::this_thread::sleep_for(std::chrono::microseconds(emulated_persist_latency));
+		} else {
+			err = fdatasync(fd);
+		}
+		CHECK(err == 0);
+	}
 
-  void flush() {
-    DCHECK(fd >= 0);
-    if (bytes_total > 0) {
-      int err = ::write(fd, buffer, bytes_total);
-      CHECK(err >= 0);
-    }
-    bytes_total = 0;
-  }
+	void close()
+	{
+		flush();
+		int err = ::close(fd);
+		CHECK(err == 0);
+	}
 
-  void sync() {
-    flush();
-    DCHECK(fd >= 0);
-    int err = 0;
-    if (emulated_persist_latency != 0) {
-      std::this_thread::sleep_for(std::chrono::microseconds(emulated_persist_latency));
-    } else {
-      err = fdatasync(fd);
-    }
-    CHECK(err == 0);
-  }
+    public:
+	static constexpr uint32_t BUFFER_SIZE = 1024 * 1024 * 4; // 4MB
 
-  void close() {
-    flush();
-    int err = ::close(fd);
-    CHECK(err == 0);
-  }
-
-public:
-  static constexpr uint32_t BUFFER_SIZE = 1024 * 1024 * 4; // 4MB
-
-private:
-  int fd;
-  char buffer[BUFFER_SIZE];
-  std::size_t bytes_total;
-  std::size_t emulated_persist_latency;
+    private:
+	int fd;
+	char buffer[BUFFER_SIZE];
+	std::size_t bytes_total;
+	std::size_t emulated_persist_latency;
 };

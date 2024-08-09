@@ -6,14 +6,22 @@
 
 #include <functional>
 
-namespace star {
+namespace star
+{
 
 class DeferCode {
-public:
-    DeferCode(std::function<void()> f_):f(f_){}
-    ~DeferCode() { f(); }
-private:
-    std::function<void()> f;
+    public:
+	DeferCode(std::function<void()> f_)
+		: f(f_)
+	{
+	}
+	~DeferCode()
+	{
+		f();
+	}
+
+    private:
+	std::function<void()> f;
 };
 
 } // namespace star

@@ -6,9 +6,13 @@
 
 #include <cstddef>
 
-namespace star {
+namespace star
+{
 template <class T> class ClassOf {
-public:
-  static constexpr std::size_t size() { return sizeof(T); }
+    public:
+	static constexpr std::size_t size()
+	{
+		return sizeof(T);
+	}
 };
 } // namespace star

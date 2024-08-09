@@ -10,63 +10,87 @@
 #include "Serialization.h"
 #include "StringPiece.h"
 
-namespace star {
+namespace star
+{
 class Encoder {
-public:
-  Encoder(std::string &bytes) : bytes(bytes) {}
+    public:
+	Encoder(std::string &bytes)
+		: bytes(bytes)
+	{
+	}
 
-  template <class T> friend Encoder &operator<<(Encoder &enc, const T &rhs);
+	template <class T> friend Encoder &operator<<(Encoder &enc, const T &rhs);
 
-  StringPiece toStringPiece() {
-    return StringPiece(bytes.data(), bytes.size());
-  }
+	StringPiece toStringPiece()
+	{
+		return StringPiece(bytes.data(), bytes.size());
+	}
 
-  void write_n_bytes(const void *ptr, std::size_t size) {
-    bytes.append(static_cast<const char *>(ptr), size);
-  }
+	void write_n_bytes(const void *ptr, std::size_t size)
+	{
+		bytes.append(static_cast<const char *>(ptr), size);
+	}
 
-  std::size_t size() { return bytes.size(); }
+	std::size_t size()
+	{
+		return bytes.size();
+	}
 
-  void replace_bytes_range(std::size_t offset, const void * ptr, std::size_t size) {
-    memcpy(&bytes[0] + offset, ptr, size);
-  }
-private:
-  std::string &bytes;
+	void replace_bytes_range(std::size_t offset, const void *ptr, std::size_t size)
+	{
+		memcpy(&bytes[0] + offset, ptr, size);
+	}
+
+    private:
+	std::string &bytes;
 };
 
-template <class T> Encoder &operator<<(Encoder &enc, const T &rhs) {
-  Serializer<T> serializer;
-  enc.bytes += serializer(rhs);
-  return enc;
+template <class T> Encoder &operator<<(Encoder &enc, const T &rhs)
+{
+	Serializer<T> serializer;
+	enc.bytes += serializer(rhs);
+	return enc;
 }
 
 class Decoder {
-public:
-  Decoder(StringPiece bytes) : bytes(bytes) {}
+    public:
+	Decoder(StringPiece bytes)
+		: bytes(bytes)
+	{
+	}
 
-  template <class T> friend Decoder &operator>>(Decoder &dec, T &rhs);
+	template <class T> friend Decoder &operator>>(Decoder &dec, T &rhs);
 
-  void read_n_bytes(void *ptr, std::size_t size) {
-    DCHECK(bytes.size() >= size);
-    std::memcpy(ptr, bytes.data(), size);
-    bytes.remove_prefix(size);
-  }
+	void read_n_bytes(void *ptr, std::size_t size)
+	{
+		DCHECK(bytes.size() >= size);
+		std::memcpy(ptr, bytes.data(), size);
+		bytes.remove_prefix(size);
+	}
 
-  void remove_prefix(std::size_t size) {
-    bytes.remove_prefix(size);
-  }
+	void remove_prefix(std::size_t size)
+	{
+		bytes.remove_prefix(size);
+	}
 
-  const char * get_raw_ptr() { return bytes.data(); }
+	const char *get_raw_ptr()
+	{
+		return bytes.data();
+	}
 
-  std::size_t size() { return bytes.size(); }
+	std::size_t size()
+	{
+		return bytes.size();
+	}
 
-  StringPiece bytes;
+	StringPiece bytes;
 };
 
-template <class T> Decoder &operator>>(Decoder &dec, T &rhs) {
-  Deserializer<T> deserializer;
-  std::size_t size = deserializer(dec.bytes, rhs);
-  dec.bytes.remove_prefix(size);
-  return dec;
+template <class T> Decoder &operator>>(Decoder &dec, T &rhs)
+{
+	Deserializer<T> deserializer;
+	std::size_t size = deserializer(dec.bytes, rhs);
+	dec.bytes.remove_prefix(size);
+	return dec;
 }
 } // namespace star

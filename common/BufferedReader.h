@@ -9,134 +9,141 @@
 
 #include <glog/logging.h>
 
-namespace star {
+namespace star
+{
 class BufferedReader {
-public:
-  BufferedReader(Socket &socket)
-      : socket(&socket), bytes_read(0), bytes_total(0) {}
+    public:
+	BufferedReader(Socket &socket)
+		: socket(&socket)
+		, bytes_read(0)
+		, bytes_total(0)
+	{
+	}
 
-  // BufferedReader is not copyable
-  BufferedReader(const BufferedReader &) = delete;
+	// BufferedReader is not copyable
+	BufferedReader(const BufferedReader &) = delete;
 
-  BufferedReader &operator=(const BufferedReader &) = delete;
+	BufferedReader &operator=(const BufferedReader &) = delete;
 
-  // BufferedReader is movable
+	// BufferedReader is movable
 
-  BufferedReader(BufferedReader &&that)
-      : socket(that.socket), bytes_read(that.bytes_read),
-        bytes_total(that.bytes_total) {
-    that.socket = nullptr;
-    that.bytes_read = 0;
-    that.bytes_total = 0;
-  }
+	BufferedReader(BufferedReader &&that)
+		: socket(that.socket)
+		, bytes_read(that.bytes_read)
+		, bytes_total(that.bytes_total)
+	{
+		that.socket = nullptr;
+		that.bytes_read = 0;
+		that.bytes_total = 0;
+	}
 
-  BufferedReader &operator=(BufferedReader &&that) {
-    socket = that.socket;
-    bytes_read = that.bytes_read;
-    bytes_total = that.bytes_total;
+	BufferedReader &operator=(BufferedReader &&that)
+	{
+		socket = that.socket;
+		bytes_read = that.bytes_read;
+		bytes_total = that.bytes_total;
 
-    that.socket = nullptr;
-    that.bytes_read = 0;
-    that.bytes_total = 0;
-    return *this;
-  }
+		that.socket = nullptr;
+		that.bytes_read = 0;
+		that.bytes_total = 0;
+		return *this;
+	}
 
-  std::unique_ptr<Message> next_message() {
-    DCHECK(socket != nullptr);
+	std::unique_ptr<Message> next_message()
+	{
+		DCHECK(socket != nullptr);
 
-    fetch_message();
-    if (!has_message()) {
-      return nullptr;
-    }
+		fetch_message();
+		if (!has_message()) {
+			return nullptr;
+		}
 
-    // read header and deadbeef;
-    auto header =
-        *reinterpret_cast<Message::header_type *>(buffer + bytes_read);
-    auto deadbeef = *reinterpret_cast<Message::deadbeef_type *>(
-        buffer + bytes_read + sizeof(header));
+		// read header and deadbeef;
+		auto header = *reinterpret_cast<Message::header_type *>(buffer + bytes_read);
+		auto deadbeef = *reinterpret_cast<Message::deadbeef_type *>(buffer + bytes_read + sizeof(header));
 
-    // check deadbeaf
-    DCHECK(deadbeef == Message::DEADBEEF);
-    auto message = std::make_unique<Message>();
-    auto length = Message::get_message_length(header);
-    message->resize(length);
+		// check deadbeaf
+		DCHECK(deadbeef == Message::DEADBEEF);
+		auto message = std::make_unique<Message>();
+		auto length = Message::get_message_length(header);
+		message->resize(length);
 
-    // copy the data
-    DCHECK(bytes_read + length <= bytes_total);
-    std::memcpy(message->get_raw_ptr(), buffer + bytes_read, length);
-    bytes_read += length;
-    DCHECK(bytes_read <= bytes_total);
+		// copy the data
+		DCHECK(bytes_read + length <= bytes_total);
+		std::memcpy(message->get_raw_ptr(), buffer + bytes_read, length);
+		bytes_read += length;
+		DCHECK(bytes_read <= bytes_total);
 
-    return message;
-  }
-  
-  std::size_t get_read_call_cnt() {
-    return read_calls;
-  }
-private:
-  void fetch_message() {
-    DCHECK(socket != nullptr);
+		return message;
+	}
 
-    // return if there is a message left
-    if (has_message()) {
-      return;
-    }
+	std::size_t get_read_call_cnt()
+	{
+		return read_calls;
+	}
 
-    // copy left bytes
-    DCHECK(bytes_read <= bytes_total);
-    auto bytes_left = bytes_total - bytes_read;
-    bytes_total = 0;
+    private:
+	void fetch_message()
+	{
+		DCHECK(socket != nullptr);
 
-    if (bytes_left > 0 && bytes_read > 0) {
+		// return if there is a message left
+		if (has_message()) {
+			return;
+		}
 
-      if (bytes_left <= bytes_read) { // non overlapping
-        std::memcpy(buffer, buffer + bytes_read, bytes_left);
-      } else {
-        for (auto i = 0u; i < bytes_left; i++) {
-          buffer[i] = buffer[i + bytes_read];
-        }
-      }
-    }
-    bytes_total += bytes_left;
-    bytes_read = 0;
+		// copy left bytes
+		DCHECK(bytes_read <= bytes_total);
+		auto bytes_left = bytes_total - bytes_read;
+		bytes_total = 0;
 
-    // read new message
+		if (bytes_left > 0 && bytes_read > 0) {
+			if (bytes_left <= bytes_read) { // non overlapping
+				std::memcpy(buffer, buffer + bytes_read, bytes_left);
+			} else {
+				for (auto i = 0u; i < bytes_left; i++) {
+					buffer[i] = buffer[i + bytes_read];
+				}
+			}
+		}
+		bytes_total += bytes_left;
+		bytes_read = 0;
 
-    auto bytes_received =
-        socket->read_async(buffer + bytes_total, BUFFER_SIZE - bytes_total);
-    read_calls++;
-    if (bytes_received > 0) {
-      // successful read
-      bytes_total += bytes_received;
-    }
-  }
+		// read new message
 
-  bool has_message() {
-    // check if the buffer has a message header
-    if (bytes_read + Message::get_prefix_size() > bytes_total) {
-      return false;
-    }
+		auto bytes_received = socket->read_async(buffer + bytes_total, BUFFER_SIZE - bytes_total);
+		read_calls++;
+		if (bytes_received > 0) {
+			// successful read
+			bytes_total += bytes_received;
+		}
+	}
 
-    // read header and deadbeef;
-    auto header =
-        *reinterpret_cast<Message::header_type *>(buffer + bytes_read);
-    auto deadbeef = *reinterpret_cast<Message::deadbeef_type *>(
-        buffer + bytes_read + sizeof(header));
+	bool has_message()
+	{
+		// check if the buffer has a message header
+		if (bytes_read + Message::get_prefix_size() > bytes_total) {
+			return false;
+		}
 
-    // check deadbeaf
-    DCHECK(deadbeef == Message::DEADBEEF);
+		// read header and deadbeef;
+		auto header = *reinterpret_cast<Message::header_type *>(buffer + bytes_read);
+		auto deadbeef = *reinterpret_cast<Message::deadbeef_type *>(buffer + bytes_read + sizeof(header));
 
-    // check if the buffer has a message
-    return bytes_read + Message::get_message_length(header) <= bytes_total;
-  }
+		// check deadbeaf
+		DCHECK(deadbeef == Message::DEADBEEF);
 
-public:
-  static constexpr uint32_t BUFFER_SIZE = 1024 * 1024 * 4; // 4MB
+		// check if the buffer has a message
+		return bytes_read + Message::get_message_length(header) <= bytes_total;
+	}
 
-private:
-  Socket *socket;
-  char buffer[BUFFER_SIZE];
-  std::size_t bytes_read, bytes_total;
-  std::size_t read_calls = 0;
+    public:
+	static constexpr uint32_t BUFFER_SIZE = 1024 * 1024 * 4; // 4MB
+
+    private:
+	Socket *socket;
+	char buffer[BUFFER_SIZE];
+	std::size_t bytes_read, bytes_total;
+	std::size_t read_calls = 0;
 };
 } // namespace star

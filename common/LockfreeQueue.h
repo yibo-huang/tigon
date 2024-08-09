@@ -7,7 +7,8 @@
 #include "glog/logging.h"
 #include <boost/lockfree/spsc_queue.hpp>
 
-namespace star {
+namespace star
+{
 
 /*
  * boost::lockfree::spsc_queue does not support move only objects, e.g.,
@@ -20,31 +21,36 @@ namespace star {
  *
  */
 
-template <class T, std::size_t N = 102400>
-class LockfreeQueue
-    : public boost::lockfree::spsc_queue<T, boost::lockfree::capacity<N>> {
-public:
-  using element_type = T;
-  using base_type =
-      boost::lockfree::spsc_queue<T, boost::lockfree::capacity<N>>;
+template <class T, std::size_t N = 102400> class LockfreeQueue : public boost::lockfree::spsc_queue<T, boost::lockfree::capacity<N> > {
+    public:
+	using element_type = T;
+	using base_type = boost::lockfree::spsc_queue<T, boost::lockfree::capacity<N> >;
 
-  void push(const T &value) {
-    while (base_type::write_available() == 0) {
-      nop_pause();
-    }
-    bool ok = base_type::push(value);
-    CHECK(ok);
-  }
+	void push(const T &value)
+	{
+		while (base_type::write_available() == 0) {
+			nop_pause();
+		}
+		bool ok = base_type::push(value);
+		CHECK(ok);
+	}
 
-  void wait_till_non_empty() {
-    while (base_type::empty()) {
-      nop_pause();
-    }
-  }
+	void wait_till_non_empty()
+	{
+		while (base_type::empty()) {
+			nop_pause();
+		}
+	}
 
-  auto capacity() { return N; }
+	auto capacity()
+	{
+		return N;
+	}
 
-private:
-  void nop_pause() { __asm volatile("pause" : :); }
+    private:
+	void nop_pause()
+	{
+		__asm volatile("pause" : :);
+	}
 };
 } // namespace star
