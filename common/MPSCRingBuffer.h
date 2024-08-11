@@ -16,8 +16,8 @@ namespace star
 
 class MPSCRingBuffer {
     public:
-        static constexpr uint64_t entry_size = 8192;
-        static constexpr uint64_t entry_data_size = entry_size - 9;
+        static constexpr uint64_t entry_struct_size = 8192;
+        static constexpr uint64_t entry_data_size = entry_struct_size - 9;
 
         struct Entry {
                 uint32_t remaining_size;
@@ -34,7 +34,7 @@ class MPSCRingBuffer {
         {
                 int i = 0;
 
-                DCHECK(entry_size == sizeof(Entry));
+                DCHECK(entry_struct_size == sizeof(Entry));
                 entries = reinterpret_cast<Entry *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(Entry) * entry_num));
                 for (i = 0; i < entry_num; i++) {
                         entries[i].is_ready = 0;
