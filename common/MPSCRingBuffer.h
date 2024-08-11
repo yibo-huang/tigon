@@ -17,12 +17,13 @@ namespace star
 class MPSCRingBuffer {
     public:
         static constexpr uint64_t entry_size = 8192;
+        static constexpr uint64_t entry_data_size = entry_size - 9;
 
         struct Entry {
+                uint32_t remaining_size;
+                uint32_t dequeue_offset;
                 std::atomic<uint8_t> is_ready;
-                uint64_t remaining_size;
-                uint64_t dequeue_offset;
-                uint8_t data[entry_size];
+                uint8_t data[entry_data_size];
         };
 
         MPSCRingBuffer(uint64_t entry_num)
@@ -33,12 +34,13 @@ class MPSCRingBuffer {
         {
                 int i = 0;
 
+                DCHECK(entry_size == sizeof(Entry));
                 entries = reinterpret_cast<Entry *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(Entry) * entry_num));
                 for (i = 0; i < entry_num; i++) {
                         entries[i].is_ready = 0;
                         entries[i].remaining_size = 0;
                         entries[i].dequeue_offset = 0;
-                        memset(entries[i].data, 0, entry_size);
+                        memset(entries[i].data, 0, entry_data_size);
                 }
         }
 
@@ -49,7 +51,7 @@ class MPSCRingBuffer {
 
         uint64_t get_entry_size()
         {
-                return entry_size;
+                return entry_data_size;
         }
 
         uint64_t size()
@@ -68,7 +70,7 @@ class MPSCRingBuffer {
         {
                 uint64_t cur_count = 0, cur_tail = 0;
 
-                DCHECK(data_size <= entry_size);
+                DCHECK(data_size <= entry_data_size);
 
                 /* try to gain access to the queue */
                 cur_count = std::atomic_fetch_add_explicit(&count, 1, std::memory_order_acquire);
