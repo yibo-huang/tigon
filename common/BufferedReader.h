@@ -106,7 +106,7 @@ class BufferedReader {
 				}
 			}
 		}
-		bytes_total += bytes_left;
+		bytes_total = bytes_left;
 		bytes_read = 0;
 
 		// read new message
