@@ -13,8 +13,8 @@ function print_usage {
         echo "KILL: None"
         echo "COMPILE_SYNC: HOST_NUM"
         echo "CI: HOST_NUM"
-        echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS"
-        echo "YCSB: PROTOCOL HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS"
+        echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
+        echo "YCSB: PROTOCOL HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
 }
 
 function kill_prev_exps {
@@ -73,6 +73,7 @@ function run_exp_tpcc {
         typeset REMOTE_NEWORDER_PERC=$4
         typeset REMOTE_PAYMENT_PERC=$5
         typeset USE_CXL_TRANS=$6
+        typeset CXL_TRANS_ENTRY_NUM=$7
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -90,7 +91,7 @@ function run_exp_tpcc {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -100,7 +101,7 @@ function run_exp_tpcc {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "Lotus" ]; then
@@ -112,7 +113,7 @@ function run_exp_tpcc {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=HStore --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -122,7 +123,7 @@ function run_exp_tpcc {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=HStore --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "Calvin" ]; then
@@ -134,7 +135,7 @@ function run_exp_tpcc {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=20
-                                --use_cxl_transport=$USE_CXL_TRANS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=Calvin --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -144,7 +145,7 @@ function run_exp_tpcc {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=20
-                        --use_cxl_transport=$USE_CXL_TRANS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Calvin --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         else
@@ -164,6 +165,7 @@ function run_exp_ycsb {
         typeset ZIPF_THETA=$5
         typeset CROSS_RATIO=$6
         typeset USE_CXL_TRANS=$7
+        typeset CXL_TRANS_ENTRY_NUM=$8
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -181,7 +183,7 @@ function run_exp_ycsb {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -191,7 +193,7 @@ function run_exp_ycsb {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "Lotus" ]; then
@@ -203,7 +205,7 @@ function run_exp_ycsb {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=HStore --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -213,7 +215,7 @@ function run_exp_ycsb {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=HStore --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "Calvin" ]; then
@@ -225,7 +227,7 @@ function run_exp_ycsb {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1200
-                                --use_cxl_transport=$USE_CXL_TRANS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=Calvin --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -235,7 +237,7 @@ function run_exp_ycsb {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1200
-                        --use_cxl_transport=$USE_CXL_TRANS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Calvin --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         else
@@ -256,7 +258,7 @@ fi
 typeset RUN_TYPE=$1
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 7 ]; then
+        if [ $# != 8 ]; then
                 print_usage
                 exit -1
         fi
@@ -267,14 +269,15 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset REMOTE_NEWORDER_PERC=$5
         typeset REMOTE_PAYMENT_PERC=$6
         typeset USE_CXL_TRANS=$7
+        typeset CXL_TRANS_ENTRY_NUM=$8
 
         typeset i=0
 
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM
 
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 8 ]; then
+        if [ $# != 9 ]; then
                 print_usage
                 exit -1
         fi
@@ -286,10 +289,11 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset ZIPF_THETA=$6
         typeset CROSS_RATIO=$7
         typeset USE_CXL_TRANS=$8
+        typeset CXL_TRANS_ENTRY_NUM=$9
 
         typeset i=0
 
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM
 
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
@@ -329,13 +333,13 @@ elif [ $RUN_TYPE = "CI" ]; then
 
         typeset HOST_NUM=$2
 
-        run_exp_tpcc Sundial $HOST_NUM 2 10 15 true
-        run_exp_tpcc Lotus $HOST_NUM 2 10 15 true
-        run_exp_tpcc Calvin $HOST_NUM 2 10 15 true
+        run_exp_tpcc Sundial $HOST_NUM 2 10 15 true 4096
+        run_exp_tpcc Lotus $HOST_NUM 2 10 15 true 4096
+        run_exp_tpcc Calvin $HOST_NUM 2 10 15 true 4096
 
-        run_exp_ycsb Sundial $HOST_NUM 2 50 0 10 true
-        run_exp_ycsb Lotus $HOST_NUM 2 50 0 10 true
-        run_exp_ycsb Calvin $HOST_NUM 2 50 0 10 true
+        run_exp_ycsb Sundial $HOST_NUM 2 50 0 10 true 4096
+        run_exp_ycsb Lotus $HOST_NUM 2 50 0 10 true 4096
+        run_exp_ycsb Calvin $HOST_NUM 2 50 0 10 true 4096
 
         exit 0
 else

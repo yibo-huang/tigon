@@ -70,6 +70,7 @@ DEFINE_int32(sender_group_nop_count, 40000, "# nop insts to executes during TCP 
 DEFINE_int32(granule_count, 1, "# granules in a partition");
 DEFINE_bool(hstore_active_active, false, "H-Store style active-active replication");
 DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network transport");
+DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer");
 
 #define SETUP_CONTEXT(context)                                                        \
 	boost::algorithm::split(context.peers, FLAGS_servers, boost::is_any_of(";")); \
@@ -124,4 +125,5 @@ DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network tran
 	context.lotus_checkpoint_location = FLAGS_lotus_checkpoint_location;          \
 	context.hstore_active_active = FLAGS_hstore_active_active;                    \
         context.use_cxl_transport = FLAGS_use_cxl_transport;                          \
+        context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                      \
 	context.set_star_partitioner();
