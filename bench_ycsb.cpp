@@ -20,6 +20,13 @@ DEFINE_int64(n_nop, 0, "total number of nop");
 
 bool do_tid_check = false;
 
+void check_context(star::ycsb::Context &context)
+{
+        // CXL transport supports single consumer only
+        if (context.use_cxl_transport == true)
+                DCHECK(context.io_thread_num == 1);
+}
+
 int main(int argc, char *argv[])
 {
 	google::InitGoogleLogging(argv[0]);
@@ -82,6 +89,8 @@ int main(int argc, char *argv[])
 		}
 		LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
 	}
+
+        check_context(context);
 
 	star::ycsb::Database db;
 	db.initialize(context);
