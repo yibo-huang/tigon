@@ -126,10 +126,10 @@ class Coordinator {
 		std::vector<std::thread> iDispatcherThreads, oDispatcherThreads;
 
 		for (auto i = 0u; i < context.io_thread_num; i++) {
-			iDispatchers[i] = std::make_unique<IncomingDispatcher>(id, i, context.io_thread_num, inSockets[i], workers, in_queue, out_to_in_queue,
-									       ioStopFlag, context);
-			oDispatchers[i] = std::make_unique<OutgoingDispatcher>(id, i, context.io_thread_num, outSockets[i], workers, out_queue, out_to_in_queue,
-									       ioStopFlag, context);
+			iDispatchers[i] = std::make_unique<IncomingDispatcher>(id, i, context.io_thread_num, inSockets[i], cxl_ringbuffers, workers, in_queue, 
+                                                                               out_to_in_queue, ioStopFlag, context);
+			oDispatchers[i] = std::make_unique<OutgoingDispatcher>(id, i, context.io_thread_num, outSockets[i], cxl_ringbuffers, workers, out_queue, 
+                                                                               out_to_in_queue, ioStopFlag, context);
 
 			iDispatcherThreads.emplace_back(&IncomingDispatcher::start, iDispatchers[i].get());
 			oDispatcherThreads.emplace_back(&OutgoingDispatcher::start, oDispatchers[i].get());
@@ -283,9 +283,8 @@ class Coordinator {
 
                 if (id == 0) {
                         cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(MPSCRingBuffer) * coordinator_num));
-                        for (i = 0; i < coordinator_num; i++) {
-                                new(&cxl_ringbuffers[i]) MPSCRingBuffer(1024, 4096);
-                        }
+                        for (i = 0; i < coordinator_num; i++)
+                                new(&cxl_ringbuffers[i]) MPSCRingBuffer(4096);
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_transport_root_index, cxl_ringbuffers);
                         LOG(INFO) << "Coordinator " << id << " initializes CXL transport metadata ("
                                 << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "

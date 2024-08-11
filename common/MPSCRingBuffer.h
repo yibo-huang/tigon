@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "CXLMemory.h"
+#include "common/Message.h"
+#include "common/CXLMemory.h"
 #include <boost/interprocess/offset_ptr.hpp>
 #include <stddef.h>
 #include <atomic>
@@ -15,27 +16,26 @@ namespace star
 
 class MPSCRingBuffer {
     public:
-        static constexpr uint64_t max_entry_num = 4096;
+        static constexpr uint64_t entry_size = 8192;
 
         struct Entry {
                 std::atomic<uint8_t> is_ready;
                 uint64_t remaining_size;
                 uint64_t dequeue_offset;
-                uint8_t data[];
+                uint8_t data[entry_size];
         };
 
-        MPSCRingBuffer(uint64_t entry_size, uint64_t entry_num)
-                : entry_size(entry_size)
-                , entry_num(entry_num)
+        MPSCRingBuffer(uint64_t entry_num)
+                : entry_num(entry_num)
                 , head(0)
                 , tail(0)
                 , count(0)
         {
                 int i = 0;
 
-                entries = reinterpret_cast<Entry *>(CXLMemory::cxlalloc_malloc_wrapper((entry_size + 17) * entry_num));
+                entries = reinterpret_cast<Entry *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(Entry) * entry_num));
                 for (i = 0; i < entry_num; i++) {
-                        entries[i].is_ready = false;
+                        entries[i].is_ready = 0;
                         entries[i].remaining_size = 0;
                         entries[i].dequeue_offset = 0;
                         memset(entries[i].data, 0, entry_size);
@@ -107,7 +107,7 @@ class MPSCRingBuffer {
                 cur_head = head.load(std::memory_order_acquire);
 
                 /* wait for the entry to be ready */
-                while (entries[cur_head].is_ready.load(std::memory_order_acquire) != true);
+                while (entries[cur_head].is_ready.load(std::memory_order_acquire) != 1);
 
                 /* only dequeue part of the data if the buffer is not large enough */
                 if (buffer_size < entries[cur_head].remaining_size)
@@ -115,8 +115,11 @@ class MPSCRingBuffer {
                 else
                         dequeue_size = entries[cur_head].remaining_size;
 
+                /* partial dequeue is not supported for now */
+                DCHECK(dequeue_size == entries[cur_head].remaining_size);
+
                 /* memcpy the data to the user-provided buffer and update the metadata */
-                memcpy(data_buffer, &entries[cur_head].data, dequeue_size);
+                memcpy(data_buffer, entries[cur_head].data, dequeue_size);
                 entries[cur_head].dequeue_offset += dequeue_size;
                 entries[cur_head].remaining_size -= dequeue_size;
 
@@ -137,11 +140,26 @@ class MPSCRingBuffer {
                 return dequeue_size;
         }
 
-        // uint64_t send(char *data, uint64_t data_size);
-        // uint64_t recv(char *buffer, uint64_t buffer_size);
+        uint64_t send(char *data, uint64_t data_size)
+        {
+                while (enqueue(data, data_size) != true);
+                return data_size;
+        }
+
+        uint64_t recv(char *buffer, uint64_t buffer_size)
+        {
+                uint64_t available_entries = size();
+                uint64_t data_size = 0;
+                int i = 0;
+
+                if (available_entries == 0)
+                        return 0;
+
+                data_size = dequeue(buffer, buffer_size);
+                return data_size;
+        }
 
     private:
-        uint64_t entry_size;
         uint64_t entry_num;
 
         std::atomic<uint64_t> head;

@@ -9,6 +9,7 @@
 #include "common/LockfreeQueue.h"
 #include "common/Message.h"
 #include "common/Socket.h"
+#include "common/MPSCRingBuffer.h"
 #include "core/ControlMessage.h"
 #include "core/Worker.h"
 #include <atomic>
@@ -21,7 +22,7 @@ namespace star
 class IncomingDispatcher {
     public:
 	IncomingDispatcher(std::size_t cid, std::size_t group_id, std::size_t io_thread_num, std::vector<Socket> &sockets,
-			   const std::vector<std::shared_ptr<Worker> > &workers, LockfreeQueue<Message *> &coordinator_queue,
+			   MPSCRingBuffer *cxl_ringbuffers, const std::vector<std::shared_ptr<Worker> > &workers, LockfreeQueue<Message *> &coordinator_queue,
 			   LockfreeQueue<Message *> &out_to_in_queue, std::atomic<bool> &stopFlag, Context context)
 		: coord_id(cid)
 		, group_id(group_id)
@@ -34,14 +35,17 @@ class IncomingDispatcher {
 		, context(context)
 	{
 		LOG(INFO) << "IncomingDispatcher " << group_id << " coord_id " << coord_id;
-		for (auto i = 0u; i < sockets.size(); i++) {
-			buffered_readers.emplace_back(sockets[i]);
-		}
+
+                if (context.use_cxl_transport == false)
+                        for (auto i = 0u; i < sockets.size(); i++)
+                                buffered_readers.emplace_back(sockets[i]);
+                else
+                        buffered_readers.emplace_back(cxl_ringbuffers[coord_id]);
 	}
 
 	void start()
 	{
-		auto numCoordinators = buffered_readers.size();
+		auto numCoordinators = context.coordinator_num;
 		auto numWorkers = context.worker_num;
 
 		// single node test mode
@@ -94,7 +98,7 @@ class IncomingDispatcher {
 					continue;
 				}
 				auto message_get_start = std::chrono::steady_clock::now();
-				auto message = buffered_readers[i].next_message();
+				auto message = fetchMessageFromCoordinator(i);
 
 				if (message == nullptr) {
 					// process_internal_message_tranfer();
@@ -159,9 +163,16 @@ class IncomingDispatcher {
 		return (*(message->begin())).get_message_type() == static_cast<uint32_t>(ControlMessage::STATISTICS);
 	}
 
-	std::unique_ptr<Message> fetchMessage(Socket &socket)
+	std::unique_ptr<Message> fetchMessageFromCoordinator(uint64_t remote_coordinator_id)
 	{
-		return nullptr;
+		std::unique_ptr<Message> message = NULL;
+
+                if (context.use_cxl_transport == false)
+                        message = buffered_readers[remote_coordinator_id].next_message();
+                else
+                        message = buffered_readers[0].next_message();
+
+                return message;
 	}
 
     private:
@@ -182,13 +193,14 @@ class IncomingDispatcher {
 class OutgoingDispatcher {
     public:
 	OutgoingDispatcher(std::size_t coord_id, std::size_t group_id, std::size_t io_thread_num, std::vector<Socket> &sockets,
-			   const std::vector<std::shared_ptr<Worker> > &workers, LockfreeQueue<Message *> &coordinator_queue,
+			   MPSCRingBuffer *cxl_ringbuffers, const std::vector<std::shared_ptr<Worker> > &workers, LockfreeQueue<Message *> &coordinator_queue,
 			   LockfreeQueue<Message *> &out_to_in_queue, std::atomic<bool> &stopFlag, Context context)
 		: coordinator_id(coord_id)
 		, group_id(group_id)
 		, io_thread_num(io_thread_num)
 		, network_size(0)
 		, sockets(sockets)
+                , cxl_ringbuffers(cxl_ringbuffers)
 		, workers(workers)
 		, coordinator_queue(coordinator_queue)
 		, out_to_in_queue(out_to_in_queue)
@@ -279,7 +291,16 @@ class OutgoingDispatcher {
 		DCHECK(dest_node_id >= 0 && dest_node_id < sockets.size() && dest_node_id != coordinator_id);
 		// DCHECK(message->get_message_length() == message->data.length());
 		auto message_length = message->get_message_length();
-		sockets[dest_node_id].write_n_bytes(message->get_raw_ptr(), message_length);
+
+                // CXL transport or network transport
+                if (context.use_cxl_transport == false) {
+		        sockets[dest_node_id].write_n_bytes(message->get_raw_ptr(), message_length);
+                } else {
+                        uint64_t bytes_sent = 0;
+                        bytes_sent = cxl_ringbuffers[dest_node_id].send(message->get_raw_ptr(), message_length);
+                        DCHECK(bytes_sent == message_length);
+                }
+
 		if (message->get_message_gen_time())
 			message_send_latency.add(
 				std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::steady_clock::now()).time_since_epoch().count() -
@@ -393,7 +414,8 @@ class OutgoingDispatcher {
 	std::size_t sendto_cnt = 0;
 	Percentile<std::size_t> network_msg_group_size;
 	std::size_t internal_network_msg_cnt = 0;
-	std::vector<Socket> &sockets;
+	std::vector<Socket> &sockets;           // network transport
+        MPSCRingBuffer *cxl_ringbuffers;        // CXL transport
 	std::vector<std::shared_ptr<Worker> > workers;
 	LockfreeQueue<Message *> &coordinator_queue;
 	LockfreeQueue<Message *> &out_to_in_queue;

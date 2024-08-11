@@ -93,5 +93,8 @@ class Context {
 	std::string lotus_checkpoint_location;
 	bool hstore_active_active = false;
 	bool lotus_sp_parallel_exec_commit = false;
+
+        // CXL transport
+        bool use_cxl_transport = false;
 };
 } // namespace star

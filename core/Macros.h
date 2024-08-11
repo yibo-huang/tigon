@@ -69,6 +69,7 @@ DEFINE_double(stragglers_zipf_factor, 0, "straggler zipfian factor");
 DEFINE_int32(sender_group_nop_count, 40000, "# nop insts to executes during TCP sender message grouping");
 DEFINE_int32(granule_count, 1, "# granules in a partition");
 DEFINE_bool(hstore_active_active, false, "H-Store style active-active replication");
+DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network transport");
 
 #define SETUP_CONTEXT(context)                                                        \
 	boost::algorithm::split(context.peers, FLAGS_servers, boost::is_any_of(";")); \
@@ -122,4 +123,5 @@ DEFINE_bool(hstore_active_active, false, "H-Store style active-active replicatio
 	context.lotus_checkpoint = FLAGS_lotus_checkpoint;                            \
 	context.lotus_checkpoint_location = FLAGS_lotus_checkpoint_location;          \
 	context.hstore_active_active = FLAGS_hstore_active_active;                    \
+        context.use_cxl_transport = FLAGS_use_cxl_transport;                          \
 	context.set_star_partitioner();

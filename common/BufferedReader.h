@@ -6,6 +6,7 @@
 
 #include "common/Message.h"
 #include "common/Socket.h"
+#include "common/MPSCRingBuffer.h"
 
 #include <glog/logging.h>
 
@@ -14,7 +15,18 @@ namespace star
 class BufferedReader {
     public:
 	BufferedReader(Socket &socket)
-		: socket(&socket)
+		: use_cxl_transport(false)
+                , socket(&socket)
+                , cxl_ringbuffer(nullptr)
+		, bytes_read(0)
+		, bytes_total(0)
+	{
+	}
+
+        BufferedReader(MPSCRingBuffer &cxl_ringbuffer)
+		: use_cxl_transport(true)
+                , socket(nullptr)
+                , cxl_ringbuffer(&cxl_ringbuffer)
 		, bytes_read(0)
 		, bytes_total(0)
 	{
@@ -28,24 +40,33 @@ class BufferedReader {
 	// BufferedReader is movable
 
 	BufferedReader(BufferedReader &&that)
-		: socket(that.socket)
+                : use_cxl_transport(that.use_cxl_transport)
+		, socket(that.socket)
+                , cxl_ringbuffer(that.cxl_ringbuffer)
 		, bytes_read(that.bytes_read)
 		, bytes_total(that.bytes_total)
 	{
+                that.use_cxl_transport = false;
 		that.socket = nullptr;
+                that.cxl_ringbuffer = nullptr;
 		that.bytes_read = 0;
 		that.bytes_total = 0;
 	}
 
 	BufferedReader &operator=(BufferedReader &&that)
 	{
+                use_cxl_transport = that.use_cxl_transport;
 		socket = that.socket;
+                cxl_ringbuffer = that.cxl_ringbuffer;
 		bytes_read = that.bytes_read;
 		bytes_total = that.bytes_total;
 
+		that.use_cxl_transport = false;
 		that.socket = nullptr;
+                that.cxl_ringbuffer = nullptr;
 		that.bytes_read = 0;
 		that.bytes_total = 0;
+
 		return *this;
 	}
 
@@ -110,8 +131,12 @@ class BufferedReader {
 		bytes_read = 0;
 
 		// read new message
+                long bytes_received = 0;
+                if (use_cxl_transport == false)
+		        bytes_received = socket->read_async(buffer + bytes_total, BUFFER_SIZE - bytes_total);
+                else
+                        bytes_received = cxl_ringbuffer->recv(buffer + bytes_total, BUFFER_SIZE - bytes_total);
 
-		auto bytes_received = socket->read_async(buffer + bytes_total, BUFFER_SIZE - bytes_total);
 		read_calls++;
 		if (bytes_received > 0) {
 			// successful read
@@ -141,7 +166,9 @@ class BufferedReader {
 	static constexpr uint32_t BUFFER_SIZE = 1024 * 1024 * 4; // 4MB
 
     private:
+        bool use_cxl_transport;
 	Socket *socket;
+        MPSCRingBuffer *cxl_ringbuffer;
 	char buffer[BUFFER_SIZE];
 	std::size_t bytes_read, bytes_total;
 	std::size_t read_calls = 0;
