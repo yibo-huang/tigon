@@ -29,6 +29,62 @@ static constexpr std::size_t __BASE_COUNTER__ = __COUNTER__ + 1;
 
 DO_STRUCT(warehouse, WAREHOUSE_KEY_FIELDS, WAREHOUSE_VALUE_FIELDS, NAMESPACE_FIELDS)
 
+// example expansion for DO_STRUCT(warehouse, WAREHOUSE_KEY_FIELDS, WAREHOUSE_VALUE_FIELDS, NAMESPACE_FIELDS)
+/*
+namespace star { 
+namespace tpcc { 
+struct warehouse 
+{ 
+        struct key 
+        { 
+                key() = default; 
+                key(int32_t W_ID) : W_ID(W_ID) { } 
+                int32_t W_ID; 
+                bool operator==(const struct key &other) const { if (this->W_ID != other.W_ID) return false; return true; } 
+                bool operator!=(const struct key &other) const { return !operator==(other); } 
+                enum { W_ID_field, NFIELDS }; 
+        }; 
+
+        struct value 
+        { 
+                value() = default; 
+                value(FixedString<10> W_NAME , FixedString<20> W_STREET_1 , FixedString<20> W_STREET_2 , FixedString<20> W_CITY , FixedString<2> W_STATE , FixedString<9> W_ZIP , float W_TAX , float W_YTD) : W_NAME(W_NAME) , W_STREET_1(W_STREET_1) , W_STREET_2(W_STREET_2) , W_CITY(W_CITY) , W_STATE(W_STATE) , W_ZIP(W_ZIP) , W_TAX(W_TAX) , W_YTD(W_YTD) { } 
+                FixedString<10> W_NAME; 
+                FixedString<20> W_STREET_1; 
+                FixedString<20> W_STREET_2; 
+                FixedString<20> W_CITY; 
+                FixedString<2> W_STATE; 
+                FixedString<9> W_ZIP; 
+                float W_TAX; float W_YTD; 
+                bool operator==(const struct value &other) const 
+                { 
+                        if (this->W_NAME != other.W_NAME) return false; 
+                        if (this->W_STREET_1 != other.W_STREET_1) return false; 
+                        if (this->W_STREET_2 != other.W_STREET_2) return false; 
+                        if (this->W_CITY != other.W_CITY) return false; 
+                        if (this->W_STATE != other.W_STATE) return false; 
+                        if (this->W_ZIP != other.W_ZIP) return false; 
+                        if (this->W_TAX != other.W_TAX) return false; 
+                        if (this->W_YTD != other.W_YTD) return false; return true; 
+                } 
+                bool operator!=(const struct value &other) const { return !operator==(other); } 
+                enum { W_NAME_field, W_STREET_1_field, W_STREET_2_field, W_CITY_field, W_STATE_field, W_ZIP_field, W_TAX_field, W_YTD_field, NFIELDS }; 
+        }; 
+
+        static constexpr std::size_t tableID = 24 - __BASE_COUNTER__; 
+}; 
+} 
+} 
+
+namespace std 
+{ 
+        template <> struct hash<star:: tpcc:: warehouse::key> 
+        { 
+                std::size_t operator()(const star:: tpcc:: warehouse::key &k) const { return star::hash(k.W_ID); } 
+        }; 
+}
+*/
+
 #define DISTRICT_KEY_FIELDS(x, y) x(int32_t, D_W_ID) y(int32_t, D_ID)
 #define DISTRICT_VALUE_FIELDS(x, y)                                                                                                                    \
 	x(FixedString<10>, D_NAME) y(FixedString<20>, D_STREET_1) y(FixedString<20>, D_STREET_2) y(FixedString<20>, D_CITY) y(FixedString<2>, D_STATE) \
