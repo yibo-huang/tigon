@@ -17,6 +17,8 @@ class CXLMemory {
         static constexpr uint64_t cxl_transport_root_index = 0;
         static constexpr uint64_t cxl_data_migration_root_index = 1;
 
+        static constexpr uint64_t minimal_cxlalloc_size = 512;
+
         static void init_cxlalloc_for_given_thread(uint64_t threads_num_per_host, uint64_t thread_id, uint64_t hosts_num, uint64_t host_id)
         {
                 cxlalloc_init("SS", default_cxl_mem_size, thread_id + threads_num_per_host * host_id, threads_num_per_host * hosts_num, host_id, hosts_num);
@@ -27,6 +29,9 @@ class CXLMemory {
 
         static void *cxlalloc_malloc_wrapper(uint64_t size)
         {
+                // unfortunately, our allocator has bug
+                if (size < minimal_cxlalloc_size)
+                        size = minimal_cxlalloc_size;
                 return cxlalloc_malloc(size);
         }
 
