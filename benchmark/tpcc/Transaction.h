@@ -187,7 +187,7 @@ template <class Transaction> class NewOrder : public Transaction {
 		}
 
 		t_local_work.reset();
-		float W_TAX = storage->warehouse_value.W_YTD;
+		float W_TAX = storage->warehouse_value.W_TAX;
 
 		float D_TAX = storage->district_value.D_TAX;
 		int32_t D_NEXT_O_ID = storage->district_value.D_NEXT_O_ID;
