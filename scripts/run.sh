@@ -9,12 +9,12 @@ typeset current_date_time="`date +%Y%m%d%H%M`"
 source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
-        echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE] EXP-SPECIFIC"
+        echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE_SYNC/CI] EXP-SPECIFIC"
+        echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
+        echo "YCSB: PROTOCOL HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
         echo "KILL: None"
         echo "COMPILE_SYNC: HOST_NUM"
         echo "CI: HOST_NUM"
-        echo "TPCC: PROTOCOL HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
-        echo "YCSB: PROTOCOL HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
 }
 
 function kill_prev_exps {
@@ -82,7 +82,29 @@ function run_exp_tpcc {
         kill_prev_exps
         init_cxl_for_vms $HOST_NUM
 
-        if [ $PROTOCOL = "Sundial" ]; then
+        if [ $PROTOCOL = "Pasha" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd lotus; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --protocol=Pasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd lotus; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --protocol=Pasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+
+        elif [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
                 for (( i=1; i < $HOST_NUM; ++i ))
                 do
@@ -174,7 +196,29 @@ function run_exp_ycsb {
         kill_prev_exps
         init_cxl_for_vms $HOST_NUM
 
-        if [ $PROTOCOL = "Sundial" ]; then
+        if [ $PROTOCOL = "Pasha" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd lotus; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --protocol=Pasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd lotus; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --protocol=Pasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+
+        elif [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
                 for (( i=1; i < $HOST_NUM; ++i ))
                 do
@@ -333,10 +377,12 @@ elif [ $RUN_TYPE = "CI" ]; then
 
         typeset HOST_NUM=$2
 
+        run_exp_tpcc Pasha $HOST_NUM 2 10 15 true 4096
         run_exp_tpcc Sundial $HOST_NUM 2 10 15 true 4096
         run_exp_tpcc Lotus $HOST_NUM 2 10 15 true 4096
         run_exp_tpcc Calvin $HOST_NUM 2 10 15 true 4096
 
+        run_exp_tpcc Pasha $HOST_NUM 2 10 15 true 4096
         run_exp_ycsb Sundial $HOST_NUM 2 50 0 10 true 4096
         run_exp_ycsb Lotus $HOST_NUM 2 50 0 10 true 4096
         run_exp_ycsb Calvin $HOST_NUM 2 50 0 10 true 4096

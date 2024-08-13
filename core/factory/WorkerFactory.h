@@ -42,6 +42,9 @@
 #include "protocol/Sundial/Sundial.h"
 #include "protocol/Sundial/SundialExecutor.h"
 
+#include "protocol/Pasha/Pasha.h"
+#include "protocol/Pasha/PashaExecutor.h"
+
 #include <unordered_set>
 
 namespace star
@@ -66,7 +69,7 @@ class WorkerFactory {
 	static std::vector<std::shared_ptr<Worker> > create_workers(std::size_t coordinator_id, Database &db, const Context &context,
 								    std::atomic<bool> &stop_flag)
 	{
-		std::unordered_set<std::string> protocols = { "Silo", "SiloGC", "Star", "Sundial", "TwoPL", "TwoPLGC", "Calvin", "HStore", "Aria" };
+		std::unordered_set<std::string> protocols = { "Silo", "SiloGC", "Star", "Sundial", "TwoPL", "TwoPLGC", "Calvin", "HStore", "Aria", "Pasha" };
 		CHECK(protocols.count(context.protocol) == 1);
 
 		std::vector<std::shared_ptr<Worker> > workers;
@@ -92,6 +95,18 @@ class WorkerFactory {
 
 			for (auto i = 0u; i < context.worker_num; i++) {
 				workers.push_back(std::make_shared<SundialExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
+												   manager->n_completed_workers, manager->n_started_workers));
+			}
+
+			workers.push_back(manager);
+                } else if (context.protocol == "Pasha") {
+			using TransactionType = star::PashaTransaction;
+			using WorkloadType = typename InferType<Context>::template WorkloadType<TransactionType>;
+
+			auto manager = std::make_shared<Manager>(coordinator_id, context.worker_num, context, stop_flag);
+
+			for (auto i = 0u; i < context.worker_num; i++) {
+				workers.push_back(std::make_shared<PashaExecutor<WorkloadType> >(coordinator_id, i, db, context, manager->worker_status,
 												   manager->n_completed_workers, manager->n_started_workers));
 			}
 

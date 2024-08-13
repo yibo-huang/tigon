@@ -99,6 +99,15 @@ class MetaInitFuncSundial {
 	}
 };
 
+extern uint64_t PashaMetadataInit();
+class MetaInitFuncPasha {
+    public:
+	uint64_t operator()()
+	{
+		return PashaMetadataInit();
+	}
+};
+
 template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = MetaInitFuncNothing> class Table : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;

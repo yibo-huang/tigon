@@ -84,6 +84,8 @@ class Database {
 			auto ycsbTableID = ycsb::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_ycsb_vec.push_back(std::make_unique<Table<997, ycsb::key, ycsb::value, MetaInitFuncSundial> >(ycsbTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+                                tbl_ycsb_vec.push_back(std::make_unique<Table<997, ycsb::key, ycsb::value, MetaInitFuncPasha> >(ycsbTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_ycsb_vec.push_back(std::make_unique<Table<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
 			} else {

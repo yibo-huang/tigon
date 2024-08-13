@@ -14,7 +14,7 @@
 namespace star
 {
 
-struct SundialMetadata {
+struct PashaMetadata {
 	std::atomic<uint64_t> latch{ 0 };
 	void lock()
 	{
@@ -41,12 +41,12 @@ retry:
 	// std::list<LockWaiterMeta*> waitlist;
 };
 
-uint64_t SundialMetadataInit()
+uint64_t PashaMetadataInit()
 {
-	return reinterpret_cast<uint64_t>(new SundialMetadata());
+	return reinterpret_cast<uint64_t>(new PashaMetadata());
 }
 
-class SundialHelper {
+class PashaHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
@@ -74,9 +74,9 @@ retry:
 		if (v != 0) {
 			return v;
 		}
-		auto meta_ptr = SundialMetadataInit();
+		auto meta_ptr = PashaMetadataInit();
 		if (ptr.compare_exchange_strong(v, meta_ptr) == false) {
-			delete ((SundialMetadata *)meta_ptr);
+			delete ((PashaMetadata *)meta_ptr);
 			goto retry;
 		}
 		return meta_ptr;
@@ -86,7 +86,7 @@ retry:
 	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 		DCHECK(smeta != nullptr);
 		void *src = std::get<1>(row);
 
@@ -103,7 +103,7 @@ retry:
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 
 		bool success = false;
 		smeta->lock();
@@ -121,7 +121,7 @@ retry:
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 
 		bool success = false;
 		smeta->lock();
@@ -140,7 +140,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		DCHECK(smeta->wts == smeta->rts);
@@ -156,7 +156,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -170,7 +170,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -183,7 +183,7 @@ retry:
 	static void unlock(const std::tuple<MetaDataType *, void *> &row, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);

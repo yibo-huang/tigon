@@ -155,6 +155,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_warehouse_vec.push_back(
 					std::make_unique<Table<997, warehouse::key, warehouse::value, MetaInitFuncSundial> >(warehouseTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_warehouse_vec.push_back(
+					std::make_unique<Table<997, warehouse::key, warehouse::value, MetaInitFuncPasha> >(warehouseTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_warehouse_vec.push_back(std::make_unique<Table<997, warehouse::key, warehouse::value> >(warehouseTableID, partitionID));
 			} else {
@@ -173,6 +176,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_district_vec.push_back(
 					std::make_unique<Table<997, district::key, district::value, MetaInitFuncSundial> >(districtTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_district_vec.push_back(
+					std::make_unique<Table<997, district::key, district::value, MetaInitFuncPasha> >(districtTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_district_vec.push_back(std::make_unique<Table<997, district::key, district::value> >(districtTableID, partitionID));
 			} else {
@@ -191,6 +197,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_customer_vec.push_back(
 					std::make_unique<Table<997, customer::key, customer::value, MetaInitFuncSundial> >(customerTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_customer_vec.push_back(
+					std::make_unique<Table<997, customer::key, customer::value, MetaInitFuncPasha> >(customerTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_customer_vec.push_back(std::make_unique<Table<997, customer::key, customer::value> >(customerTableID, partitionID));
 			} else {
@@ -210,6 +219,10 @@ class Database {
 				tbl_customer_name_idx_vec.push_back(
 					std::make_unique<Table<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncSundial> >(
 						customerNameIdxTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_customer_name_idx_vec.push_back(
+					std::make_unique<Table<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncPasha> >(
+						customerNameIdxTableID, partitionID));
 			} else {
 				tbl_customer_name_idx_vec.push_back(
 					std::make_unique<Table<997, customer_name_idx::key, customer_name_idx::value> >(customerNameIdxTableID, partitionID));
@@ -219,6 +232,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_history_vec.push_back(
 					std::make_unique<Table<997, history::key, history::value, MetaInitFuncSundial> >(historyTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_history_vec.push_back(
+					std::make_unique<Table<997, history::key, history::value, MetaInitFuncPasha> >(historyTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_history_vec.push_back(std::make_unique<Table<997, history::key, history::value> >(historyTableID, partitionID));
 			} else {
@@ -236,6 +252,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_new_order_vec.push_back(
 					std::make_unique<Table<997, new_order::key, new_order::value, MetaInitFuncSundial> >(newOrderTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_new_order_vec.push_back(
+					std::make_unique<Table<997, new_order::key, new_order::value, MetaInitFuncPasha> >(newOrderTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_new_order_vec.push_back(std::make_unique<Table<997, new_order::key, new_order::value> >(newOrderTableID, partitionID));
 			} else {
@@ -254,6 +273,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_order_vec.push_back(
 					std::make_unique<Table<997, order::key, order::value, MetaInitFuncSundial> >(orderTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_order_vec.push_back(
+					std::make_unique<Table<997, order::key, order::value, MetaInitFuncPasha> >(orderTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_order_vec.push_back(std::make_unique<Table<997, order::key, order::value> >(orderTableID, partitionID));
 			} else {
@@ -269,6 +291,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_order_line_vec.push_back(
 					std::make_unique<Table<997, order_line::key, order_line::value, MetaInitFuncSundial> >(orderLineTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_order_line_vec.push_back(
+					std::make_unique<Table<997, order_line::key, order_line::value, MetaInitFuncPasha> >(orderLineTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_order_line_vec.push_back(std::make_unique<Table<997, order_line::key, order_line::value> >(orderLineTableID, partitionID));
 			} else {
@@ -287,6 +312,9 @@ class Database {
 			if (context.protocol == "Sundial") {
 				tbl_stock_vec.push_back(
 					std::make_unique<Table<997, stock::key, stock::value, MetaInitFuncSundial> >(stockTableID, partitionID));
+                        } else if (context.protocol == "Pasha") {
+				tbl_stock_vec.push_back(
+					std::make_unique<Table<997, stock::key, stock::value, MetaInitFuncPasha> >(stockTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_stock_vec.push_back(std::make_unique<Table<997, stock::key, stock::value> >(stockTableID, partitionID));
 			} else {
@@ -302,6 +330,8 @@ class Database {
 		auto itemTableID = item::tableID;
 		if (context.protocol == "Sundial") {
 			tbl_item_vec.push_back(std::make_unique<Table<997, item::key, item::value, MetaInitFuncSundial> >(itemTableID, 0));
+                } else if (context.protocol == "Pasha") {
+			tbl_item_vec.push_back(std::make_unique<Table<997, item::key, item::value, MetaInitFuncPasha> >(itemTableID, 0));
 		} else if (context.protocol != "HStore") {
 			tbl_item_vec.push_back(std::make_unique<Table<997, item::key, item::value> >(itemTableID, 0));
 		} else {
