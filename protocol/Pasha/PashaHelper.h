@@ -9,12 +9,43 @@
 #include <tuple>
 #include <memory>
 
+#include "core/Table.h"
 #include "glog/logging.h"
 
 namespace star
 {
 
-struct PashaMetadata {
+struct PashaMetadataLocal {
+	std::atomic<uint64_t> latch{ 0 };
+	void lock()
+	{
+retry:
+		auto v = latch.load();
+		if (v == 0) {
+			if (latch.compare_exchange_strong(v, 1))
+				return;
+			goto retry;
+		} else {
+			goto retry;
+		}
+	}
+
+	void unlock()
+	{
+		DCHECK(latch.load() == 1);
+		latch.store(0);
+	}
+
+	uint64_t wts{ 0 };
+	uint64_t rts{ 0 };
+	uint64_t owner{ 0 };
+	// std::list<LockWaiterMeta*> waitlist;
+
+        bool is_migrated{ false };
+        void *migrated_row{ nullptr };
+};
+
+struct PashaMetadataShared {
 	std::atomic<uint64_t> latch{ 0 };
 	void lock()
 	{
@@ -41,9 +72,14 @@ retry:
 	// std::list<LockWaiterMeta*> waitlist;
 };
 
-uint64_t PashaMetadataInit()
+uint64_t PashaMetadataLocalInit()
 {
-	return reinterpret_cast<uint64_t>(new PashaMetadata());
+	return reinterpret_cast<uint64_t>(new PashaMetadataLocal());
+}
+
+uint64_t PashaMetadataSharedInit()
+{
+	return reinterpret_cast<uint64_t>(new PashaMetadataShared());
 }
 
 class PashaHelper {
@@ -74,9 +110,9 @@ retry:
 		if (v != 0) {
 			return v;
 		}
-		auto meta_ptr = PashaMetadataInit();
+		auto meta_ptr = PashaMetadataLocalInit();
 		if (ptr.compare_exchange_strong(v, meta_ptr) == false) {
-			delete ((PashaMetadata *)meta_ptr);
+			delete ((PashaMetadataLocal *)meta_ptr);
 			goto retry;
 		}
 		return meta_ptr;
@@ -86,7 +122,7 @@ retry:
 	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 		DCHECK(smeta != nullptr);
 		void *src = std::get<1>(row);
 
@@ -103,7 +139,7 @@ retry:
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 
 		bool success = false;
 		smeta->lock();
@@ -121,7 +157,7 @@ retry:
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 
 		bool success = false;
 		smeta->lock();
@@ -140,7 +176,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		DCHECK(smeta->wts == smeta->rts);
@@ -156,7 +192,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -170,7 +206,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -183,7 +219,7 @@ retry:
 	static void unlock(const std::tuple<MetaDataType *, void *> &row, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadata *smeta = reinterpret_cast<PashaMetadata *>(get_or_install_meta(meta));
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -243,6 +279,43 @@ retry:
 	static uint64_t remove_lock_bit(uint64_t value)
 	{
 		return value & ~(LOCK_BIT_MASK << LOCK_BIT_OFFSET);
+	}
+
+        static bool move_to_shared_region(ITable *table, const std::tuple<MetaDataType *, void *> &row)
+	{
+                char *migrated_row_ptr = nullptr, *migrated_row_value_ptr = nullptr;
+                PashaMetadataShared *migrated_row_meta = nullptr;
+                std::size_t row_total_size = 0;
+                void *src = nullptr;
+                bool ret = false;
+
+                MetaDataType &meta = *std::get<0>(row);
+                DCHECK(0 != meta.load());
+
+		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		DCHECK(smeta != nullptr);
+
+		smeta->lock();
+                if (smeta->is_migrated == false) {
+                        row_total_size = sizeof(PashaMetadataShared) + table->value_size();
+                        migrated_row_ptr = reinterpret_cast<char *>(CXLMemory::cxlalloc_malloc_wrapper(row_total_size));
+                        migrated_row_meta = reinterpret_cast<PashaMetadataShared *>(migrated_row_ptr);
+                        migrated_row_value_ptr = migrated_row_ptr + sizeof(PashaMetadataLocal);
+                        src = std::get<1>(row);
+
+                        migrated_row_meta->latch.store(0, std::memory_order_relaxed);
+                        migrated_row_meta->wts = smeta->wts;
+                        migrated_row_meta->rts = smeta->rts;
+                        migrated_row_meta->owner = smeta->owner;
+
+                        std::memcpy(migrated_row_value_ptr, src, table->value_size());
+
+                        smeta->migrated_row = migrated_row_ptr;
+                        smeta->is_migrated = true;
+                        ret = true;
+                }
+		smeta->unlock();
+		return ret;
 	}
 
     public:

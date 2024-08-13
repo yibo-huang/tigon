@@ -99,12 +99,12 @@ class MetaInitFuncSundial {
 	}
 };
 
-extern uint64_t PashaMetadataInit();
+extern uint64_t PashaMetadataLocalInit();
 class MetaInitFuncPasha {
     public:
 	uint64_t operator()()
 	{
-		return PashaMetadataInit();
+		return PashaMetadataLocalInit();
 	}
 };
 

@@ -55,6 +55,9 @@ class PashaExecutor : public Executor<Workload, Pasha<typename Workload::Databas
 				auto row = table->search(key);
 				bool success = true;
 
+                                // test: migrated the row into the shared region
+                                PashaHelper::move_to_shared_region(table, row);
+
 				std::pair<uint64_t, uint64_t> rwts;
 				if (write_lock) {
 					DCHECK(local_index_read == false);
