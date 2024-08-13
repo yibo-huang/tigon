@@ -13,7 +13,7 @@
 namespace star
 {
 
-class PashaRWKey {
+class SundialPashaRWKey {
     public:
 	// local index read bit
 

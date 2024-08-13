@@ -10,14 +10,14 @@
 #include "core/ControlMessage.h"
 #include "core/Table.h"
 
-#include "protocol/Pasha/PashaHelper.h"
-#include "protocol/Pasha/PashaRWKey.h"
-#include "protocol/Pasha/PashaTransaction.h"
+#include "protocol/SundialPasha/SundialPashaHelper.h"
+#include "protocol/SundialPasha/SundialPashaRWKey.h"
+#include "protocol/SundialPasha/SundialPashaTransaction.h"
 
 namespace star
 {
 
-enum class PashaMessage {
+enum class SundialPashaMessage {
 	SEARCH_REQUEST = static_cast<int>(ControlMessage::NFIELDS),
 	SEARCH_RESPONSE,
 	LOCK_REQUEST,
@@ -43,7 +43,7 @@ enum class PashaMessage {
 	NFIELDS
 };
 
-class PashaMessageFactory {
+class SundialPashaMessageFactory {
     public:
 	static std::size_t new_read_message(Message &message, ITable &table, const void *key, uint64_t transaction_id, bool write_lock, uint32_t key_offset)
 	{
@@ -54,7 +54,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(write_lock) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::READ_REQUEST), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -77,7 +77,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + sizeof(transaction_id) + key_size + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::WRITE_LOCK_REQUEST),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::WRITE_LOCK_REQUEST),
 											 message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -99,7 +99,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(wts) + sizeof(commit_ts) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::RENEW_LEASE_REQUEST),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::RENEW_LEASE_REQUEST),
 											 message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -122,7 +122,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::UNLOCK_REQUEST), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::UNLOCK_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -146,7 +146,7 @@ class PashaMessageFactory {
 		auto value_size = table.value_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + value_size + sizeof(transaction_id) + sizeof(key_offset) + sizeof(commit_ts);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::UPDATE_UNLOCK_REQUEST),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::UPDATE_UNLOCK_REQUEST),
 											 message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -170,7 +170,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::SEARCH_REQUEST), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::SEARCH_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -191,7 +191,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::LOCK_REQUEST), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::LOCK_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -204,15 +204,15 @@ class PashaMessageFactory {
 	}
 
 	template <class DatabaseType>
-	static std::size_t new_read_validation_and_redo_message(Message &message, const std::vector<PashaRWKey> &validationReadSet,
-								const std::vector<PashaRWKey> &redoWriteSet, uint64_t commit_ts, DatabaseType &db)
+	static std::size_t new_read_validation_and_redo_message(Message &message, const std::vector<SundialPashaRWKey> &validationReadSet,
+								const std::vector<SundialPashaRWKey> &redoWriteSet, uint64_t commit_ts, DatabaseType &db)
 	{
 		/*
 		 * The structure of a read validation request: (read_pk1_table_id, read_pk1_partition_id, read_pk1_size, read_pk1, read_pk2_table_id)
 		 */
 		auto message_size = MessagePiece::get_header_size();
 		auto message_piece_header = MessagePiece::construct_message_piece_header(
-			static_cast<uint32_t>(PashaMessage::READ_VALIDATION_AND_REDO_REQUEST), message_size, 0, 0);
+			static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_AND_REDO_REQUEST), message_size, 0, 0);
 
 		Encoder encoder(message.data);
 		size_t start_off = encoder.size();
@@ -251,7 +251,7 @@ class PashaMessageFactory {
 		}
 
 		message_size = encoder.size() - start_off;
-		message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::READ_VALIDATION_AND_REDO_REQUEST),
+		message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_AND_REDO_REQUEST),
 										    message_size, 0, 0);
 		encoder.replace_bytes_range(start_off, (void *)&message_piece_header, sizeof(message_piece_header));
 		message.flush();
@@ -268,7 +268,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(key_offset) + sizeof(tid);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::READ_VALIDATION_REQUEST),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_REQUEST),
 											 message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -288,7 +288,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size;
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::ABORT_REQUEST), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::ABORT_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -310,7 +310,7 @@ class PashaMessageFactory {
 		auto field_size = table.field_size();
 
 		auto message_size = MessagePiece::get_header_size() + sizeof(commit_ts) + sizeof(transaction_id) + sizeof(bool) + key_size + field_size;
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::WRITE_REQUEST), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::WRITE_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -333,7 +333,7 @@ class PashaMessageFactory {
 		auto field_size = table.field_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + field_size + sizeof(commit_ts) + sizeof(bool);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::REPLICATION_REQUEST),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::REPLICATION_REQUEST),
 											 message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -355,7 +355,7 @@ class PashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(commit_tid);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::RELEASE_LOCK_REQUEST),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::RELEASE_LOCK_REQUEST),
 											 message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -368,13 +368,13 @@ class PashaMessageFactory {
 	}
 };
 
-class PashaMessageHandler {
-	using Transaction = PashaTransaction;
+class SundialPashaMessageHandler {
+	using Transaction = SundialPashaTransaction;
 
     public:
 	static void search_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::SEARCH_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::SEARCH_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -404,7 +404,7 @@ class PashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + value_size + sizeof(uint64_t) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::SEARCH_RESPONSE), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::SEARCH_RESPONSE), message_size,
 											 table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -414,7 +414,7 @@ class PashaMessageHandler {
 		responseMessage.data.append(value_size, 0);
 		void *dest = &responseMessage.data[0] + responseMessage.data.size() - value_size;
 		// read to message buffer
-		auto tid = PashaHelper::read(row, dest, value_size);
+		auto tid = SundialPashaHelper::read(row, dest, value_size);
 
 		encoder << tid << key_offset;
 		responseMessage.flush();
@@ -422,7 +422,7 @@ class PashaMessageHandler {
 
 	static void search_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::SEARCH_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::SEARCH_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -444,7 +444,7 @@ class PashaMessageHandler {
 		Decoder dec(stringPiece);
 		dec >> tid >> key_offset;
 
-		PashaRWKey &readKey = txn->readSet[key_offset];
+		SundialPashaRWKey &readKey = txn->readSet[key_offset];
 		dec = Decoder(inputPiece.toStringPiece());
 		dec.read_n_bytes(readKey.get_value(), value_size);
 		readKey.set_tid(tid);
@@ -454,7 +454,7 @@ class PashaMessageHandler {
 
 	static void lock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::LOCK_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::LOCK_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -476,7 +476,7 @@ class PashaMessageHandler {
 		std::atomic<uint64_t> &tid = table.search_metadata(key);
 
 		bool success;
-		uint64_t latest_tid = PashaHelper::lock(tid, success);
+		uint64_t latest_tid = SundialPashaHelper::lock(tid, success);
 
 		stringPiece.remove_prefix(key_size);
 		star::Decoder dec(stringPiece);
@@ -486,7 +486,7 @@ class PashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(bool) + sizeof(uint64_t) + sizeof(uint32_t);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::LOCK_RESPONSE), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::LOCK_RESPONSE), message_size,
 											 table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -498,7 +498,7 @@ class PashaMessageHandler {
 
 	static void lock_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::LOCK_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::LOCK_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -521,12 +521,12 @@ class PashaMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		PashaRWKey &writeKey = txn->writeSet[key_offset];
+		SundialPashaRWKey &writeKey = txn->writeSet[key_offset];
 
 		bool tid_changed = false;
 
 		if (success) {
-			PashaRWKey *readKey = txn->get_read_key(writeKey.get_key());
+			SundialPashaRWKey *readKey = txn->get_read_key(writeKey.get_key());
 
 			DCHECK(readKey != nullptr);
 
@@ -550,7 +550,7 @@ class PashaMessageHandler {
 
 	static void read_validation_and_redo_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::READ_VALIDATION_AND_REDO_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_AND_REDO_REQUEST));
 		// std::size_t lsn = 0;
 		/*
 		 * The structure of a read validation request: (primary key, read key
@@ -582,7 +582,7 @@ class PashaMessageHandler {
 			dec >> wts;
 
 			auto row = table->search(key);
-			bool res = PashaHelper::renew_lease(row, wts, commit_ts);
+			bool res = SundialPashaHelper::renew_lease(row, wts, commit_ts);
 
 			if (res == false) { // renew_lease failed
 				success = false;
@@ -620,7 +620,7 @@ class PashaMessageHandler {
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(bool);
 		auto message_piece_header = MessagePiece::construct_message_piece_header(
-			static_cast<uint32_t>(PashaMessage::READ_VALIDATION_AND_REDO_RESPONSE), message_size, 0, 0);
+			static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_AND_REDO_RESPONSE), message_size, 0, 0);
 
 		star::Encoder encoder(responseMessage.data);
 		encoder << message_piece_header;
@@ -646,7 +646,7 @@ class PashaMessageHandler {
 	static void read_validation_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
 		DCHECK(false);
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::READ_VALIDATION_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -674,17 +674,17 @@ class PashaMessageHandler {
 
 		bool success = true;
 
-		if (PashaHelper::remove_lock_bit(latest_tid) != tid) {
+		if (SundialPashaHelper::remove_lock_bit(latest_tid) != tid) {
 			success = false;
 		}
 
-		if (PashaHelper::is_locked(latest_tid)) { // must be locked by others
+		if (SundialPashaHelper::is_locked(latest_tid)) { // must be locked by others
 			success = false;
 		}
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(bool) + sizeof(uint32_t);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::READ_VALIDATION_RESPONSE),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_RESPONSE),
 											 message_size, table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -697,7 +697,7 @@ class PashaMessageHandler {
 	static void read_validation_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
 		DCHECK(false);
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::READ_VALIDATION_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -715,7 +715,7 @@ class PashaMessageHandler {
 
 		dec >> success >> key_offset;
 
-		PashaRWKey &readKey = txn->readSet[key_offset];
+		SundialPashaRWKey &readKey = txn->readSet[key_offset];
 
 		txn->pendingResponses--;
 		txn->network_size += inputPiece.get_message_length();
@@ -727,7 +727,7 @@ class PashaMessageHandler {
 
 	static void read_validation_and_redo_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::READ_VALIDATION_AND_REDO_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_VALIDATION_AND_REDO_RESPONSE));
 
 		/*
 		 * The structure of a read validation response: (success?, read key offset)
@@ -749,7 +749,7 @@ class PashaMessageHandler {
 
 	static void abort_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::ABORT_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::ABORT_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -768,12 +768,12 @@ class PashaMessageHandler {
 		std::atomic<uint64_t> &tid = table.search_metadata(key);
 
 		// unlock the key
-		PashaHelper::unlock(tid);
+		SundialPashaHelper::unlock(tid);
 	}
 
 	static void write_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::WRITE_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::WRITE_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -800,11 +800,11 @@ class PashaMessageHandler {
 		stringPiece.remove_prefix(key_size);
 		const void *value = stringPiece.data();
 		auto row = table.search(key);
-		PashaHelper::update(row, value, field_size, commit_ts, transaction_id);
+		SundialPashaHelper::update(row, value, field_size, commit_ts, transaction_id);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size();
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::WRITE_RESPONSE), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::WRITE_RESPONSE), message_size,
 											 table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -824,7 +824,7 @@ class PashaMessageHandler {
 
 	static void write_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::WRITE_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::WRITE_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -840,7 +840,7 @@ class PashaMessageHandler {
 
 	static void replication_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::REPLICATION_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::REPLICATION_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -871,14 +871,14 @@ class PashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
 		// auto row = table.search(key);
-		// PashaHelper::replica_update(row, valueStringPiece.data(), field_size, commit_ts);
+		// SundialPashaHelper::replica_update(row, valueStringPiece.data(), field_size, commit_ts);
 
 		// std::atomic<uint64_t> &tid = table.search_metadata(key);
 
-		// uint64_t last_tid = PashaHelper::lock(tid);
+		// uint64_t last_tid = SundialPashaHelper::lock(tid);
 		// DCHECK(last_tid < commit_tid);
 		// table.deserialize_value(key, valueStringPiece);
-		// PashaHelper::unlock(tid, commit_tid);
+		// SundialPashaHelper::unlock(tid, commit_tid);
 
 		// uint64_t lsn = 0;
 		//  if (txn->get_logger()) {
@@ -894,7 +894,7 @@ class PashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size();
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::REPLICATION_RESPONSE),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::REPLICATION_RESPONSE),
 											 message_size, table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -905,7 +905,7 @@ class PashaMessageHandler {
 
 	static void replication_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::REPLICATION_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::REPLICATION_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -922,7 +922,7 @@ class PashaMessageHandler {
 
 	static void release_lock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::RELEASE_LOCK_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::RELEASE_LOCK_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -947,12 +947,12 @@ class PashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
 		std::atomic<uint64_t> &tid = table.search_metadata(key);
-		PashaHelper::unlock(tid, commit_tid);
+		SundialPashaHelper::unlock(tid, commit_tid);
 	}
 
 	static void read_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::READ_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -986,7 +986,7 @@ class PashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + value_size + sizeof(bool) + sizeof(bool) + sizeof(rts) + sizeof(wts) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::READ_RESPONSE), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_RESPONSE), message_size,
 											 table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -996,13 +996,13 @@ class PashaMessageHandler {
 		bool success = true;
 		std::pair<uint64_t, uint64_t> rwts;
 		if (write_lock) {
-			success = PashaHelper::write_lock(row, rwts, transaction_id);
+			success = SundialPashaHelper::write_lock(row, rwts, transaction_id);
 		}
 
 		responseMessage.data.append(value_size, 0);
 		void *dest = &responseMessage.data[0] + responseMessage.data.size() - value_size;
 		// read to message buffer
-		auto read_rwts = PashaHelper::read(row, dest, value_size);
+		auto read_rwts = SundialPashaHelper::read(row, dest, value_size);
 		if (success && write_lock) {
 			DCHECK(read_rwts == rwts);
 		}
@@ -1013,7 +1013,7 @@ class PashaMessageHandler {
 
 	static void read_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::READ_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -1038,7 +1038,7 @@ class PashaMessageHandler {
 		Decoder dec(stringPiece);
 		dec >> success >> write_lock >> wts >> rts >> key_offset;
 
-		PashaRWKey &readKey = txn->readSet[key_offset];
+		SundialPashaRWKey &readKey = txn->readSet[key_offset];
 		dec = Decoder(inputPiece.toStringPiece());
 		dec.read_n_bytes(readKey.get_value(), value_size);
 
@@ -1064,7 +1064,7 @@ class PashaMessageHandler {
 
 	static void write_lock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::WRITE_LOCK_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::WRITE_LOCK_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -1097,14 +1097,14 @@ class PashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(rts) + sizeof(wts) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::WRITE_LOCK_RESPONSE),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::WRITE_LOCK_RESPONSE),
 											 message_size, table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
 		encoder << message_piece_header;
 
 		std::pair<uint64_t, uint64_t> rwts;
-		success = PashaHelper::write_lock(row, rwts, transaction_id);
+		success = SundialPashaHelper::write_lock(row, rwts, transaction_id);
 
 		encoder << success << rwts.first << rwts.second << key_offset;
 		responseMessage.flush();
@@ -1112,7 +1112,7 @@ class PashaMessageHandler {
 
 	static void write_lock_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::WRITE_LOCK_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::WRITE_LOCK_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -1150,7 +1150,7 @@ class PashaMessageHandler {
 
 	static void renew_lease_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::RENEW_LEASE_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::RENEW_LEASE_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -1182,13 +1182,13 @@ class PashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(PashaMessage::RENEW_LEASE_RESPONSE),
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::RENEW_LEASE_RESPONSE),
 											 message_size, table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
 		encoder << message_piece_header;
 
-		success = PashaHelper::renew_lease(row, wts, commit_ts);
+		success = SundialPashaHelper::renew_lease(row, wts, commit_ts);
 
 		encoder << success << key_offset;
 		responseMessage.flush();
@@ -1196,7 +1196,7 @@ class PashaMessageHandler {
 
 	static void unlock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::UNLOCK_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::UNLOCK_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -1224,12 +1224,12 @@ class PashaMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		PashaHelper::unlock(row, transaction_id);
+		SundialPashaHelper::unlock(row, transaction_id);
 	}
 
 	static void update_unlock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(PashaMessage::UPDATE_UNLOCK_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::UPDATE_UNLOCK_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -1262,7 +1262,7 @@ class PashaMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		PashaHelper::update_unlock(row, value, value_size, commit_ts, transaction_id);
+		SundialPashaHelper::update_unlock(row, value, value_size, commit_ts, transaction_id);
 	}
 
 	static std::vector<std::function<void(MessagePiece, Message &, ITable &, Transaction *)> > get_message_handlers()

@@ -11,26 +11,26 @@
 
 #include "core/Partitioner.h"
 #include "core/Table.h"
-#include "protocol/Pasha/PashaHelper.h"
-#include "protocol/Pasha/PashaMessage.h"
-#include "protocol/Pasha/PashaTransaction.h"
+#include "protocol/SundialPasha/SundialPashaHelper.h"
+#include "protocol/SundialPasha/SundialPashaMessage.h"
+#include "protocol/SundialPasha/SundialPashaTransaction.h"
 #include <glog/logging.h>
 
 namespace star
 {
 
-template <class Database> class Pasha {
+template <class Database> class SundialPasha {
     public:
 	using DatabaseType = Database;
 	using MetaDataType = std::atomic<uint64_t>;
 	using ContextType = typename DatabaseType::ContextType;
-	using MessageType = PashaMessage;
-	using TransactionType = PashaTransaction;
+	using MessageType = SundialPashaMessage;
+	using TransactionType = SundialPashaTransaction;
 
-	using MessageFactoryType = PashaMessageFactory;
-	using MessageHandlerType = PashaMessageHandler;
+	using MessageFactoryType = SundialPashaMessageFactory;
+	using MessageHandlerType = SundialPashaMessageHandler;
 
-	Pasha(DatabaseType &db, const ContextType &context, Partitioner &partitioner)
+	SundialPasha(DatabaseType &db, const ContextType &context, Partitioner &partitioner)
 		: db(db)
 		, context(context)
 		, partitioner(partitioner)
@@ -49,7 +49,7 @@ template <class Database> class Pasha {
 	{
 		auto &writeSet = txn.writeSet;
 		auto &readSet = txn.readSet;
-		auto isKeyInWriteSet = [](const std::vector<PashaRWKey> &writeSet, const void *key) {
+		auto isKeyInWriteSet = [](const std::vector<SundialPashaRWKey> &writeSet, const void *key) {
 			for (auto &writeKey : writeSet) {
 				if (writeKey.get_key() == key) {
 					return true;
@@ -77,7 +77,7 @@ template <class Database> class Pasha {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
 				auto row = table->search(key);
-				PashaHelper::unlock(row, txn.transaction_id);
+				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
 				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
@@ -175,7 +175,7 @@ template <class Database> class Pasha {
 				auto row = table->search(key);
 
 				std::pair<uint64_t, uint64_t> rwts;
-				bool success = PashaHelper::write_lock(row, rwts, txn.transaction_id);
+				bool success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
 				auto wts = rwts.first;
 				auto rts = rwts.second;
 				auto read_set_pos = writeKey.get_read_set_pos();
@@ -207,7 +207,7 @@ template <class Database> class Pasha {
 		auto &readSet = txn.readSet;
 		auto &writeSet = txn.writeSet;
 
-		auto isKeyInWriteSet = [](const std::vector<PashaRWKey> &writeSet, const void *key) {
+		auto isKeyInWriteSet = [](const std::vector<SundialPashaRWKey> &writeSet, const void *key) {
 			for (auto &writeKey : writeSet) {
 				if (writeKey.get_key() == key) {
 					return true;
@@ -242,7 +242,7 @@ template <class Database> class Pasha {
 				DCHECK(partitioner.has_master_partition(partitionId));
 
 				auto row = table->search(key);
-				bool success = PashaHelper::renew_lease(row, wts, commit_ts);
+				bool success = SundialPashaHelper::renew_lease(row, wts, commit_ts);
 
 				if (success == false) { // renew_lease failed
 					txn.abort_read_validation = true;
@@ -272,8 +272,8 @@ template <class Database> class Pasha {
 				}
 			}
 		} else {
-			std::vector<std::vector<PashaRWKey> > readSetGroupByCoordinator(context.coordinator_num);
-			std::vector<std::vector<PashaRWKey> > writeSetGroupByCoordinator(context.coordinator_num);
+			std::vector<std::vector<SundialPashaRWKey> > readSetGroupByCoordinator(context.coordinator_num);
+			std::vector<std::vector<SundialPashaRWKey> > writeSetGroupByCoordinator(context.coordinator_num);
 
 			for (auto i = 0u; i < readSet.size(); ++i) {
 				auto &readKey = readSet[i];
@@ -326,7 +326,7 @@ template <class Database> class Pasha {
 						DCHECK(partitioner.has_master_partition(partitionId));
 
 						auto row = table->search(key);
-						bool success = PashaHelper::renew_lease(row, wts, commit_ts);
+						bool success = SundialPashaHelper::renew_lease(row, wts, commit_ts);
 
 						if (success == false) { // renew_lease failed
 							txn.abort_read_validation = true;
@@ -378,7 +378,7 @@ template <class Database> class Pasha {
 		auto &readSet = txn.readSet;
 		auto &writeSet = txn.writeSet;
 
-		auto isKeyInWriteSet = [](const std::vector<PashaRWKey> &writeSet, const void *key) {
+		auto isKeyInWriteSet = [](const std::vector<SundialPashaRWKey> &writeSet, const void *key) {
 			for (auto &writeKey : writeSet) {
 				if (writeKey.get_key() == key) {
 					return true;
@@ -536,7 +536,7 @@ template <class Database> class Pasha {
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
 				auto row = table->search(key);
-				PashaHelper::update(row, value, value_size, txn.commit_ts, txn.transaction_id);
+				SundialPashaHelper::update(row, value, value_size, txn.commit_ts, txn.transaction_id);
 			} else {
 				txn.pendingResponses++;
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -569,7 +569,7 @@ template <class Database> class Pasha {
 					auto value = writeKey.get_value();
 					auto row = table->search(key);
 
-					PashaHelper::replica_update(row, value, table->value_size(), txn.commit_ts);
+					SundialPashaHelper::replica_update(row, value, table->value_size(), txn.commit_ts);
 				} else {
 					txn.pendingResponses++;
 					auto coordinatorID = k;
@@ -589,7 +589,7 @@ template <class Database> class Pasha {
 	{
 		auto &readSet = txn.readSet;
 		auto &writeSet = txn.writeSet;
-		auto isKeyInWriteSet = [](const std::vector<PashaRWKey> &writeSet, const void *key) {
+		auto isKeyInWriteSet = [](const std::vector<SundialPashaRWKey> &writeSet, const void *key) {
 			for (auto &writeKey : writeSet) {
 				if (writeKey.get_key() == key) {
 					return true;
@@ -614,7 +614,7 @@ template <class Database> class Pasha {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				auto row = table->search(key);
-				PashaHelper::unlock(row, txn.transaction_id);
+				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
 				messages[coordinatorID]->set_transaction_id(txn.transaction_id);

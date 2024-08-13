@@ -15,7 +15,7 @@
 namespace star
 {
 
-struct PashaMetadataLocal {
+struct SundialPashaMetadataLocal {
 	std::atomic<uint64_t> latch{ 0 };
 	void lock()
 	{
@@ -45,7 +45,7 @@ retry:
         void *migrated_row{ nullptr };
 };
 
-struct PashaMetadataShared {
+struct SundialPashaMetadataShared {
 	std::atomic<uint64_t> latch{ 0 };
 	void lock()
 	{
@@ -72,17 +72,17 @@ retry:
 	// std::list<LockWaiterMeta*> waitlist;
 };
 
-uint64_t PashaMetadataLocalInit()
+uint64_t SundialPashaMetadataLocalInit()
 {
-	return reinterpret_cast<uint64_t>(new PashaMetadataLocal());
+	return reinterpret_cast<uint64_t>(new SundialPashaMetadataLocal());
 }
 
-uint64_t PashaMetadataSharedInit()
+uint64_t SundialPashaMetadataSharedInit()
 {
-	return reinterpret_cast<uint64_t>(new PashaMetadataShared());
+	return reinterpret_cast<uint64_t>(new SundialPashaMetadataShared());
 }
 
-class PashaHelper {
+class SundialPashaHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
@@ -110,9 +110,9 @@ retry:
 		if (v != 0) {
 			return v;
 		}
-		auto meta_ptr = PashaMetadataLocalInit();
+		auto meta_ptr = SundialPashaMetadataLocalInit();
 		if (ptr.compare_exchange_strong(v, meta_ptr) == false) {
-			delete ((PashaMetadataLocal *)meta_ptr);
+			delete ((SundialPashaMetadataLocal *)meta_ptr);
 			goto retry;
 		}
 		return meta_ptr;
@@ -122,7 +122,7 @@ retry:
 	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 		DCHECK(smeta != nullptr);
 		void *src = std::get<1>(row);
 
@@ -139,7 +139,7 @@ retry:
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
 		bool success = false;
 		smeta->lock();
@@ -157,7 +157,7 @@ retry:
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
 		bool success = false;
 		smeta->lock();
@@ -176,7 +176,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		DCHECK(smeta->wts == smeta->rts);
@@ -192,7 +192,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -206,7 +206,7 @@ retry:
 	{
 		MetaDataType &meta = *std::get<0>(row);
 		void *data_ptr = std::get<1>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -219,7 +219,7 @@ retry:
 	static void unlock(const std::tuple<MetaDataType *, void *> &row, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
 		smeta->lock();
 		CHECK(smeta->owner == transaction_id);
@@ -284,7 +284,7 @@ retry:
         static bool move_to_shared_region(ITable *table, const std::tuple<MetaDataType *, void *> &row)
 	{
                 char *migrated_row_ptr = nullptr, *migrated_row_value_ptr = nullptr;
-                PashaMetadataShared *migrated_row_meta = nullptr;
+                SundialPashaMetadataShared *migrated_row_meta = nullptr;
                 std::size_t row_total_size = 0;
                 void *src = nullptr;
                 bool ret = false;
@@ -292,15 +292,15 @@ retry:
                 MetaDataType &meta = *std::get<0>(row);
                 DCHECK(0 != meta.load());
 
-		PashaMetadataLocal *smeta = reinterpret_cast<PashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 		DCHECK(smeta != nullptr);
 
 		smeta->lock();
                 if (smeta->is_migrated == false) {
-                        row_total_size = sizeof(PashaMetadataShared) + table->value_size();
+                        row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
                         migrated_row_ptr = reinterpret_cast<char *>(CXLMemory::cxlalloc_malloc_wrapper(row_total_size));
-                        migrated_row_meta = reinterpret_cast<PashaMetadataShared *>(migrated_row_ptr);
-                        migrated_row_value_ptr = migrated_row_ptr + sizeof(PashaMetadataLocal);
+                        migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
+                        migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataLocal);
                         src = std::get<1>(row);
 
                         migrated_row_meta->latch.store(0, std::memory_order_relaxed);

@@ -10,7 +10,7 @@
 #include "core/Defs.h"
 #include "core/Partitioner.h"
 #include "core/Table.h"
-#include "protocol/Pasha/PashaRWKey.h"
+#include "protocol/SundialPasha/SundialPashaRWKey.h"
 #include <chrono>
 #include <glog/logging.h>
 #include <vector>
@@ -18,12 +18,12 @@
 namespace star
 {
 
-class PashaTransaction {
+class SundialPashaTransaction {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
 	using DatabaseType = std::atomic<uint64_t>;
-	PashaTransaction(std::size_t coordinator_id, std::size_t partition_id, Partitioner &partitioner, std::size_t ith_replica)
+	SundialPashaTransaction(std::size_t coordinator_id, std::size_t partition_id, Partitioner &partitioner, std::size_t ith_replica)
 		: coordinator_id(coordinator_id)
 		, partition_id(partition_id)
 		, startTime(std::chrono::steady_clock::now())
@@ -33,7 +33,7 @@ class PashaTransaction {
 		reset();
 	}
 
-	virtual ~PashaTransaction() = default;
+	virtual ~SundialPashaTransaction() = default;
 
 	void set_logger(WALLogger *logger)
 	{
@@ -191,7 +191,7 @@ class PashaTransaction {
 	template <class KeyType, class ValueType>
 	void search_local_index(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, bool readonly, std::size_t granule_id = 0)
 	{
-		PashaRWKey readKey;
+		SundialPashaRWKey readKey;
 
 		readKey.set_table_id(table_id);
 		readKey.set_partition_id(partition_id);
@@ -208,7 +208,7 @@ class PashaTransaction {
 	template <class KeyType, class ValueType>
 	void search_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
 	{
-		PashaRWKey readKey;
+		SundialPashaRWKey readKey;
 
 		readKey.set_table_id(table_id);
 		readKey.set_partition_id(partition_id);
@@ -224,7 +224,7 @@ class PashaTransaction {
 	template <class KeyType, class ValueType>
 	void search_for_update(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
 	{
-		PashaRWKey readKey;
+		SundialPashaRWKey readKey;
 
 		readKey.set_table_id(table_id);
 		readKey.set_partition_id(partition_id);
@@ -241,7 +241,7 @@ class PashaTransaction {
 	template <class KeyType, class ValueType>
 	void update(std::size_t table_id, std::size_t partition_id, const KeyType &key, const ValueType &value, std::size_t granule_id = 0)
 	{
-		PashaRWKey writeKey;
+		SundialPashaRWKey writeKey;
 
 		writeKey.set_table_id(table_id);
 		writeKey.set_partition_id(partition_id);
@@ -268,7 +268,7 @@ class PashaTransaction {
 				break;
 			}
 
-			const PashaRWKey &readKey = readSet[i];
+			const SundialPashaRWKey &readKey = readSet[i];
 			readRequestHandler(readKey.get_table_id(), readKey.get_partition_id(), i, readKey.get_key(), readKey.get_value(),
 					   readKey.get_local_index_read_bit(), readKey.get_write_request_bit());
 			readSet[i].clear_read_request_bit();
@@ -286,7 +286,7 @@ class PashaTransaction {
 		return false;
 	}
 
-	PashaRWKey *get_read_key(const void *key)
+	SundialPashaRWKey *get_read_key(const void *key)
 	{
 		for (auto i = 0u; i < readSet.size(); i++) {
 			if (readSet[i].get_key() == key) {
@@ -308,13 +308,13 @@ class PashaTransaction {
 		return -1;
 	}
 
-	std::size_t add_to_read_set(const PashaRWKey &key)
+	std::size_t add_to_read_set(const SundialPashaRWKey &key)
 	{
 		readSet.push_back(key);
 		return readSet.size() - 1;
 	}
 
-	std::size_t add_to_write_set(const PashaRWKey &key)
+	std::size_t add_to_write_set(const SundialPashaRWKey &key)
 	{
 		writeSet.push_back(key);
 		return writeSet.size() - 1;
@@ -339,7 +339,7 @@ class PashaTransaction {
 	Partitioner &partitioner;
 	std::size_t ith_replica;
 	Operation operation;
-	std::vector<PashaRWKey> readSet, writeSet;
+	std::vector<SundialPashaRWKey> readSet, writeSet;
 	WALLogger *logger = nullptr;
 	uint64_t txn_random_seed_start = 0;
 	uint64_t transaction_id = 0;

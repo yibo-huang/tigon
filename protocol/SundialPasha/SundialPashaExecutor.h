@@ -5,19 +5,19 @@
 #pragma once
 
 #include "core/Executor.h"
-#include "protocol/Pasha/Pasha.h"
+#include "protocol/SundialPasha/SundialPasha.h"
 
 namespace star
 {
 template <class Workload>
-class PashaExecutor : public Executor<Workload, Pasha<typename Workload::DatabaseType> >
+class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Workload::DatabaseType> >
 
 {
     public:
-	using base_type = Executor<Workload, Pasha<typename Workload::DatabaseType> >;
+	using base_type = Executor<Workload, SundialPasha<typename Workload::DatabaseType> >;
 
 	using WorkloadType = Workload;
-	using ProtocolType = Pasha<typename Workload::DatabaseType>;
+	using ProtocolType = SundialPasha<typename Workload::DatabaseType>;
 	using DatabaseType = typename WorkloadType::DatabaseType;
 	using TransactionType = typename WorkloadType::TransactionType;
 	using ContextType = typename DatabaseType::ContextType;
@@ -28,13 +28,13 @@ class PashaExecutor : public Executor<Workload, Pasha<typename Workload::Databas
 
 	using StorageType = typename WorkloadType::StorageType;
 
-	PashaExecutor(std::size_t coordinator_id, std::size_t id, DatabaseType &db, const ContextType &context, std::atomic<uint32_t> &worker_status,
+	SundialPashaExecutor(std::size_t coordinator_id, std::size_t id, DatabaseType &db, const ContextType &context, std::atomic<uint32_t> &worker_status,
 			std::atomic<uint32_t> &n_complete_workers, std::atomic<uint32_t> &n_started_workers)
 		: base_type(coordinator_id, id, db, context, worker_status, n_complete_workers, n_started_workers)
 	{
 	}
 
-	~PashaExecutor() = default;
+	~SundialPashaExecutor() = default;
 
 	void setupHandlers(TransactionType &txn)
 
@@ -56,14 +56,14 @@ class PashaExecutor : public Executor<Workload, Pasha<typename Workload::Databas
 				bool success = true;
 
                                 // test: migrated the row into the shared region
-                                PashaHelper::move_to_shared_region(table, row);
+                                SundialPashaHelper::move_to_shared_region(table, row);
 
 				std::pair<uint64_t, uint64_t> rwts;
 				if (write_lock) {
 					DCHECK(local_index_read == false);
-					success = PashaHelper::write_lock(row, rwts, txn.transaction_id);
+					success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
 				}
-				auto read_rwts = PashaHelper::read(row, value, value_size);
+				auto read_rwts = SundialPashaHelper::read(row, value, value_size);
 				txn.readSet[key_offset].set_wts(read_rwts.first);
 				txn.readSet[key_offset].set_rts(read_rwts.second);
 				if (write_lock) {
