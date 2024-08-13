@@ -126,6 +126,28 @@ function run_exp_tpcc {
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
+        elif [ $PROTOCOL = "TwoPLPasha" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd pasha; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --protocol=TwoPL --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd pasha; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --protocol=TwoPL --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+
         elif [ $PROTOCOL = "TwoPL" ]; then
                 # launch 1-$HOST_NUM processes
                 for (( i=1; i < $HOST_NUM; ++i ))
@@ -261,6 +283,28 @@ function run_exp_ycsb {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+
+        elif [ $PROTOCOL = "TwoPLPasha" ]; then
+                # launch 1-$HOST_NUM processes
+                for (( i=1; i < $HOST_NUM; ++i ))
+                do
+                        ssh_command "cd pasha; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
+                                --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --partitioner=hash --hstore_command_logging=false
+                                --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --protocol=TwoPLPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                done
+
+                # launch the first process
+                ssh_command "cd pasha; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
+                        --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
+                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --partitioner=hash --hstore_command_logging=false
+                        --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --protocol=TwoPLPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
                 # launch 1-$HOST_NUM processes
