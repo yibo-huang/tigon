@@ -19,8 +19,10 @@ class CXLMemory {
 
         static void init_cxlalloc_for_given_thread(uint64_t threads_num_per_host, uint64_t thread_id, uint64_t hosts_num, uint64_t host_id)
         {
-                cxlalloc_init("SS", default_cxl_mem_size, thread_id, threads_num_per_host * hosts_num, host_id, hosts_num);
-                LOG(INFO) << "cxlalloc initialized for thread " << thread_id << " on host " << host_id;
+                cxlalloc_init("SS", default_cxl_mem_size, thread_id + threads_num_per_host * host_id, threads_num_per_host * hosts_num, host_id, hosts_num);
+                LOG(INFO) << "cxlalloc initialized for thread " << thread_id 
+                        << " (global ID = " << thread_id + threads_num_per_host * host_id 
+                        << ") on host " << host_id;
         }
 
         static void *cxlalloc_malloc_wrapper(uint64_t size)

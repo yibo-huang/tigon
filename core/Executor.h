@@ -73,6 +73,8 @@ template <class Workload, class Protocol> class Executor : public Worker {
 	{
 		LOG(INFO) << "Executor " << id << " starts.";
 
+                CXLMemory::init_cxlalloc_for_given_thread(context.worker_num + 1, id + 1, context.coordinator_num, context.coordinator_id);
+
 		uint64_t last_seed = 0;
 
 		ExecutorStatus status;

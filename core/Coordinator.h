@@ -33,7 +33,7 @@ class Coordinator {
 		, peers(context.peers)
 		, context(context)
 	{
-                CXLMemory::init_cxlalloc_for_given_thread(context.worker_num, 0, context.coordinator_num, context.coordinator_id);
+                CXLMemory::init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
 
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
