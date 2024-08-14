@@ -55,9 +55,6 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 				auto row = table->search(key);
 				bool success = true;
 
-                                // test: migrated the row into the shared region
-                                SundialPashaHelper::move_to_shared_region(table, row);
-
 				std::pair<uint64_t, uint64_t> rwts;
 				if (write_lock) {
 					DCHECK(local_index_read == false);

@@ -342,7 +342,7 @@ retry:
 		return value & ~(LOCK_BIT_MASK << LOCK_BIT_OFFSET);
 	}
 
-        static bool move_to_shared_region(ITable *table, const std::tuple<MetaDataType *, void *> &row)
+        static bool move_from_partition_to_shared_region(ITable *table, const std::tuple<MetaDataType *, void *> &row)
 	{
                 char *migrated_row_ptr = nullptr, *migrated_row_value_ptr = nullptr;
                 SundialPashaMetadataShared *migrated_row_meta = nullptr;
@@ -377,6 +377,11 @@ retry:
                 }
 		smeta->unlock();
 		return ret;
+	}
+
+        static bool move_from_shared_region_to_partition(ITable *table, const std::tuple<MetaDataType *, void *> &row)
+	{
+                return true;
 	}
 
     public:
