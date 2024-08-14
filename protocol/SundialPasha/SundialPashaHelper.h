@@ -1,5 +1,5 @@
 //
-// Created by Xinjing Zhou Lu on 04/26/22.
+// Created by Yibo Huang on 8/13/24.
 //
 
 #pragma once
@@ -39,10 +39,9 @@ retry:
 	uint64_t wts{ 0 };
 	uint64_t rts{ 0 };
 	uint64_t owner{ 0 };
-	// std::list<LockWaiterMeta*> waitlist;
 
         bool is_migrated{ false };
-        void *migrated_row{ nullptr };
+        char *migrated_row{ nullptr };
 };
 
 struct SundialPashaMetadataShared {
@@ -69,7 +68,6 @@ retry:
 	uint64_t wts{ 0 };
 	uint64_t rts{ 0 };
 	uint64_t owner{ 0 };
-	// std::list<LockWaiterMeta*> waitlist;
 };
 
 uint64_t SundialPashaMetadataLocalInit()
@@ -82,26 +80,13 @@ uint64_t SundialPashaMetadataSharedInit()
 	return reinterpret_cast<uint64_t>(new SundialPashaMetadataShared());
 }
 
+/* 
+ * lmeta means local metadata stored in local DRAM
+ * smeta means shared metadata stored in the shared region
+ */
 class SundialPashaHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
-
-	// static uint64_t read(const std::tuple<MetaDataType *, void *> &row,
-	//                      void *dest, std::size_t size) {
-
-	//   MetaDataType &tid = *std::get<0>(row);
-	//   void *src = std::get<1>(row);
-
-	//   // read from a consistent view. read the value even it's locked by others.
-	//   // abort in read validation phase
-	//   uint64_t tid_;
-	//   do {
-	//     tid_ = tid.load();
-	//     std::memcpy(dest, src, size);
-	//   } while (tid_ != tid.load());
-
-	//   return remove_lock_bit(tid_);
-	// }
 
 	static uint64_t get_or_install_meta(std::atomic<uint64_t> &ptr)
 	{
@@ -121,16 +106,27 @@ retry:
 	// Returns <rts, wts> of the tuple.
 	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
+                uint64_t rts = 0, wts = 0;
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
-		DCHECK(smeta != nullptr);
-		void *src = std::get<1>(row);
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		DCHECK(lmeta != nullptr);
 
-		smeta->lock();
-		auto rts = smeta->rts;
-		auto wts = smeta->wts;
-		std::memcpy(dest, src, size);
-		smeta->unlock();
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *src = std::get<1>(row);
+                        rts = lmeta->rts;
+                        wts = lmeta->wts;
+                        std::memcpy(dest, src, size);
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        void *src = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
+                        smeta->lock();
+                        rts = smeta->rts;
+                        wts = smeta->wts;
+                        std::memcpy(dest, src, size);
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 
 		return std::make_pair(wts, rts);
 	}
@@ -139,17 +135,29 @@ retry:
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
-
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 		bool success = false;
-		smeta->lock();
-		rwts.first = smeta->wts;
-		rwts.second = smeta->rts;
-		if (smeta->owner == 0 || smeta->owner == transaction_id) {
-			success = true;
-			smeta->owner = transaction_id;
-		}
-		smeta->unlock();
+
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        rwts.first = lmeta->wts;
+                        rwts.second = lmeta->rts;
+                        if (lmeta->owner == 0 || lmeta->owner == transaction_id) {
+                                success = true;
+                                lmeta->owner = transaction_id;
+                        }
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        smeta->lock();
+                        rwts.first = smeta->wts;
+                        rwts.second = smeta->rts;
+                        if (smeta->owner == 0 || smeta->owner == transaction_id) {
+                                success = true;
+                                smeta->owner = transaction_id;
+                        }
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 
 		return success;
 	}
@@ -157,17 +165,29 @@ retry:
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
-
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 		bool success = false;
-		smeta->lock();
-		if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
-			success = false;
-		} else {
-			success = true;
-			smeta->rts = std::max(smeta->rts, commit_ts);
-		}
-		smeta->unlock();
+
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        if (wts != lmeta->wts || (commit_ts > lmeta->rts && lmeta->owner != 0)) {
+                                success = false;
+                        } else {
+                                success = true;
+                                lmeta->rts = std::max(lmeta->rts, commit_ts);
+                        }
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        smeta->lock();
+                        if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
+                                success = false;
+                        } else {
+                                success = true;
+                                smeta->rts = std::max(smeta->rts, commit_ts);
+                        }
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 
 		return success;
 	}
@@ -175,56 +195,97 @@ retry:
 	static void replica_update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		void *data_ptr = std::get<1>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
-		smeta->lock();
-		DCHECK(smeta->wts == smeta->rts);
-		if (commit_ts > smeta->wts) { // Thomas write rule
-			smeta->wts = smeta->rts = commit_ts;
-			memcpy(data_ptr, value, value_size);
-		}
-		smeta->unlock();
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *data_ptr = std::get<1>(row);
+                        DCHECK(lmeta->wts == lmeta->rts);
+                        if (commit_ts > lmeta->wts) { // Thomas write rule
+                                lmeta->wts = lmeta->rts = commit_ts;
+                                memcpy(data_ptr, value, value_size);
+                        }
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
+                        smeta->lock();
+                        DCHECK(smeta->wts == smeta->rts);
+                        if (commit_ts > smeta->wts) { // Thomas write rule
+                                smeta->wts = smeta->rts = commit_ts;
+                                memcpy(data_ptr, value, value_size);
+                        }
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 	}
 
 	static void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 			   uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		void *data_ptr = std::get<1>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
-		smeta->lock();
-		CHECK(smeta->owner == transaction_id);
-		memcpy(data_ptr, value, value_size);
-		smeta->wts = smeta->rts = commit_ts;
-		smeta->unlock();
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *data_ptr = std::get<1>(row);
+                        CHECK(lmeta->owner == transaction_id);
+                        memcpy(data_ptr, value, value_size);
+                        lmeta->wts = lmeta->rts = commit_ts;
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
+                        smeta->lock();
+                        CHECK(smeta->owner == transaction_id);
+                        memcpy(data_ptr, value, value_size);
+                        smeta->wts = smeta->rts = commit_ts;
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 	}
 
 	static void update_unlock(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 				  uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		void *data_ptr = std::get<1>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
-		smeta->lock();
-		CHECK(smeta->owner == transaction_id);
-		memcpy(data_ptr, value, value_size);
-		smeta->wts = smeta->rts = commit_ts;
-		smeta->owner = 0;
-		smeta->unlock();
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+		        void *data_ptr = std::get<1>(row);
+                        CHECK(lmeta->owner == transaction_id);
+                        memcpy(data_ptr, value, value_size);
+                        lmeta->wts = lmeta->rts = commit_ts;
+                        lmeta->owner = 0;
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
+                        smeta->lock();
+                        CHECK(smeta->owner == transaction_id);
+                        memcpy(data_ptr, value, value_size);
+                        smeta->wts = smeta->rts = commit_ts;
+                        smeta->owner = 0;
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 	}
 
 	static void unlock(const std::tuple<MetaDataType *, void *> &row, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
 
-		smeta->lock();
-		CHECK(smeta->owner == transaction_id);
-		smeta->owner = 0;
-		smeta->unlock();
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        CHECK(lmeta->owner == transaction_id);
+		        lmeta->owner = 0;
+                } else {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        smeta->lock();
+                        CHECK(smeta->owner == transaction_id);
+		        smeta->owner = 0;
+                        smeta->unlock();
+                }
+		lmeta->unlock();
 	}
 
 	static bool is_locked(uint64_t value)
@@ -300,7 +361,7 @@ retry:
                         row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
                         migrated_row_ptr = reinterpret_cast<char *>(CXLMemory::cxlalloc_malloc_wrapper(row_total_size));
                         migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
-                        migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataLocal);
+                        migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataShared);
                         src = std::get<1>(row);
 
                         migrated_row_meta->latch.store(0, std::memory_order_relaxed);
