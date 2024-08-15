@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <atomic>
 #include "stdint.h"
 #include <boost/interprocess/offset_ptr.hpp>
 
@@ -16,35 +15,39 @@ class CCSet {
     public:
         static constexpr uint64_t max_capacity = 100;
 
+        CCSet()
+		: cur_size(0)
+	{
+	}
+
         uint64_t size()
         {
-                return cur_size.load(std::memory_order_acquire);
+                return cur_size;
         }
 
-        bool empty(void)
+        bool empty()
         {
-                return cur_size.load(std::memory_order_acquire) == 0;
+                return cur_size == 0;
         }
 
-        void clear(void)
+        void clear()
         {
-                cur_size.store(0, std::memory_order_release);
+                cur_size = 0;
         }
 
         void insert(char *row)
         {
-                uint64_t size = cur_size.load(std::memory_order_acquire);
                 int i = 0;
 
                 /* check for duplicates */
-                for (i = 0; i < size; i++)
+                for (i = 0; i < cur_size; i++)
                         if (rows[i] == row)
                                 return;
 
                 /* insert the row */
-                assert(size != max_capacity);
-                rows[size] = row;
-                cur_size.store(size + 1, std::memory_order_release);     // linearization point
+                assert(cur_size != max_capacity);
+                rows[cur_size] = row;
+                cur_size++;
         }
 
         void remove(char *row)
@@ -55,7 +58,7 @@ class CCSet {
 
     private:
         boost::interprocess::offset_ptr<char> rows[max_capacity];
-        std::atomic<uint64_t> cur_size;
+        uint64_t cur_size;
 };
 
 } // namespace star
