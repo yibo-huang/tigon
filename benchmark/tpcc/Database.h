@@ -35,6 +35,16 @@ class Database {
 	using ContextType = Context;
 	using RandomType = Random;
 
+        std::size_t get_table_num()
+        {
+                std::size_t table_num = 0;
+                for (int i = 0; i < tbl_vecs.size(); i++) {
+                        LOG(INFO) << "table " << i << " = " << tbl_vecs[i].size();
+                        table_num += tbl_vecs[i].size();
+                }
+                return table_num;
+        }
+
 	ITable *find_table(std::size_t table_id, std::size_t partition_id)
 	{
 		DCHECK(table_id < tbl_vecs.size());

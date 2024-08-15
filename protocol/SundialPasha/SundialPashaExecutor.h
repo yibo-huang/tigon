@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "common/CCSet.h"
+#include "common/CCHashTable.h"
 #include "core/Executor.h"
 #include "protocol/SundialPasha/SundialPasha.h"
 
@@ -32,6 +34,27 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 			std::atomic<uint32_t> &n_complete_workers, std::atomic<uint32_t> &n_started_workers)
 		: base_type(coordinator_id, id, db, context, worker_status, n_complete_workers, n_started_workers)
 	{
+                void *tmp = NULL;
+                uint64_t table_num_per_host = db.get_table_num();
+                uint64_t total_table_num = db.get_table_num() * context.coordinator_num;
+                LOG(INFO) << "table_num_per_host = " << table_num_per_host << " total_table_num = " << total_table_num;
+
+                // init data migration metadata
+                if (coordinator_id == 0 && id == 0) {
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num));
+                        for (int i = 0; i < context.coordinator_num; i++)
+                                for (int j = 0; j < table_num_per_host; j++)
+                                        new(&cxl_hashtables[i * table_num_per_host + j]) CCHashTable(cxl_hashtable_bkt_cnt);
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
+                        LOG(INFO) << "Pasha Executor " << id << " initializes data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                } else {
+                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+                        LOG(INFO) << "Pasha Executor " << id << " retrieves data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                }
+
 	}
 
 	~SundialPashaExecutor() = default;
@@ -89,5 +112,10 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 		txn.get_table = [this](std::size_t tableId, std::size_t partitionId) { return this->db.find_table(tableId, partitionId); };
 		txn.set_logger(this->logger);
 	};
+
+    private:
+        static constexpr uint64_t cxl_hashtable_bkt_cnt = 1000;
+
+        CCHashTable *cxl_hashtables;
 };
 } // namespace star
