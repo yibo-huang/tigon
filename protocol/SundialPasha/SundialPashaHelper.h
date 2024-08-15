@@ -9,6 +9,8 @@
 #include <tuple>
 #include <memory>
 
+#include "common/CCSet.h"
+#include "common/CCHashTable.h"
 #include "core/Table.h"
 #include "glog/logging.h"
 
@@ -70,15 +72,8 @@ retry:
 	uint64_t owner{ 0 };
 };
 
-uint64_t SundialPashaMetadataLocalInit()
-{
-	return reinterpret_cast<uint64_t>(new SundialPashaMetadataLocal());
-}
-
-uint64_t SundialPashaMetadataSharedInit()
-{
-	return reinterpret_cast<uint64_t>(new SundialPashaMetadataShared());
-}
+uint64_t SundialPashaMetadataLocalInit();
+uint64_t SundialPashaMetadataSharedInit();
 
 /* 
  * lmeta means local metadata stored in local DRAM
@@ -87,6 +82,20 @@ uint64_t SundialPashaMetadataSharedInit()
 class SundialPashaHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
+
+        SundialPashaHelper()
+                : coordinator_id(0)
+                , coordinator_num(0)
+                , table_num_per_host(0)
+        {
+        }
+
+        SundialPashaHelper(std::size_t coordinator_id, std::size_t coordinator_num, std::size_t table_num_per_host)
+                : coordinator_id(coordinator_id)
+                , coordinator_num(coordinator_num)
+                , table_num_per_host(table_num_per_host)
+        {
+        }
 
 	static uint64_t get_or_install_meta(std::atomic<uint64_t> &ptr)
 	{
@@ -342,13 +351,27 @@ retry:
 		return value & ~(LOCK_BIT_MASK << LOCK_BIT_OFFSET);
 	}
 
-        static bool move_from_partition_to_shared_region(ITable *table, const std::tuple<MetaDataType *, void *> &row)
-	{
-                char *migrated_row_ptr = nullptr, *migrated_row_value_ptr = nullptr;
-                SundialPashaMetadataShared *migrated_row_meta = nullptr;
-                std::size_t row_total_size = 0;
-                void *src = nullptr;
-                bool ret = false;
+        void init_pasha_metadata()
+        {
+                uint64_t total_table_num = table_num_per_host * coordinator_num;
+
+                // init CXL hash tables
+                if (coordinator_id == 0) {
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num));
+                        for (int i = 0; i < coordinator_num; i++)
+                                for (int j = 0; j < table_num_per_host; j++)
+                                        new(&cxl_hashtables[i * table_num_per_host + j]) CCHashTable(cxl_hashtable_bkt_cnt);
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
+                        LOG(INFO) << "SundialPasha Helper " << " initializes data migration metadata ("
+                                << table_num_per_host * coordinator_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                } else {
+                        void *tmp = NULL;
+                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+                        LOG(INFO) << "SundialPasha Helper " << " retrieves data migration metadata ("
+                                << table_num_per_host * coordinator_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                }
+        }
 
                 MetaDataType &meta = *std::get<0>(row);
                 DCHECK(0 != meta.load());
@@ -387,6 +410,16 @@ retry:
     public:
 	static constexpr int LOCK_BIT_OFFSET = 63;
 	static constexpr uint64_t LOCK_BIT_MASK = 0x1ull;
+    private:
+        static constexpr uint64_t cxl_hashtable_bkt_cnt = 1000;
+
+        std::size_t coordinator_id;
+        std::size_t coordinator_num;
+        std::size_t table_num_per_host;
+
+        CCHashTable *cxl_hashtables;
 };
+
+extern SundialPashaHelper global_helper;
 
 } // namespace star

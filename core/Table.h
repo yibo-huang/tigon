@@ -3,6 +3,7 @@
 //
 
 #pragma once
+
 #include <thread>
 #include "benchmark/tpcc/Schema.h"
 #include "common/ClassOf.h"
@@ -16,16 +17,7 @@ static std::hash<std::thread::id> tid_hasher;
 namespace star
 {
 
-void tid_check()
-{
-	if (do_tid_check) {
-		if (tid == std::numeric_limits<uint64_t>::max()) {
-			tid = tid_hasher(std::this_thread::get_id());
-		} else {
-			DCHECK(tid_hasher(std::this_thread::get_id()) == tid);
-		}
-	}
-}
+extern void tid_check();
 
 class ITable {
     public:
