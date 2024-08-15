@@ -33,6 +33,8 @@ class ITable {
 
 	virtual ~ITable() = default;
 
+        virtual uint64_t get_plain_key(const void *key) = 0;
+
 	virtual std::tuple<MetaDataType *, void *> search(const void *key) = 0;
 
 	virtual bool contains(const void *key)
@@ -119,6 +121,13 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		, partitionID_(partitionID)
 	{
 	}
+
+        uint64_t get_plain_key(const void *key) override
+        {
+                tid_check();
+                const auto &k = *static_cast<const KeyType *>(key);
+                return k.get_plain_key();
+        }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
 	{
@@ -229,6 +238,7 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 	std::size_t tableID_;
 	std::size_t partitionID_;
 };
+
 template <class KeyType, class ValueType> class HStoreTable : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
@@ -240,6 +250,13 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		, partitionID_(partitionID)
 	{
 	}
+
+        uint64_t get_plain_key(const void *key) override
+        {
+                tid_check();
+                const auto &k = *static_cast<const KeyType *>(key);
+                return k.get_plain_key();
+        }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
 	{
@@ -349,6 +366,13 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		, partitionID_(partitionID)
 	{
 	}
+
+        uint64_t get_plain_key(const void *key) override
+        {
+                tid_check();
+                const auto &k = *static_cast<const KeyType *>(key);
+                return k.get_plain_key();
+        }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
 	{

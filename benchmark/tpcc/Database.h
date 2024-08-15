@@ -589,7 +589,7 @@ class Database {
 
 		// For each row in the WAREHOUSE table, 10 rows in the DISTRICT table
 
-		for (int i = 1; i <= 10; i++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
 			district::key key;
 			key.D_W_ID = partitionID + 1;
 			key.D_ID = i;
@@ -617,8 +617,8 @@ class Database {
 		// For each row in the WAREHOUSE table, 10 rows in the DISTRICT table
 		// For each row in the DISTRICT table, 3,000 rows in the CUSTOMER table
 
-		for (int i = 1; i <= 10; i++) {
-			for (int j = 1; j <= 3000; j++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
+			for (int j = 1; j <= CUSTOMER_PER_DISTRICT; j++) {
 				customer::key key;
 				key.C_W_ID = partitionID + 1;
 				key.C_D_ID = i;
@@ -679,8 +679,8 @@ class Database {
 
 		std::unordered_map<FixedString<16>, std::vector<std::pair<FixedString<16>, int32_t> > > last_name_to_first_names_and_c_ids;
 
-		for (int i = 1; i <= 10; i++) {
-			for (int j = 1; j <= 3000; j++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
+			for (int j = 1; j <= CUSTOMER_PER_DISTRICT; j++) {
 				customer::key customer_key;
 				customer_key.C_W_ID = partitionID + 1;
 				customer_key.C_D_ID = i;
@@ -713,8 +713,8 @@ class Database {
 		// For each row in the DISTRICT table, 3,000 rows in the CUSTOMER table
 		// For each row in the CUSTOMER table, 1 row in the HISTORY table
 
-		for (int i = 1; i <= 10; i++) {
-			for (int j = 1; j <= 3000; j++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
+			for (int j = 1; j <= CUSTOMER_PER_DISTRICT; j++) {
 				history::key key;
 
 				key.H_W_ID = partitionID + 1;
@@ -743,7 +743,7 @@ class Database {
 		// For each row in the ORDER table from 2101 to 3000, 1 row in the NEW_ORDER
 		// table
 
-		for (int i = 1; i <= 10; i++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
 			for (int j = 2101; j <= 3000; j++) {
 				new_order::key key;
 				key.NO_W_ID = partitionID + 1;
@@ -767,14 +767,14 @@ class Database {
 
 		std::vector<int> perm;
 
-		for (int i = 1; i <= 3000; i++) {
+		for (int i = 1; i <= ORDER_PER_DISTRICT; i++) {
 			perm.push_back(i);
 		}
 
-		for (int i = 1; i <= 10; i++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
 			std::shuffle(perm.begin(), perm.end(), std::default_random_engine());
 
-			for (int j = 1; j <= 3000; j++) {
+			for (int j = 1; j <= ORDER_PER_DISTRICT; j++) {
 				order::key key;
 				key.O_W_ID = partitionID + 1;
 				key.O_D_ID = i;
@@ -783,7 +783,7 @@ class Database {
 				order::value value;
 				value.O_C_ID = perm[j - 1];
 				value.O_ENTRY_D = Time::now();
-				value.O_OL_CNT = random.uniform_dist(5, 15);
+				value.O_OL_CNT = random.uniform_dist(MIN_ORDER_LINE_PER_ORDER, MAX_ORDER_LINE_PER_ORDER);
 				value.O_ALL_LOCAL = true;
 
 				if (key.O_ID < 2101) {
@@ -808,12 +808,12 @@ class Database {
 
 		ITable *order_table = find_table(order::tableID, partitionID);
 
-		for (int i = 1; i <= 10; i++) {
+		for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
 			order::key order_key;
 			order_key.O_W_ID = partitionID + 1;
 			order_key.O_D_ID = i;
 
-			for (int j = 1; j <= 3000; j++) {
+			for (int j = 1; j <= ORDER_PER_DISTRICT; j++) {
 				order_key.O_ID = j;
 
 				// no concurrent write, it is ok to read without validation on
@@ -855,7 +855,7 @@ class Database {
 
 		// 100,000 rows in the ITEM table
 
-		for (int i = 1; i <= 100000; i++) {
+		for (int i = 1; i <= ITEM_NUM; i++) {
 			item::key key;
 			key.I_ID = i;
 
@@ -894,7 +894,7 @@ class Database {
 
 		// For each row in the WAREHOUSE table, 100,000 rows in the STOCK table
 
-		for (int i = 1; i <= 100000; i++) {
+		for (int i = 1; i <= STOCK_PER_WAREHOUSE; i++) {
 			stock::key key;
 			key.S_W_ID = partitionID + 1; // partition_id from 0, W_ID from 1
 			key.S_I_ID = i;

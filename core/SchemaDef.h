@@ -37,7 +37,7 @@
 #define STRUCT_FIELDPOS_X(type, name) name##_field,
 
 // the main macro
-#define DO_STRUCT(name, keyfields, valuefields, namespacefields)                                           \
+#define DO_STRUCT(name, keyfields, valuefields, namespacefields, get_plain_key_func)                       \
 	namespacefields(NAMESPACE_OPEN) struct name {                                                      \
 		struct key {                                                                               \
 			key() = default;                                                                   \
@@ -55,6 +55,7 @@
 			{                                                                                  \
 				return !operator==(other);                                                 \
 			}                                                                                  \
+                        get_plain_key_func                                                                 \
 			enum { APPLY_X_AND_Y(keyfields, STRUCT_FIELDPOS_X) NFIELDS };                      \
 		};                                                                                         \
 		struct value {                                                                             \

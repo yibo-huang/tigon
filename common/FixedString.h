@@ -97,7 +97,7 @@ template <std::size_t N> class FixedString {
 		return *this;
 	}
 
-	const char *c_str()
+	const char *c_str() const
 	{
 		return &data_[0];
 	}

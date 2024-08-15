@@ -28,8 +28,13 @@ static constexpr auto YCSB_FIELD_SIZE = 10;
 		y(FixedString<YCSB_FIELD_SIZE>, Y_F04) y(FixedString<YCSB_FIELD_SIZE>, Y_F05) y(FixedString<YCSB_FIELD_SIZE>, Y_F06)         \
 			y(FixedString<YCSB_FIELD_SIZE>, Y_F07) y(FixedString<YCSB_FIELD_SIZE>, Y_F08) y(FixedString<YCSB_FIELD_SIZE>, Y_F09) \
 				y(FixedString<YCSB_FIELD_SIZE>, Y_F10)
+#define YCSB_GET_PLAIN_KEY_FUNC                 \
+        uint64_t get_plain_key() const          \
+        {                                       \
+                return Y_KEY;                   \
+        }
 
-DO_STRUCT(ycsb, YCSB_KEY_FIELDS, YCSB_VALUE_FIELDS, NAMESPACE_FIELDS)
+DO_STRUCT(ycsb, YCSB_KEY_FIELDS, YCSB_VALUE_FIELDS, NAMESPACE_FIELDS, YCSB_GET_PLAIN_KEY_FUNC)
 
 namespace star
 {
