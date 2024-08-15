@@ -985,7 +985,7 @@ class SundialPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                SundialPashaHelper::move_from_partition_to_shared_region(&table, row);
+                global_helper.move_from_partition_to_shared_region(&table, table.get_plain_key(key), row);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + value_size + sizeof(bool) + sizeof(bool) + sizeof(rts) + sizeof(wts) + sizeof(key_offset);

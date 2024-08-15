@@ -81,7 +81,7 @@ uint64_t SundialPashaMetadataSharedInit();
  */
 class SundialPashaHelper {
     public:
-	using MetaDataType = std::atomic<uint64_t>;
+        using MetaDataType = std::atomic<uint64_t>;
 
         SundialPashaHelper()
                 : coordinator_id(0)
@@ -373,32 +373,57 @@ retry:
                 }
         }
 
+        bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
+	{
                 MetaDataType &meta = *std::get<0>(row);
                 DCHECK(0 != meta.load());
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		DCHECK(lmeta != nullptr);
 
-		SundialPashaMetadataLocal *smeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
-		DCHECK(smeta != nullptr);
+                bool ret = false;
 
-		smeta->lock();
-                if (smeta->is_migrated == false) {
-                        row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
-                        migrated_row_ptr = reinterpret_cast<char *>(CXLMemory::cxlalloc_malloc_wrapper(row_total_size));
-                        migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
-                        migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataShared);
-                        src = std::get<1>(row);
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *local_data = std::get<1>(row);
 
-                        migrated_row_meta->latch.store(0, std::memory_order_relaxed);
-                        migrated_row_meta->wts = smeta->wts;
-                        migrated_row_meta->rts = smeta->rts;
-                        migrated_row_meta->owner = smeta->owner;
+                        // allocate the CXL row
+                        std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
+                        char *migrated_row_ptr = reinterpret_cast<char *>(CXLMemory::cxlalloc_malloc_wrapper(row_total_size));
+                        char *migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataShared);
+                        SundialPashaMetadataShared *migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
+                        new(migrated_row_meta) SundialPashaMetadataShared();
 
-                        std::memcpy(migrated_row_value_ptr, src, table->value_size());
+                        // take the CXL latch
+                        migrated_row_meta->lock();
 
-                        smeta->migrated_row = migrated_row_ptr;
-                        smeta->is_migrated = true;
+                        // copy metadata
+                        migrated_row_meta->wts = lmeta->wts;
+                        migrated_row_meta->rts = lmeta->rts;
+                        migrated_row_meta->owner = lmeta->owner;
+
+                        // copy data
+                        std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
+
+                        // insert into CXL hash tables
+                        CCHashTable *target_cxl_table = &cxl_hashtables[coordinator_id * table_num_per_host + table->tableID()];
+                        ret = target_cxl_table->insert(plain_key, migrated_row_ptr);
+                        DCHECK(ret == true);
+                        CCSet *row_set = target_cxl_table->search(plain_key);
+                        DCHECK(row_set != nullptr);
+
+                        // mark the local row as migrated
+                        lmeta->migrated_row = migrated_row_ptr;
+                        lmeta->is_migrated = true;
+
+                        // release the CXL latch
+                        migrated_row_meta->unlock();
+
                         ret = true;
+                } else {
+                        // do nothing
+                        ret = false;
                 }
-		smeta->unlock();
+		lmeta->unlock();
 		return ret;
 	}
 
