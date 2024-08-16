@@ -107,11 +107,6 @@ template <class Database> class SundialPasha {
 				}
 			} else {
 				CHECK(false);
-				// commit phase 2, read validation
-				if (!validate_read_set(txn, messages)) {
-					abort(txn, messages);
-					return false;
-				}
 			}
 		}
 
@@ -167,36 +162,11 @@ template <class Database> class SundialPasha {
 					continue;
 				}
 			}
-			auto key_offset = i;
-			// lock local records
-			if (partitioner.has_master_partition(partitionId)) {
-				auto key = writeKey.get_key();
-
-				auto row = table->search(key);
-
-				std::pair<uint64_t, uint64_t> rwts;
-				bool success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
-				auto wts = rwts.first;
-				auto rts = rwts.second;
-				auto read_set_pos = writeKey.get_read_set_pos();
-				if (success == false || (read_set_pos != -1 && txn.readSet[read_set_pos].get_wts() != wts)) {
-					txn.abort_lock = true;
-					break;
-				} else {
-					writeKey.set_write_lock_bit();
-					txn.commit_ts = std::max(txn.commit_ts, rts + 1);
-				}
-			} else {
-				txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				DCHECK(txn.transaction_id != 0);
-				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-				txn.network_size += MessageFactoryType::new_write_lock_message(*messages[coordinatorID], *table, txn.transaction_id,
-											       writeKey.get_key(), key_offset);
-			}
+                        // should never reach here because the following two reasons:
+                        // 1. all the writes are read & write
+                        // 2. all the write locks are already taken
+                        DCHECK(false);
 		}
-		CHECK(txn.pendingResponses == 0);
-		sync_messages(txn);
 
 		return txn.abort_lock;
 	}
@@ -409,65 +379,6 @@ template <class Database> class SundialPasha {
 				txn.local_validated = true;
 			}
 		}
-
-		return !txn.abort_read_validation;
-	}
-
-	bool validate_read_set(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
-	{
-		auto &readSet = txn.readSet;
-		auto &writeSet = txn.writeSet;
-
-		auto isKeyInWriteSet = [](const std::vector<SundialPashaRWKey> &writeSet, const void *key) {
-			for (auto &writeKey : writeSet) {
-				if (writeKey.get_key() == key) {
-					return true;
-				}
-			}
-			return false;
-		};
-
-		for (auto i = 0u; i < readSet.size(); i++) {
-			auto &readKey = readSet[i];
-
-			if (readKey.get_local_index_read_bit()) {
-				continue; // read only index does not need to validate
-			}
-
-			bool in_write_set = isKeyInWriteSet(writeSet, readKey.get_key());
-			if (in_write_set) {
-				continue; // already validated in lock write set
-			}
-
-			auto tableId = readKey.get_table_id();
-			auto partitionId = readKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-			auto key = readKey.get_key();
-			auto tid = readKey.get_tid();
-
-			if (partitioner.has_master_partition(partitionId)) {
-				uint64_t latest_tid = table->search_metadata(key).load();
-				if (SiloHelper::remove_lock_bit(latest_tid) != tid) {
-					txn.abort_read_validation = true;
-					break;
-				}
-				if (SiloHelper::is_locked(latest_tid)) { // must be locked by others
-					txn.abort_read_validation = true;
-					break;
-				}
-			} else {
-				txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-				txn.network_size += MessageFactoryType::new_read_validation_message(*messages[coordinatorID], *table, key, i, tid);
-			}
-		}
-
-		if (txn.pendingResponses == 0) {
-			txn.local_validated = true;
-		}
-
-		sync_messages(txn);
 
 		return !txn.abort_read_validation;
 	}
