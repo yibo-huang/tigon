@@ -20,6 +20,11 @@ class CCSet {
 	{
 	}
 
+        char *get_element(uint64_t index)
+        {
+                return rows[index].get();
+        }
+
         uint64_t size()
         {
                 return cur_size;
