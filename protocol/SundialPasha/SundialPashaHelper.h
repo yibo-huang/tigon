@@ -86,14 +86,17 @@ class SundialPashaHelper {
         SundialPashaHelper()
                 : coordinator_id(0)
                 , coordinator_num(0)
-                , table_num_per_host(0)
+                , table_num_per_partition(0)
+                , partition_num_per_host(0)
         {
         }
 
-        SundialPashaHelper(std::size_t coordinator_id, std::size_t coordinator_num, std::size_t table_num_per_host)
+        SundialPashaHelper(std::size_t coordinator_id, std::size_t coordinator_num, 
+                std::size_t table_num_per_partition, std::size_t partition_num_per_host)
                 : coordinator_id(coordinator_id)
                 , coordinator_num(coordinator_num)
-                , table_num_per_host(table_num_per_host)
+                , table_num_per_partition(table_num_per_partition)
+                , partition_num_per_host(partition_num_per_host)
         {
         }
 
@@ -353,24 +356,46 @@ retry:
 
         void init_pasha_metadata()
         {
-                uint64_t total_table_num = table_num_per_host * coordinator_num;
+                uint64_t total_partition_num = partition_num_per_host * coordinator_num;
+                uint64_t total_table_num = table_num_per_partition * total_partition_num;
+
+                cxl_tbl_vecs.resize(table_num_per_partition);
 
                 // init CXL hash tables
                 if (coordinator_id == 0) {
                         cxl_hashtables = reinterpret_cast<CCHashTable *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num));
-                        for (int i = 0; i < coordinator_num; i++)
-                                for (int j = 0; j < table_num_per_host; j++)
-                                        new(&cxl_hashtables[i * table_num_per_host + j]) CCHashTable(cxl_hashtable_bkt_cnt);
+                        for (int i = 0; i < table_num_per_partition; i++) {
+                                cxl_tbl_vecs[i].resize(total_partition_num);
+                                for (int j = 0; j < total_partition_num; j++) {
+                                        CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
+                                        new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
+                                        cxl_tbl_vecs[i][j] = cxl_table;
+                                }
+                        }
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
-                        LOG(INFO) << "SundialPasha Helper " << " initializes data migration metadata ("
-                                << table_num_per_host * coordinator_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                        LOG(INFO) << "SundialPasha Helper initializes data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
                 } else {
                         void *tmp = NULL;
                         CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
                         cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
-                        LOG(INFO) << "SundialPasha Helper " << " retrieves data migration metadata ("
-                                << table_num_per_host * coordinator_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                        for (int i = 0; i < table_num_per_partition; i++) {
+                                cxl_tbl_vecs[i].resize(total_partition_num);
+                                for (int j = 0; j < total_partition_num; j++) {
+                                        CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
+                                        cxl_tbl_vecs[i][j] = cxl_table;
+                                }
+                        }
+                        LOG(INFO) << "SundialPasha Helper retrieves data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
                 }
+
+                init_finished.store(1, std::memory_order_release);
+        }
+
+        void wait_for_pasha_metadata_init()
+        {
+                while (init_finished.load(std::memory_order_acquire) == 0);
         }
 
         bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
@@ -405,7 +430,7 @@ retry:
                         std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
 
                         // insert into CXL hash tables
-                        CCHashTable *target_cxl_table = &cxl_hashtables[coordinator_id * table_num_per_host + table->tableID()];
+                        CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
                         ret = target_cxl_table->insert(plain_key, migrated_row_ptr);
                         DCHECK(ret == true);
                         CCSet *row_set = target_cxl_table->search(plain_key);
@@ -440,9 +465,12 @@ retry:
 
         std::size_t coordinator_id;
         std::size_t coordinator_num;
-        std::size_t table_num_per_host;
+        std::size_t table_num_per_partition;
+        std::size_t partition_num_per_host;
 
         CCHashTable *cxl_hashtables;
+        std::vector<std::vector<CCHashTable *> > cxl_tbl_vecs;
+        std::atomic<uint64_t> init_finished;
 };
 
 extern SundialPashaHelper global_helper;
