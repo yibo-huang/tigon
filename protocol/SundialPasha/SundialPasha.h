@@ -79,14 +79,14 @@ template <class Database> class SundialPasha {
 				auto row = table->search(key);
 				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-				txn.network_size +=
-					MessageFactoryType::new_unlock_message(*messages[coordinatorID], *table, writeKey.get_key(), txn.transaction_id, i);
+                                auto key = writeKey.get_key();
+				CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
+                                DCHECK(row_set != nullptr);
+                                DCHECK(row_set->size() == 1);
+                                char *migrated_row = row_set->get_element(0);
+				SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
 			}
 		}
-
-		sync_messages(txn, false);
 	}
 
 	bool commit(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
@@ -351,23 +351,63 @@ template <class Database> class SundialPasha {
 						auto output = ss.str();
 						txn.get_logger()->write(output.c_str(), output.size(), false);
 					}
-
 				} else {
-					if (readSet.empty() && writeSet.empty())
-						continue;
-					txn.pendingResponses++;
-					auto coordinatorID = i;
-					messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-					txn.network_size += MessageFactoryType::new_read_validation_and_redo_message(*messages[coordinatorID], readSet,
-														     writeSet, txn.commit_ts, db);
+					for (size_t j = 0; j < readSet.size(); ++j) {
+						auto &readKey = readSet[j];
+						if (readKey.get_local_index_read_bit()) {
+							continue; // read only index does not need to validate
+						}
+						bool in_write_set = isKeyInWriteSet(writeSet, readKey.get_key());
+						DCHECK(in_write_set == false);
+						if (in_write_set) {
+							continue; // already validated in lock write set
+						}
+						DCHECK(txn.commit_ts > readKey.get_rts());
+						DCHECK(readKey.get_write_lock_bit() == false);
+
+						auto tableId = readKey.get_table_id();
+						auto partitionId = readKey.get_partition_id();
+						auto table = db.find_table(tableId, partitionId);
+						auto key = readKey.get_key();
+						auto wts = readKey.get_wts();
+						auto commit_ts = txn.commit_ts;
+
+
+						CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
+                                                DCHECK(row_set != nullptr);
+                                                DCHECK(row_set->size() == 1);
+                                                char *migrated_row = row_set->get_element(0);
+						bool success = global_helper.remote_renew_lease(migrated_row, wts, commit_ts);
+
+						if (success == false) { // renew_lease failed
+							txn.abort_read_validation = true;
+							break;
+						}
+					}
+
+					// Redo logging
+					for (size_t j = 0; j < writeSet.size(); ++j) {
+						auto &writeKey = writeSet[j];
+						auto tableId = writeKey.get_table_id();
+						auto partitionId = writeKey.get_partition_id();
+						auto table = db.find_table(tableId, partitionId);
+						auto key_size = table->key_size();
+						auto value_size = table->value_size();
+						auto key = writeKey.get_key();
+						auto value = writeKey.get_value();
+
+						std::ostringstream ss;
+						ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
+						   << std::string((char *)value, value_size);
+						auto output = ss.str();
+						txn.get_logger()->write(output.c_str(), output.size(), false);
+					}
 				}
 			}
 
 			if (txn.pendingResponses == 0) {
 				txn.local_validated = true;
 			}
-
-			sync_messages(txn);
 		}
 
 		return !txn.abort_read_validation;
@@ -493,6 +533,10 @@ template <class Database> class SundialPasha {
 				auto field_size = table->field_size();
 				if (partitioner.has_master_partition(partitionId))
 					continue;
+
+                                // replication not supported
+                                DCHECK(false);
+
 				auto coordinatorId = partitioner.master_coordinator(partitionId);
 				if (coordinator_covered[coordinatorId] == false) {
 					coordinator_covered[coordinatorId] = true;
@@ -538,12 +582,14 @@ template <class Database> class SundialPasha {
 				auto row = table->search(key);
 				SundialPashaHelper::update(row, value, value_size, txn.commit_ts, txn.transaction_id);
 			} else {
-				txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-				txn.network_size += MessageFactoryType::new_write_message(*messages[coordinatorID], *table, writeKey.get_key(),
-											  writeKey.get_value(), txn.commit_ts, txn.transaction_id,
-											  persist_commit_record[i]);
+                                auto key = writeKey.get_key();
+				auto value = writeKey.get_value();
+				auto value_size = table->value_size();
+                                CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
+                                DCHECK(row_set != nullptr);
+                                DCHECK(row_set->size() == 1);
+                                char *migrated_row = row_set->get_element(0);
+				SundialPashaHelper::remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
 			}
 
 			// value replicate
@@ -555,6 +601,9 @@ template <class Database> class SundialPasha {
 				if (!partitioner.is_partition_replicated_on(partitionId, k)) {
 					continue;
 				}
+
+                                // replication not supported
+                                DCHECK(false);
 
 				// already write
 				if (k == partitioner.master_coordinator(partitionId)) {
@@ -582,7 +631,6 @@ template <class Database> class SundialPasha {
 
 			DCHECK(replicate_count == partitioner.replica_num() - 1);
 		}
-		sync_messages(txn);
 	}
 
 	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages)
@@ -616,14 +664,15 @@ template <class Database> class SundialPasha {
 				auto row = table->search(key);
 				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-				txn.network_size +=
-					MessageFactoryType::new_unlock_message(*messages[coordinatorID], *table, writeKey.get_key(), txn.transaction_id, i);
+				auto key = writeKey.get_key();
+				auto value = writeKey.get_value();
+                                CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
+                                DCHECK(row_set != nullptr);
+                                DCHECK(row_set->size() == 1);
+                                char *migrated_row = row_set->get_element(0);
+				SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
 			}
 		}
-
-		sync_messages(txn, false);
 	}
 
 	void sync_messages(TransactionType &txn, bool wait_response = true)

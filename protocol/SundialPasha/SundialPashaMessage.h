@@ -970,6 +970,7 @@ class SundialPashaMessageHandler {
 		uint32_t key_offset;
 		uint64_t transaction_id;
 		uint64_t rts, wts;
+                bool success = false;
 
 		DCHECK(inputPiece.get_message_length() ==
 		       MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(write_lock) + sizeof(key_offset));
@@ -985,32 +986,17 @@ class SundialPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                global_helper.move_from_partition_to_shared_region(&table, table.get_plain_key(key), row);
+                success = global_helper.move_from_partition_to_shared_region(&table, table.get_plain_key(key), row);
+                DCHECK(success == true);
 
 		// prepare response message header
-		auto message_size = MessagePiece::get_header_size() + value_size + sizeof(bool) + sizeof(bool) + sizeof(rts) + sizeof(wts) + sizeof(key_offset);
+		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
 		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_RESPONSE), message_size,
-											 table_id, partition_id);
+                                                                                         table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
 		encoder << message_piece_header;
-
-		// reserve size for read
-		bool success = true;
-		std::pair<uint64_t, uint64_t> rwts;
-		if (write_lock) {
-			success = SundialPashaHelper::write_lock(row, rwts, transaction_id);
-		}
-
-		responseMessage.data.append(value_size, 0);
-		void *dest = &responseMessage.data[0] + responseMessage.data.size() - value_size;
-		// read to message buffer
-		auto read_rwts = SundialPashaHelper::read(row, dest, value_size);
-		if (success && write_lock) {
-			DCHECK(read_rwts == rwts);
-		}
-		encoder << success << write_lock << read_rwts.first << read_rwts.second << key_offset;
-
+                encoder << success << key_offset;
 		responseMessage.flush();
 	}
 
@@ -1031,38 +1017,43 @@ class SundialPashaMessageHandler {
 
 		auto stringPiece = inputPiece.toStringPiece();
 		uint32_t key_offset;
-		uint64_t rts, wts;
-		bool write_lock, success;
+		bool success;
 
 		DCHECK(inputPiece.get_message_length() ==
-		       MessagePiece::get_header_size() + value_size + sizeof(write_lock) + sizeof(success) + sizeof(wts) + sizeof(rts) + sizeof(key_offset));
+		       MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset));
 
-		stringPiece.remove_prefix(value_size);
 		Decoder dec(stringPiece);
-		dec >> success >> write_lock >> wts >> rts >> key_offset;
+		dec >> success >> key_offset;
+                DCHECK(success == true);
 
 		SundialPashaRWKey &readKey = txn->readSet[key_offset];
-		dec = Decoder(inputPiece.toStringPiece());
-		dec.read_n_bytes(readKey.get_value(), value_size);
 
-		DCHECK(dec.size() == sizeof(success) + sizeof(write_lock) + sizeof(wts) + sizeof(rts) + sizeof(key_offset));
-		txn->pendingResponses--;
+                // search cxl table and get the data
+                CCSet *row_set = global_helper.search_cxl_table(table_id, partition_id, table.get_plain_key(readKey.get_key()));
+                DCHECK(row_set != nullptr);
+                DCHECK(row_set->size() == 1);
+                char *migrated_row = row_set->get_element(0);
 
-		if (write_lock == false) {
-			DCHECK(success == true);
-			readKey.set_wts(wts);
-			readKey.set_rts(rts);
-			txn->commit_ts = std::max(txn->commit_ts, wts);
-		} else {
-			if (success == false) {
-				txn->abort_lock = true;
-			} else {
-				readKey.set_wts(wts);
-				readKey.set_rts(rts);
-				readKey.set_write_lock_bit();
-				txn->commit_ts = std::max(txn->commit_ts, wts);
-			}
-		}
+                // perform execution phase operations
+                std::pair<uint64_t, uint64_t> rwts;
+                if (readKey.get_write_request_bit()) {
+                        DCHECK(readKey.get_local_index_read_bit() == 0);
+                        success = SundialPashaHelper::remote_write_lock(migrated_row, rwts, txn->transaction_id);
+                }
+                auto read_rwts = SundialPashaHelper::remote_read(migrated_row, readKey.get_value(), value_size);
+                readKey.set_wts(read_rwts.first);
+                readKey.set_rts(read_rwts.second);
+                if (readKey.get_write_request_bit()) {
+                        DCHECK(readKey.get_local_index_read_bit() == 0);
+                        if (success) {
+                                DCHECK(rwts == read_rwts);
+                                readKey.set_write_lock_bit();
+                        } else {
+                                txn->abort_lock = true;
+                        }
+                }
+
+                txn->pendingResponses--;
 	}
 
 	static void write_lock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)

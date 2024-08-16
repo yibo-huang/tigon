@@ -271,8 +271,8 @@ class SundialPashaTransaction {
 			const SundialPashaRWKey &readKey = readSet[i];
 			readRequestHandler(readKey.get_table_id(), readKey.get_partition_id(), i, readKey.get_key(), readKey.get_value(),
 					   readKey.get_local_index_read_bit(), readKey.get_write_request_bit());
-			readSet[i].clear_read_request_bit();
-			readSet[i].clear_write_request_bit();
+			// readSet[i].clear_read_request_bit();
+			// readSet[i].clear_write_request_bit();
 		}
 
 		t_local_work.end();

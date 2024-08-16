@@ -143,6 +143,23 @@ retry:
 		return std::make_pair(wts, rts);
 	}
 
+        // Returns <rts, wts> of the tuple.
+	static std::pair<uint64_t, uint64_t> remote_read(char *row, void *dest, std::size_t size)
+	{
+                DCHECK(row != nullptr);
+                uint64_t rts = 0, wts = 0;
+		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
+                void *src = row + sizeof(SundialPashaMetadataShared);
+
+		smeta->lock();
+                rts = smeta->rts;
+                wts = smeta->wts;
+                std::memcpy(dest, src, size);
+		smeta->unlock();
+
+		return std::make_pair(wts, rts);
+	}
+
 	// Returns <rts, wts> of the tuple.
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
@@ -174,6 +191,25 @@ retry:
 		return success;
 	}
 
+        // Returns <rts, wts> of the tuple.
+	static bool remote_write_lock(char *row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
+	{
+		DCHECK(row != nullptr);
+		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
+                bool success = false; 
+
+                smeta->lock();
+                rwts.first = smeta->wts;
+                rwts.second = smeta->rts;
+                if (smeta->owner == 0 || smeta->owner == transaction_id) {
+                        success = true;
+                        smeta->owner = transaction_id;
+                }
+                smeta->unlock();
+
+		return success;
+	}
+
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
@@ -200,6 +236,24 @@ retry:
                         smeta->unlock();
                 }
 		lmeta->unlock();
+
+		return success;
+	}
+
+        static bool remote_renew_lease(char *row, uint64_t wts, uint64_t commit_ts)
+	{
+		DCHECK(row != nullptr);
+		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
+                bool success = false; 
+
+                smeta->lock();
+                if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
+                        success = false;
+                } else {
+                        success = true;
+                        smeta->rts = std::max(smeta->rts, commit_ts);
+                }
+                smeta->unlock();
 
 		return success;
 	}
@@ -255,6 +309,20 @@ retry:
 		lmeta->unlock();
 	}
 
+        static void remote_update(char *row, const void *value, std::size_t value_size, uint64_t commit_ts,
+			   uint64_t transaction_id)
+	{
+		DCHECK(row != nullptr);
+		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
+                void *data_ptr = row + sizeof(SundialPashaMetadataShared);
+
+                smeta->lock();
+                CHECK(smeta->owner == transaction_id);
+                memcpy(data_ptr, value, value_size);
+                smeta->wts = smeta->rts = commit_ts;
+                smeta->unlock();
+	}
+
 	static void update_unlock(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 				  uint64_t transaction_id)
 	{
@@ -299,6 +367,18 @@ retry:
                 }
 		lmeta->unlock();
 	}
+
+        static void remote_unlock(char *row, uint64_t transaction_id)
+	{
+		DCHECK(row != nullptr);
+		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
+
+                smeta->lock();
+                CHECK(smeta->owner == transaction_id);
+                smeta->owner = 0;
+                smeta->unlock();
+	}
+
 
 	static bool is_locked(uint64_t value)
 	{
@@ -396,6 +476,12 @@ retry:
         void wait_for_pasha_metadata_init()
         {
                 while (init_finished.load(std::memory_order_acquire) == 0);
+        }
+
+        CCSet *search_cxl_table(std::size_t table_id, std::size_t partition_id, uint64_t plain_key)
+        {
+                CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                return target_cxl_table->search(plain_key);
         }
 
         bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
