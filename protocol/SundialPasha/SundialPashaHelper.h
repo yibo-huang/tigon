@@ -100,7 +100,7 @@ class SundialPashaHelper {
         {
         }
 
-	static uint64_t get_or_install_meta(std::atomic<uint64_t> &ptr)
+	static uint64_t get_or_install_local_meta(std::atomic<uint64_t> &ptr)
 	{
 retry:
 		auto v = ptr.load();
@@ -120,7 +120,7 @@ retry:
 	{
                 uint64_t rts = 0, wts = 0;
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 		DCHECK(lmeta != nullptr);
 
 		lmeta->lock();
@@ -164,7 +164,7 @@ retry:
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 		bool success = false;
 
 		lmeta->lock();
@@ -213,7 +213,7 @@ retry:
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 		bool success = false;
 
 		lmeta->lock();
@@ -261,7 +261,7 @@ retry:
 	static void replica_update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 
 		lmeta->lock();
                 if (lmeta->is_migrated == false) {
@@ -289,7 +289,7 @@ retry:
 			   uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 
 		lmeta->lock();
                 if (lmeta->is_migrated == false) {
@@ -323,36 +323,10 @@ retry:
                 smeta->unlock();
 	}
 
-	static void update_unlock(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
-				  uint64_t transaction_id)
-	{
-		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
-
-		lmeta->lock();
-                if (lmeta->is_migrated == false) {
-		        void *data_ptr = std::get<1>(row);
-                        CHECK(lmeta->owner == transaction_id);
-                        memcpy(data_ptr, value, value_size);
-                        lmeta->wts = lmeta->rts = commit_ts;
-                        lmeta->owner = 0;
-                } else {
-                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
-                        void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
-                        smeta->lock();
-                        CHECK(smeta->owner == transaction_id);
-                        memcpy(data_ptr, value, value_size);
-                        smeta->wts = smeta->rts = commit_ts;
-                        smeta->owner = 0;
-                        smeta->unlock();
-                }
-		lmeta->unlock();
-	}
-
 	static void unlock(const std::tuple<MetaDataType *, void *> &row, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 
 		lmeta->lock();
                 if (lmeta->is_migrated == false) {
@@ -377,61 +351,6 @@ retry:
                 CHECK(smeta->owner == transaction_id);
                 smeta->owner = 0;
                 smeta->unlock();
-	}
-
-
-	static bool is_locked(uint64_t value)
-	{
-		return (value >> LOCK_BIT_OFFSET) & LOCK_BIT_MASK;
-	}
-
-	static uint64_t lock(std::atomic<uint64_t> &a)
-	{
-		uint64_t oldValue, newValue;
-		do {
-			do {
-				oldValue = a.load();
-			} while (is_locked(oldValue));
-			newValue = (LOCK_BIT_MASK << LOCK_BIT_OFFSET) | oldValue;
-		} while (!a.compare_exchange_weak(oldValue, newValue));
-		DCHECK(is_locked(oldValue) == false);
-		return oldValue;
-	}
-
-	static uint64_t lock(std::atomic<uint64_t> &a, bool &success)
-	{
-		uint64_t oldValue = a.load();
-
-		if (is_locked(oldValue)) {
-			success = false;
-		} else {
-			uint64_t newValue = (LOCK_BIT_MASK << LOCK_BIT_OFFSET) | oldValue;
-			success = a.compare_exchange_strong(oldValue, newValue);
-		}
-		return oldValue;
-	}
-
-	static void unlock(std::atomic<uint64_t> &a)
-	{
-		uint64_t oldValue = a.load();
-		DCHECK(is_locked(oldValue));
-		uint64_t newValue = remove_lock_bit(oldValue);
-		bool ok = a.compare_exchange_strong(oldValue, newValue);
-		DCHECK(ok);
-	}
-
-	static void unlock(std::atomic<uint64_t> &a, uint64_t newValue)
-	{
-		uint64_t oldValue = a.load();
-		DCHECK(is_locked(oldValue));
-		DCHECK(is_locked(newValue) == false);
-		bool ok = a.compare_exchange_strong(oldValue, newValue);
-		DCHECK(ok);
-	}
-
-	static uint64_t remove_lock_bit(uint64_t value)
-	{
-		return value & ~(LOCK_BIT_MASK << LOCK_BIT_OFFSET);
 	}
 
         void init_pasha_metadata()
@@ -488,7 +407,7 @@ retry:
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 DCHECK(0 != meta.load());
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_meta(meta));
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 		DCHECK(lmeta != nullptr);
 
                 bool ret = false;
