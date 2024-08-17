@@ -32,11 +32,10 @@ class CCHashTable {
                 return cur_bkt->insert(key, row);
         }
 
-	bool remove(char *row)
+	bool remove(uint64_t key, char *row)
         {
-                /* not implemented and never used */
-                DCHECK(0);
-                return false;
+                CCBucket *cur_bkt = &buckets[hash(key)];
+                return cur_bkt->remove(key, row);
         }
 
     private:
@@ -45,7 +44,7 @@ class CCHashTable {
 		CCNode(uint64_t key)
                 {
                         this->key = key;
-                        next = NULL;
+                        next = nullptr;
                         rows.clear();
                 }
 
@@ -70,7 +69,9 @@ class CCHashTable {
                         node = find_node(key);
                         pthread_spin_unlock(&latch);
 
-                        if (node != nullptr)
+                        // note that we never delete the node
+                        // so we need to check if it is empty
+                        if (node != nullptr && node->rows.empty() == false)
                                 return &node->rows;
                         else
                                 return nullptr;
@@ -79,27 +80,38 @@ class CCHashTable {
 		bool insert(uint64_t key, char *row)
                 {
                         CCNode *node = nullptr;
+                        bool ret = false;
 
                         pthread_spin_lock(&latch);
                         node = find_node(key);
-                        if (node == NULL) {
+                        if (node == nullptr) {
                                 node = reinterpret_cast<CCNode *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCNode)));
                                 new(node) CCNode(key);
-                                node->rows.insert(row);
-                                node->next = first_node.get();
+                                ret = node->rows.insert(row);   // insert row into node
+                                DCHECK(ret == true);
+                                node->next = first_node.get();  // insert node into bucket head
                                 first_node = node;
                         } else {
-                                // TODO. should diferentiate between unique vs. nonunique indexes.
-                                node->rows.insert(row);
+                                // TODO. should differentiate between unique vs. nonunique indexes.
+                                ret = node->rows.insert(row);   // insert can fail if the row already exists
                         }
                         pthread_spin_unlock(&latch);
-                        return true;
+                        return ret;
                 }
 
-		void remove(uint64_t index_key, char *row)
+		bool remove(uint64_t key, char *row)
                 {
-                        /* not implemented and never used */
-                        DCHECK(0);
+                        CCNode *node = nullptr;
+                        bool ret = false;
+
+                        pthread_spin_lock(&latch);
+                        node = find_node(key);
+                        if (node != nullptr)
+                                ret = node->rows.remove(row);   // remove row from node
+                        // note that we do not delete the node
+                        // this avoids frequent alloc & free
+                        pthread_spin_unlock(&latch);
+                        return ret;
                 }
 
 	    private:
@@ -107,13 +119,13 @@ class CCHashTable {
                 {
                         CCNode *cur_node = first_node.get();
 
-                        while (cur_node != NULL) {
+                        while (cur_node != nullptr) {
                                 if (cur_node->key == key) {
                                         return cur_node;
                                 }
                                 cur_node = cur_node->next.get();
                         }
-                        return NULL;
+                        return nullptr;
                 }
 
 		boost::interprocess::offset_ptr<CCNode> first_node;

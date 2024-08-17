@@ -11,13 +11,16 @@
 namespace star
 {
 
+// TODO: make it crash-consistent
 class CCSet {
     public:
-        static constexpr uint64_t max_capacity = 100;
+        static constexpr uint64_t max_capacity = 10;
 
         CCSet()
 		: cur_size(0)
 	{
+                for (int i = 0; i < max_capacity; i++)
+                        rows[i] = nullptr;
 	}
 
         char *get_element(uint64_t index)
@@ -38,27 +41,48 @@ class CCSet {
         void clear()
         {
                 cur_size = 0;
+                for (int i = 0; i < max_capacity; i++)
+                        rows[i] = nullptr;
         }
 
-        void insert(char *row)
+        bool insert(char *row)
         {
-                int i = 0;
-
                 /* check for duplicates */
-                for (i = 0; i < cur_size; i++)
+                for (int i = 0; i < cur_size; i++)
                         if (rows[i] == row)
-                                return;
+                                return false;
 
                 /* insert the row */
                 assert(cur_size != max_capacity);
                 rows[cur_size] = row;
                 cur_size++;
+                return true;
         }
 
-        void remove(char *row)
+        bool remove(char *row)
         {
-                /* not implemented */
-	        assert(0);
+                int index = -1;
+                bool ret = false;
+
+                /* find the row */
+                for (int i = 0; i < cur_size; i++) {
+                        if (rows[i] == row) {
+                                index = i;
+                                break;
+                        }
+                }
+
+                /* remove the row */
+                if (index != -1) {
+                        rows[index] = nullptr;
+                        for (int i = index; i < cur_size - 1; i++) {
+                                rows[i] = rows[i + 1];
+                        }
+                        rows[cur_size - 1] = nullptr;
+                        cur_size--;
+                        ret = true;
+                }
+                return ret;
         }
 
     private:
