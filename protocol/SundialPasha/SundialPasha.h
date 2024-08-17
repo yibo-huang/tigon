@@ -162,9 +162,9 @@ template <class Database> class SundialPasha {
 					continue;
 				}
 			}
-                        // should never reach here because the following two reasons:
+                        // should never reach here because of the following two reasons:
                         // 1. all the writes are read & write
-                        // 2. all the write locks are already taken
+                        // 2. all the write locks are already taken in the execution phase
                         DCHECK(false);
 		}
 
@@ -274,6 +274,7 @@ template <class Database> class SundialPasha {
 				auto &readSet = readSetGroupByCoordinator[i];
 				auto &writeSet = writeSetGroupByCoordinator[i];
 				if (i == partitioner.get_coordinator_id()) {
+                                        // I am the owner of the data
 					for (size_t j = 0; j < readSet.size(); ++j) {
 						auto &readKey = readSet[j];
 						if (readKey.get_local_index_read_bit()) {
@@ -303,25 +304,8 @@ template <class Database> class SundialPasha {
 							break;
 						}
 					}
-
-					// Redo logging
-					for (size_t j = 0; j < writeSet.size(); ++j) {
-						auto &writeKey = writeSet[j];
-						auto tableId = writeKey.get_table_id();
-						auto partitionId = writeKey.get_partition_id();
-						auto table = db.find_table(tableId, partitionId);
-						auto key_size = table->key_size();
-						auto value_size = table->value_size();
-						auto key = writeKey.get_key();
-						auto value = writeKey.get_value();
-
-						std::ostringstream ss;
-						ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-						   << std::string((char *)value, value_size);
-						auto output = ss.str();
-						txn.get_logger()->write(output.c_str(), output.size(), false);
-					}
 				} else {
+                                        // I am not the owner of the data
 					for (size_t j = 0; j < readSet.size(); ++j) {
 						auto &readKey = readSet[j];
 						if (readKey.get_local_index_read_bit()) {
@@ -342,7 +326,6 @@ template <class Database> class SundialPasha {
 						auto wts = readKey.get_wts();
 						auto commit_ts = txn.commit_ts;
 
-
 						CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
                                                 DCHECK(row_set != nullptr);
                                                 DCHECK(row_set->size() == 1);
@@ -354,25 +337,25 @@ template <class Database> class SundialPasha {
 							break;
 						}
 					}
-
-					// Redo logging
-					for (size_t j = 0; j < writeSet.size(); ++j) {
-						auto &writeKey = writeSet[j];
-						auto tableId = writeKey.get_table_id();
-						auto partitionId = writeKey.get_partition_id();
-						auto table = db.find_table(tableId, partitionId);
-						auto key_size = table->key_size();
-						auto value_size = table->value_size();
-						auto key = writeKey.get_key();
-						auto value = writeKey.get_value();
-
-						std::ostringstream ss;
-						ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-						   << std::string((char *)value, value_size);
-						auto output = ss.str();
-						txn.get_logger()->write(output.c_str(), output.size(), false);
-					}
 				}
+
+                                // Redo logging
+                                for (size_t j = 0; j < writeSet.size(); ++j) {
+                                        auto &writeKey = writeSet[j];
+                                        auto tableId = writeKey.get_table_id();
+                                        auto partitionId = writeKey.get_partition_id();
+                                        auto table = db.find_table(tableId, partitionId);
+                                        auto key_size = table->key_size();
+                                        auto value_size = table->value_size();
+                                        auto key = writeKey.get_key();
+                                        auto value = writeKey.get_value();
+
+                                        std::ostringstream ss;
+                                        ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
+                                                << std::string((char *)value, value_size);
+                                        auto output = ss.str();
+                                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                                }
 			}
 
 			if (txn.pendingResponses == 0) {
@@ -487,12 +470,14 @@ template <class Database> class SundialPasha {
 			}
 			// write
 			if (partitioner.has_master_partition(partitionId)) {
+                                // I am the owner of the data
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
 				auto row = table->search(key);
 				SundialPashaHelper::update(row, value, value_size, txn.commit_ts, txn.transaction_id);
 			} else {
+                                // I am not the owner of the data
                                 auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
@@ -570,11 +555,13 @@ template <class Database> class SundialPasha {
 			DCHECK(writeKey.get_write_lock_bit());
 			// write
 			if (partitioner.has_master_partition(partitionId)) {
+                                // I am the owner of the data
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				auto row = table->search(key);
 				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
+                                // I am not the owner of the data
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
                                 CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));

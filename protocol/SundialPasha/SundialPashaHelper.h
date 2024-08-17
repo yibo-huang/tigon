@@ -285,6 +285,21 @@ retry:
 		lmeta->unlock();
 	}
 
+        static void remote_replica_update(char *row, const void *value, std::size_t value_size, uint64_t commit_ts)
+	{
+		DCHECK(row != nullptr);
+		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
+                void *data_ptr = row + sizeof(SundialPashaMetadataShared);
+
+                smeta->lock();
+                DCHECK(smeta->wts == smeta->rts);
+                if (commit_ts > smeta->wts) { // Thomas write rule
+                        smeta->wts = smeta->rts = commit_ts;
+                        memcpy(data_ptr, value, value_size);
+                }
+                smeta->unlock();
+	}
+
 	static void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 			   uint64_t transaction_id)
 	{
@@ -457,7 +472,7 @@ retry:
 		return ret;
 	}
 
-        static bool move_from_shared_region_to_partition(ITable *table, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_shared_region_to_partition(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
 	{
                 return true;
 	}

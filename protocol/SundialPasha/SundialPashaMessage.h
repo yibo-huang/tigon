@@ -18,8 +18,8 @@ namespace star
 {
 
 enum class SundialPashaMessage {
-	READ_REQUEST = static_cast<int>(ControlMessage::NFIELDS),
-        READ_RESPONSE,
+	DATA_MIGRATION_REQUEST = static_cast<int>(ControlMessage::NFIELDS),
+        DATA_MIGRATION_RESPONSE,
         REPLICATION_REQUEST,
 	REPLICATION_RESPONSE,
 	NFIELDS
@@ -27,7 +27,7 @@ enum class SundialPashaMessage {
 
 class SundialPashaMessageFactory {
     public:
-	static std::size_t new_read_message(Message &message, ITable &table, const void *key, uint64_t transaction_id, bool write_lock, uint32_t key_offset)
+	static std::size_t new_data_migration_message(Message &message, ITable &table, const void *key, uint64_t transaction_id, bool write_lock, uint32_t key_offset)
 	{
 		/*
 		 * The structure of a read request: (primary key, write_lock, read key offset)
@@ -36,8 +36,8 @@ class SundialPashaMessageFactory {
 		auto key_size = table.key_size();
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(write_lock) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_REQUEST), message_size,
-											 table.tableID(), table.partitionID());
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::DATA_MIGRATION_REQUEST),
+                                                                                         message_size, table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
 		encoder << message_piece_header;
@@ -79,9 +79,9 @@ class SundialPashaMessageHandler {
 	using Transaction = SundialPashaTransaction;
 
     public:
-	static void read_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	static void data_migration_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_REQUEST));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::DATA_MIGRATION_REQUEST));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -120,7 +120,7 @@ class SundialPashaMessageHandler {
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::READ_RESPONSE), message_size,
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::DATA_MIGRATION_RESPONSE), message_size,
                                                                                          table_id, partition_id);
 
 		star::Encoder encoder(responseMessage.data);
@@ -129,9 +129,9 @@ class SundialPashaMessageHandler {
 		responseMessage.flush();
 	}
 
-	static void read_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	static void data_migration_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::READ_RESPONSE));
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialPashaMessage::DATA_MIGRATION_RESPONSE));
 		auto table_id = inputPiece.get_table_id();
 		auto partition_id = inputPiece.get_partition_id();
 		DCHECK(table_id == table.tableID());
@@ -272,8 +272,11 @@ class SundialPashaMessageHandler {
 	{
 		std::vector<std::function<void(MessagePiece, Message &, ITable &, Transaction *)> > v;
 		v.resize(static_cast<int>(ControlMessage::NFIELDS));
-		v.push_back(read_request_handler);
-		v.push_back(read_response_handler);
+		v.push_back(data_migration_request_handler);
+		v.push_back(data_migration_response_handler);
+                // replication is not supported
+                // v.push_back(replication_request_handler);
+		// v.push_back(replication_response_handler);
 		return v;
 	}
 };
