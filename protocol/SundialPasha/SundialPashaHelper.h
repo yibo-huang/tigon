@@ -67,6 +67,8 @@ retry:
 		latch.store(0);
 	}
 
+        // a migrated tuple in CXL can be invalid if it is deleted or migrated out
+        bool is_migrated_out{ false };
 	uint64_t wts{ 0 };
 	uint64_t rts{ 0 };
 	uint64_t owner{ 0 };
@@ -453,8 +455,6 @@ retry:
                         CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
                         ret = target_cxl_table->insert(plain_key, migrated_row_ptr);
                         DCHECK(ret == true);
-                        CCSet *row_set = target_cxl_table->search(plain_key);
-                        DCHECK(row_set != nullptr);
 
                         // mark the local row as migrated
                         lmeta->migrated_row = migrated_row_ptr;
@@ -472,9 +472,55 @@ retry:
 		return ret;
 	}
 
+        // TODO: currently migrating data out is not supported
+        // need to modify other functions to ensure consistency
         bool move_from_shared_region_to_partition(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
 	{
-                return true;
+                MetaDataType &meta = *std::get<0>(row);
+                DCHECK(0 != meta.load());
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
+		DCHECK(lmeta != nullptr);
+
+                bool ret = false;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == true) {
+                        void *local_data = std::get<1>(row);
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        char *migrated_row_value = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
+
+                        // take the CXL latch
+                        smeta->lock();
+                        if (smeta->is_migrated_out == false) {
+                                // copy metadata back
+                                lmeta->wts = smeta->wts;
+                                lmeta->rts = smeta->rts;
+                                lmeta->owner = smeta->owner;
+
+                                // copy data back
+                                memcpy(local_data, migrated_row_value, table->value_size());
+
+                                // remove from CXL index
+                                CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                                ret = target_cxl_table->remove(plain_key, lmeta->migrated_row);
+                                DCHECK(ret == true);
+
+                                // mark the local row as not migrated
+                                lmeta->migrated_row = nullptr;
+                                lmeta->is_migrated = false;
+
+                                // TODO: register EBR
+
+                                ret = true;
+                        } else {
+                                // already migrated out, do nothing
+                                ret = false;
+                        }
+                        // release the CXL latch
+                        smeta->unlock();
+                }
+                lmeta->unlock();
+                return ret;
 	}
 
     public:
