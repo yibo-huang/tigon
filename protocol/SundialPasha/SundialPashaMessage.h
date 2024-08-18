@@ -35,7 +35,7 @@ class SundialPashaMessageFactory {
 
 		auto key_size = table.key_size();
 
-		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(write_lock) + sizeof(key_offset);
+		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(key_offset);
 		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialPashaMessage::DATA_MIGRATION_REQUEST),
                                                                                          message_size, table.tableID(), table.partitionID());
 
@@ -43,7 +43,6 @@ class SundialPashaMessageFactory {
 		encoder << message_piece_header;
 		encoder.write_n_bytes(key, key_size);
 		encoder << transaction_id;
-		encoder << write_lock;
 		encoder << key_offset;
 		message.flush();
 		message.set_gen_time(Time::now());
@@ -95,14 +94,13 @@ class SundialPashaMessageHandler {
 		 */
 
 		auto stringPiece = inputPiece.toStringPiece();
-		bool write_lock;
 		uint32_t key_offset;
 		uint64_t transaction_id;
 		uint64_t rts, wts;
                 bool success = false;
 
 		DCHECK(inputPiece.get_message_length() ==
-		       MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(write_lock) + sizeof(key_offset));
+		       MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(key_offset));
 
 		// get row and offset
 		const void *key = stringPiece.data();
@@ -110,7 +108,7 @@ class SundialPashaMessageHandler {
 
 		stringPiece.remove_prefix(key_size);
 		star::Decoder dec(stringPiece);
-		dec >> transaction_id >> write_lock >> key_offset;
+		dec >> transaction_id >> key_offset;
 
 		DCHECK(dec.size() == 0);
 
