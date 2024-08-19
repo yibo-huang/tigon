@@ -1,0 +1,1093 @@
+killing previous experiments...
+initializing cxl memory...
+I0819 14:38:56.822324  4215 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:38:56.822367  4215 Database.h:166] creating hash tables for database...
+I0819 14:38:56.823122  4215 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:38:56.823294  4215 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:38:56.951227  4215 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:38:56.967152  4215 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:38:57.025321  4215 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:38:57.294258  4215 Database.h:146] stock initialization finished in 268 milliseconds.
+I0819 14:38:57.340950  4215 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:38:57.340966  4215 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:38:57.341277  4215 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:38:57.341287  4215 HStoreExecutor.h:629] HStore active active mode
+I0819 14:38:57.341409  4215 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:38:57.341413  4215 HStoreExecutor.h:629] HStore active active mode
+I0819 14:38:57.414134  4215 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:38:57.414337  4229 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:38:57.414462  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.414474  4215 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:38:57.414774  4229 Socket.h:69] Disabling nagle
+I0819 14:38:57.414778  4229 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:38:57.414784  4229 Socket.h:69] Disabling nagle
+I0819 14:38:57.414788  4229 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:38:57.414871  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.414884  4215 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:38:57.414963  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.414968  4215 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:38:57.415053  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.415057  4215 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:38:57.415139  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.415143  4215 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:38:57.415234  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.415238  4215 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:38:57.415334  4215 Socket.h:69] Disabling nagle
+I0819 14:38:57.415338  4215 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:39:02.414778  4229 Socket.h:69] Disabling nagle
+I0819 14:39:02.414790  4229 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:39:02.414800  4229 Socket.h:69] Disabling nagle
+I0819 14:39:02.414803  4229 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:39:02.414808  4229 Socket.h:69] Disabling nagle
+I0819 14:39:02.414810  4229 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:39:02.414815  4229 Socket.h:69] Disabling nagle
+I0819 14:39:02.414817  4229 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:39:02.414824  4229 Socket.h:69] Disabling nagle
+I0819 14:39:02.414825  4229 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:39:02.414829  4229 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:39:02.414911  4215 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:39:02.414937  4215 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:39:02.414954  4215 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:39:02.415042  4215 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:39:02.415052  4231 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:39:02.415050  4230 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:39:02.415117  4232 HStoreExecutor.h:4286] Executor 0 starts with thread id4232
+I0819 14:39:02.415170  4234 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:39:02.415207  4233 HStoreExecutor.h:4286] Executor 1 starts with thread id4233
+I0819 14:39:03.415231  4215 Coordinator.h:214] commit: 157901 abort: 750 (0/750/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:04.415371  4215 Coordinator.h:214] commit: 158774 abort: 803 (0/803/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:05.415477  4215 Coordinator.h:214] commit: 148174 abort: 719 (0/719/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:06.415587  4215 Coordinator.h:214] commit: 170411 abort: 859 (0/859/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:07.415697  4215 Coordinator.h:214] commit: 165061 abort: 789 (0/789/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:08.415804  4215 Coordinator.h:214] commit: 131741 abort: 659 (0/659/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:09.415905  4215 Coordinator.h:214] commit: 188973 abort: 947 (0/947/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:10.415999  4215 Coordinator.h:214] commit: 148688 abort: 714 (0/714/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:11.416091  4215 Coordinator.h:214] commit: 141143 abort: 665 (0/665/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:12.416183  4215 Coordinator.h:214] commit: 185224 abort: 1005 (0/1005/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:13.416278  4215 Coordinator.h:214] commit: 108613 abort: 554 (0/554/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:14.416378  4215 Coordinator.h:214] commit: 150748 abort: 785 (0/785/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:15.416474  4215 Coordinator.h:214] commit: 189145 abort: 952 (0/952/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:16.416566  4215 Coordinator.h:214] commit: 187716 abort: 909 (0/909/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:17.416656  4215 Coordinator.h:214] commit: 186848 abort: 894 (0/894/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:17.416678  4215 Coordinator.h:240] average commit: 161884 abort: 808.4 (0/808.4/0), abort_rate: 0.00496889, network size: 0, avg network size: 0, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:17.425895  4232 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 0, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:39:17.425902  4233 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 0, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:39:17.416690  4215 HStoreExecutor.h:4427]  Worker 0 commit: 1239718. batch concurrency: 1. effective batch concurrency: 1. latency: 8 us (50%) 14 us (75%) 19 us (95%) 22 us (99%)  9 us (avg). dist txn latency: 0 us (50%) 0 us (75%) 0 us (95%) 0 us (99%)  avg 0 us (avg).  local txn latency: 8 us (50%) 14 us (75%) 19 us (95%) 22 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 7 13 18 20 8 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 8 execution_after_commit_time 0 scheduling_time 0. 
+ LOCAL count 82834 txn stall 0 us,  local_work 3 us,  remote_work 0 us,  commit_work 13 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 0 txn stall 0 us,  local_work 0 us 0 us,  remote_work 0 us 0 us,  commit_work 0 us 0 us,  commit_prepare 0 us 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 0 us 0 us,  commit_release_lock 0 us
+I0819 14:39:17.427719  4215 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:39:17.427724  4215 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:39:17.427727  4215 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:39:17.427729  4215 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:39:17.427731  4215 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:39:17.427733  4215 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:39:17.427735  4215 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:39:17.427737  4215 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:39:17.427738  4215 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:39:17.427740  4215 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:39:17.427742  4215 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:39:17.427744  4215 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:39:17.427747  4215 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:39:17.427748  4215 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:39:17.427750  4215 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:39:17.427752  4215 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:39:17.427754  4215 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:39:17.427757  4215 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:39:17.427758  4215 HStoreExecutor.h:4499] message stats, type: 17 count: 0 total size: 0
+I0819 14:39:17.427760  4215 HStoreExecutor.h:4499] message stats, type: 18 count: 0 total size: 0
+I0819 14:39:17.427762  4215 HStoreExecutor.h:4499] message stats, type: 19 count: 0 total size: 0
+I0819 14:39:17.427763  4215 HStoreExecutor.h:4499] message stats, type: 20 count: 0 total size: 0
+I0819 14:39:17.427765  4215 HStoreExecutor.h:4499] message stats, type: 21 count: 0 total size: 0
+I0819 14:39:17.427767  4215 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:39:17.427769  4215 HStoreExecutor.h:4499] message stats, type: 23 count: 0 total size: 0
+I0819 14:39:17.427771  4215 HStoreExecutor.h:4499] message stats, type: 24 count: 0 total size: 0
+I0819 14:39:17.427773  4215 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:39:17.427775  4215 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:39:17.427778  4215 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:39:17.427778  4215 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:39:17.427780  4215 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:39:17.427783  4215 HStoreExecutor.h:4499] message stats, type: 30 count: 0 total size: 0
+I0819 14:39:18.773664  4232 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:39:18.773706  4234 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:39:18.773670  4233 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:39:18.774408  4215 HStoreExecutor.h:4427]  Worker 1 commit: 1180306. batch concurrency: 1. effective batch concurrency: 1. latency: 7 us (50%) 14 us (75%) 19 us (95%) 22 us (99%)  9 us (avg). dist txn latency: 0 us (50%) 0 us (75%) 0 us (95%) 0 us (99%)  avg 0 us (avg).  local txn latency: 7 us (50%) 14 us (75%) 19 us (95%) 22 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 7 13 18 20 8 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 8 execution_after_commit_time 0 scheduling_time 0. 
+ LOCAL count 79806 txn stall 0 us,  local_work 3 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 0 txn stall 0 us,  local_work 0 us 0 us,  remote_work 0 us 0 us,  commit_work 0 us 0 us,  commit_prepare 0 us 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 0 us 0 us,  commit_release_lock 0 us
+I0819 14:39:18.784981  4215 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:39:18.785879  4215 Coordinator.h:258] total commit: 1.29076e+06
+I0819 14:39:19.785960  4230 Dispatcher.h:153] Incoming Dispatcher exits, network size: 1428. socket_message_recv_latency(50th) 1 socket_message_recv_latency(75th) 1 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0 socket_message_recv_cnt 1 socket_read_syscall 54432818 internal_message_recv_cnt 0
+I0819 14:39:19.785970  4231 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 924. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 24 msg_gen_to_sent_latency(75th) 24 msg_gen_to_sent_latency(95th) 24 msg_gen_to_sent_latency(99th) 24 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 0 send_ltc(100th) 0 send_ltc(avg) 0 sendto_cnt 14 network_size 924 network_msg_cnt 14 network_msg_group_size avg 0 50th 1 internal_network_size 0 internal_network_msg_cnt 0
+I0819 14:39:19.812332  4215 Coordinator.h:94] round_trip_latency 23 (50th) 25 (75th) 59 (95th) 59 (99th) 
+I0819 14:39:19.812466  4215 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
+killing previous experiments...
+initializing cxl memory...
+I0819 14:39:46.934391  4355 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:39:46.934433  4355 Database.h:166] creating hash tables for database...
+I0819 14:39:46.935245  4355 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:39:46.935395  4355 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:39:47.062958  4355 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:39:47.078765  4355 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:39:47.136942  4355 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:39:47.405316  4355 Database.h:146] stock initialization finished in 268 milliseconds.
+I0819 14:39:47.452018  4355 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:39:47.452034  4355 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:39:47.452425  4355 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:39:47.452435  4355 HStoreExecutor.h:629] HStore active active mode
+I0819 14:39:47.452572  4355 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:39:47.452576  4355 HStoreExecutor.h:629] HStore active active mode
+I0819 14:39:47.525764  4355 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:39:47.526078  4369 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:39:47.526319  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.526335  4355 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:39:47.526538  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.526543  4355 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:39:47.526631  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.526641  4355 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:39:47.526723  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.526728  4355 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:39:47.526805  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.526809  4355 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:39:47.526976  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.526980  4355 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:39:47.527065  4355 Socket.h:69] Disabling nagle
+I0819 14:39:47.527068  4355 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:39:52.526289  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526298  4369 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:39:52.526307  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526310  4369 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:39:52.526316  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526319  4369 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:39:52.526324  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526326  4369 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:39:52.526417  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526425  4369 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:39:52.526432  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526434  4369 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:39:52.526643  4369 Socket.h:69] Disabling nagle
+I0819 14:39:52.526646  4369 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:39:52.526648  4369 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:39:52.526721  4355 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:39:52.526750  4355 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:39:52.526767  4355 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:39:52.526825  4370 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:39:52.526865  4355 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:39:52.526890  4371 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:39:52.526923  4372 HStoreExecutor.h:4286] Executor 0 starts with thread id4372
+I0819 14:39:52.527009  4374 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:39:52.527048  4373 HStoreExecutor.h:4286] Executor 1 starts with thread id4373
+I0819 14:39:53.527070  4355 Coordinator.h:214] commit: 52525 abort: 27369 (0/27369/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 7013996, avg network size: 133.536, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:54.527207  4355 Coordinator.h:214] commit: 41658 abort: 22643 (0/22643/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 5550336, avg network size: 133.236, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:55.527315  4355 Coordinator.h:214] commit: 53401 abort: 27219 (0/27219/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 7132434, avg network size: 133.564, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:56.527416  4355 Coordinator.h:214] commit: 39342 abort: 19738 (0/19738/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 5100402, avg network size: 129.643, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:57.527518  4355 Coordinator.h:214] commit: 43406 abort: 25752 (0/25752/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 5733656, avg network size: 132.094, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:58.527617  4355 Coordinator.h:214] commit: 32974 abort: 27970 (0/27970/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 4422682, avg network size: 134.126, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:39:59.527715  4355 Coordinator.h:214] commit: 83832 abort: 36295 (0/36295/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 11164882, avg network size: 133.182, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:00.527815  4355 Coordinator.h:214] commit: 19858 abort: 17938 (0/17938/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 2648002, avg network size: 133.347, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:01.527918  4355 Coordinator.h:214] commit: 20982 abort: 14293 (0/14293/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 2823248, avg network size: 134.556, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:02.528013  4355 Coordinator.h:214] commit: 48544 abort: 21249 (0/21249/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 6476438, avg network size: 133.414, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:03.528111  4355 Coordinator.h:214] commit: 22543 abort: 16429 (0/16429/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 3071894, avg network size: 136.268, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:04.528213  4355 Coordinator.h:214] commit: 20721 abort: 12422 (0/12422/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 2809856, avg network size: 135.604, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:05.528317  4355 Coordinator.h:214] commit: 90506 abort: 42332 (0/42332/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 11785772, avg network size: 130.221, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:06.528414  4355 Coordinator.h:214] commit: 101376 abort: 44056 (0/44056/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 13227236, avg network size: 130.477, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:07.528512  4355 Coordinator.h:214] commit: 31108 abort: 13527 (0/13527/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 4079816, avg network size: 131.15, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:07.528543  4355 Coordinator.h:240] average commit: 47244.4 abort: 24651.1 (0/24651.1/0), abort_rate: 0.342874, network size: 62509826, avg network size: 132.312, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:07.528554  4355 HStoreExecutor.h:4427]  Worker 0 commit: 352654. batch concurrency: 1. effective batch concurrency: 1. latency: 11 us (50%) 18 us (75%) 76 us (95%) 104 us (99%)  75 us (avg). dist txn latency: 73 us (50%) 83 us (75%) 133 us (95%) 185 us (99%)  avg 302 us (avg).  local txn latency: 8 us (50%) 15 us (75%) 20 us (95%) 39 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 9 16 40 51 23 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 18 execution_after_commit_time 4 scheduling_time 0. 
+ LOCAL count 20979 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 2884 txn stall 7 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 28 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:40:07.532397  4355 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:40:07.532402  4355 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:40:07.532405  4355 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:40:07.532407  4355 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:40:07.532409  4355 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:40:07.532411  4355 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:40:07.532413  4355 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:40:07.532415  4355 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:40:07.532418  4355 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:40:07.532419  4355 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:40:07.532421  4355 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:40:07.532423  4355 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:40:07.532425  4355 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:40:07.532428  4355 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:40:07.532429  4355 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:40:07.532431  4355 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:40:07.532433  4355 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:40:07.532435  4355 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:40:07.532438  4355 HStoreExecutor.h:4499] message stats, type: 17 count: 97150 total size: 5563216
+I0819 14:40:07.532439  4355 HStoreExecutor.h:4499] message stats, type: 18 count: 85094 total size: 28292186
+I0819 14:40:07.532441  4355 HStoreExecutor.h:4499] message stats, type: 19 count: 43461 total size: 15499081
+I0819 14:40:07.532444  4355 HStoreExecutor.h:4499] message stats, type: 20 count: 44258 total size: 398322
+I0819 14:40:07.532445  4355 HStoreExecutor.h:4499] message stats, type: 21 count: 44496 total size: 1557360
+I0819 14:40:07.532447  4355 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:40:07.532449  4355 HStoreExecutor.h:4499] message stats, type: 23 count: 97310 total size: 1556960
+I0819 14:40:07.532451  4355 HStoreExecutor.h:4499] message stats, type: 24 count: 85305 total size: 1023660
+I0819 14:40:07.532454  4355 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:40:07.532455  4355 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:40:07.532457  4355 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:40:07.532459  4355 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:40:07.532461  4355 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:40:07.532464  4355 HStoreExecutor.h:4499] message stats, type: 30 count: 43461 total size: 2346894
+I0819 14:40:07.671489  4372 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 85306, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 1
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:40:07.671507  4373 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 74604, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 1
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:40:07.671916  4372 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:40:07.671916  4373 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:40:07.671941  4374 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:40:07.672344  4355 HStoreExecutor.h:4427]  Worker 1 commit: 350122. batch concurrency: 1. effective batch concurrency: 1. latency: 11 us (50%) 18 us (75%) 76 us (95%) 107 us (99%)  29 us (avg). dist txn latency: 72 us (50%) 81 us (75%) 127 us (95%) 168 us (99%)  avg 147 us (avg).  local txn latency: 8 us (50%) 15 us (75%) 21 us (95%) 45 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 9 16 41 52 12 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 18 execution_after_commit_time 4 scheduling_time 0. 
+ LOCAL count 20838 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 13 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 3062 txn stall 95 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 28 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:40:07.676009  4355 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:40:07.676189  4355 Coordinator.h:258] total commit: 376904
+I0819 14:40:08.676270  4370 Dispatcher.h:153] Incoming Dispatcher exits, network size: 156675148. socket_message_recv_latency(50th) 0 socket_message_recv_latency(75th) 0 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0.323 socket_message_recv_cnt 60945 socket_read_syscall 49008326 internal_message_recv_cnt 3042
+I0819 14:40:08.676271  4371 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 156241778. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 10 msg_gen_to_sent_latency(75th) 14 msg_gen_to_sent_latency(95th) 19 msg_gen_to_sent_latency(99th) 21 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 1 send_ltc(100th) 24 send_ltc(avg) 0 sendto_cnt 733637 network_size 156241778 network_msg_cnt 924291 network_msg_group_size avg 1 50th 1 internal_network_size 9229906 internal_network_msg_cnt 43938
+I0819 14:40:08.723637  4355 Coordinator.h:94] round_trip_latency 23 (50th) 60 (75th) 93 (95th) 93 (99th) 
+I0819 14:40:08.723974  4355 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
+killing previous experiments...
+initializing cxl memory...
+I0819 14:40:35.642508  4495 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:40:35.642550  4495 Database.h:166] creating hash tables for database...
+I0819 14:40:35.643334  4495 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:40:35.643491  4495 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:40:35.771257  4495 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:40:35.787086  4495 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:40:35.845402  4495 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:40:36.114449  4495 Database.h:146] stock initialization finished in 269 milliseconds.
+I0819 14:40:36.161127  4495 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:40:36.161142  4495 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:40:36.161396  4495 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:40:36.161406  4495 HStoreExecutor.h:629] HStore active active mode
+I0819 14:40:36.161536  4495 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:40:36.161540  4495 HStoreExecutor.h:629] HStore active active mode
+I0819 14:40:36.234731  4495 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:40:36.235010  4509 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:40:36.235282  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235298  4495 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:40:36.235432  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235437  4495 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:40:36.235507  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235510  4495 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:40:36.235594  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235605  4495 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:40:36.235661  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235664  4495 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:40:36.235741  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235752  4495 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:40:36.235821  4495 Socket.h:69] Disabling nagle
+I0819 14:40:36.235829  4495 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:40:41.235332  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235344  4509 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:40:41.235354  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235357  4509 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:40:41.235363  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235364  4509 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:40:41.235370  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235373  4509 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:40:41.235543  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235554  4509 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:40:41.235561  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235564  4509 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:40:41.235570  4509 Socket.h:69] Disabling nagle
+I0819 14:40:41.235572  4509 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:40:41.235574  4509 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:40:41.235667  4495 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:40:41.235702  4495 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:40:41.235718  4495 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:40:41.235785  4510 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:40:41.235839  4495 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:40:41.235867  4511 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:40:41.235918  4512 HStoreExecutor.h:4286] Executor 0 starts with thread id4512
+I0819 14:40:41.236016  4514 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:40:41.236059  4513 HStoreExecutor.h:4286] Executor 1 starts with thread id4513
+I0819 14:40:42.236065  4495 Coordinator.h:214] commit: 45514 abort: 26212 (0/26212/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 11905950, avg network size: 261.589, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:43.236203  4495 Coordinator.h:214] commit: 41124 abort: 27403 (0/27403/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 10810608, avg network size: 262.878, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:44.236310  4495 Coordinator.h:214] commit: 33816 abort: 21899 (0/21899/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 8852444, avg network size: 261.783, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:45.236429  4495 Coordinator.h:214] commit: 50241 abort: 32583 (0/32583/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 13208464, avg network size: 262.902, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:46.236538  4495 Coordinator.h:214] commit: 34781 abort: 23580 (0/23580/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 9236280, avg network size: 265.555, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:47.236649  4495 Coordinator.h:214] commit: 22992 abort: 18848 (0/18848/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 6054950, avg network size: 263.35, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:48.236753  4495 Coordinator.h:214] commit: 42526 abort: 25820 (0/25820/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 11169114, avg network size: 262.642, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:49.236856  4495 Coordinator.h:214] commit: 50539 abort: 32420 (0/32420/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 13273224, avg network size: 262.633, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:50.236963  4495 Coordinator.h:214] commit: 51260 abort: 34740 (0/34740/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 13269440, avg network size: 258.865, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:51.237071  4495 Coordinator.h:214] commit: 33022 abort: 21055 (0/21055/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 8652840, avg network size: 262.033, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:52.237172  4495 Coordinator.h:214] commit: 14165 abort: 10310 (0/10310/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 3716092, avg network size: 262.343, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:53.237277  4495 Coordinator.h:214] commit: 18234 abort: 21194 (0/21194/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 4867556, avg network size: 266.949, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:54.237378  4495 Coordinator.h:214] commit: 52561 abort: 29206 (0/29206/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 13771590, avg network size: 262.012, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:55.237488  4495 Coordinator.h:214] commit: 33064 abort: 18973 (0/18973/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 8813196, avg network size: 266.55, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:56.237596  4495 Coordinator.h:214] commit: 30253 abort: 21815 (0/21815/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 8015218, avg network size: 264.94, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:56.237628  4495 Coordinator.h:240] average commit: 34861.6 abort: 23438.1 (0/23438.1/0), abort_rate: 0.402028, network size: 91603220, avg network size: 262.763, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:40:56.237638  4495 HStoreExecutor.h:4427]  Worker 0 commit: 276930. batch concurrency: 1. effective batch concurrency: 1. latency: 14 us (50%) 41 us (75%) 86 us (95%) 151 us (99%)  69 us (avg). dist txn latency: 72 us (50%) 83 us (75%) 145 us (95%) 218 us (99%)  avg 224 us (avg).  local txn latency: 10 us (50%) 16 us (75%) 22 us (95%) 55 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 12 21 45 55 15 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 39 execution_after_commit_time 7 scheduling_time 0. 
+ LOCAL count 13253 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 16 us,  commit_release_lock 0 us 
+ DIST count 4423 txn stall 72 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 28 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:40:56.240598  4495 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:40:56.240603  4495 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:40:56.240605  4495 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:40:56.240607  4495 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:40:56.240610  4495 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:40:56.240612  4495 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:40:56.240614  4495 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:40:56.240617  4495 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:40:56.240618  4495 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:40:56.240620  4495 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:40:56.240621  4495 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:40:56.240623  4495 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:40:56.240625  4495 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:40:56.240628  4495 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:40:56.240629  4495 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:40:56.240631  4495 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:40:56.240633  4495 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:40:56.240634  4495 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:40:56.240636  4495 HStoreExecutor.h:4499] message stats, type: 17 count: 101536 total size: 5775864
+I0819 14:40:56.240638  4495 HStoreExecutor.h:4499] message stats, type: 18 count: 115031 total size: 43806937
+I0819 14:40:56.240640  4495 HStoreExecutor.h:4499] message stats, type: 19 count: 68555 total size: 24623103
+I0819 14:40:56.240643  4495 HStoreExecutor.h:4499] message stats, type: 20 count: 69180 total size: 622620
+I0819 14:40:56.240644  4495 HStoreExecutor.h:4499] message stats, type: 21 count: 71032 total size: 2486120
+I0819 14:40:56.240646  4495 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:40:56.240648  4495 HStoreExecutor.h:4499] message stats, type: 23 count: 101837 total size: 1629392
+I0819 14:40:56.240650  4495 HStoreExecutor.h:4499] message stats, type: 24 count: 115324 total size: 1383888
+I0819 14:40:56.240653  4495 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:40:56.240653  4495 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:40:56.240655  4495 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:40:56.240657  4495 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:40:56.240659  4495 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:40:56.240770  4495 HStoreExecutor.h:4499] message stats, type: 30 count: 68557 total size: 3702078
+I0819 14:40:56.241093  4513 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 100200, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 1
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:40:56.241109  4512 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 115327, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:40:56.242158  4513 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:40:56.242182  4514 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:40:56.242159  4512 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:40:56.242767  4495 HStoreExecutor.h:4427]  Worker 1 commit: 277261. batch concurrency: 1. effective batch concurrency: 1. latency: 14 us (50%) 40 us (75%) 86 us (95%) 155 us (99%)  35 us (avg). dist txn latency: 72 us (50%) 82 us (75%) 137 us (95%) 204 us (99%)  avg 308 us (avg).  local txn latency: 10 us (50%) 16 us (75%) 21 us (95%) 52 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 12 21 45 55 41 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 42 execution_after_commit_time 7 scheduling_time 0. 
+ LOCAL count 13295 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 18 us,  commit_release_lock 0 us 
+ DIST count 4395 txn stall 8 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 28 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:40:56.245644  4495 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:40:56.245653  4495 Coordinator.h:258] total commit: 275854
+I0819 14:40:57.245731  4510 Dispatcher.h:153] Incoming Dispatcher exits, network size: 224042496. socket_message_recv_latency(50th) 0 socket_message_recv_latency(75th) 0 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0.329 socket_message_recv_cnt 77870 socket_read_syscall 47795321 internal_message_recv_cnt 4247
+I0819 14:40:57.245745  4511 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 223920506. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 10 msg_gen_to_sent_latency(75th) 15 msg_gen_to_sent_latency(95th) 20 msg_gen_to_sent_latency(99th) 22 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 1 send_ltc(100th) 9 send_ltc(avg) 0 sendto_cnt 877164 network_size 223920506 network_msg_cnt 1199925 network_msg_group_size avg 1 50th 1 internal_network_size 14487384 internal_network_msg_cnt 70606
+I0819 14:40:57.275830  4495 Coordinator.h:94] round_trip_latency 21 (50th) 28 (75th) 42 (95th) 42 (99th) 
+I0819 14:40:57.275962  4495 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
+killing previous experiments...
+initializing cxl memory...
+I0819 14:41:24.014428  4635 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:41:24.014473  4635 Database.h:166] creating hash tables for database...
+I0819 14:41:24.015231  4635 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:41:24.015385  4635 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:41:24.142500  4635 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:41:24.158460  4635 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:41:24.216792  4635 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:41:24.485867  4635 Database.h:146] stock initialization finished in 269 milliseconds.
+I0819 14:41:24.532829  4635 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:41:24.532847  4635 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:41:24.533120  4635 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:41:24.533130  4635 HStoreExecutor.h:629] HStore active active mode
+I0819 14:41:24.533262  4635 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:41:24.533265  4635 HStoreExecutor.h:629] HStore active active mode
+I0819 14:41:24.606499  4635 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:41:24.606802  4649 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:41:24.607065  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607084  4635 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:41:24.607224  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607229  4635 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:41:24.607331  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607336  4635 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:41:24.607405  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607410  4635 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:41:24.607501  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607511  4635 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:41:24.607573  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607576  4635 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:41:24.607637  4635 Socket.h:69] Disabling nagle
+I0819 14:41:24.607641  4635 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:41:29.607056  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607089  4649 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:41:29.607098  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607101  4649 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:41:29.607106  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607108  4649 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:41:29.607115  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607116  4649 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:41:29.607120  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607123  4649 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:41:29.607129  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607131  4649 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:41:29.607151  4649 Socket.h:69] Disabling nagle
+I0819 14:41:29.607152  4649 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:41:29.607154  4649 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:41:29.607229  4635 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:41:29.607259  4635 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:41:29.607276  4635 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:41:29.607318  4650 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:41:29.607357  4635 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:41:29.607420  4652 HStoreExecutor.h:4286] Executor 0 starts with thread id4652
+I0819 14:41:29.607471  4651 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:41:29.607488  4654 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:41:29.607527  4653 HStoreExecutor.h:4286] Executor 1 starts with thread id4653
+I0819 14:41:30.607544  4635 Coordinator.h:214] commit: 37267 abort: 22956 (0/22956/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14627450, avg network size: 392.504, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:31.607672  4635 Coordinator.h:214] commit: 36018 abort: 23851 (0/23851/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14071200, avg network size: 390.671, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:32.607767  4635 Coordinator.h:214] commit: 40860 abort: 23955 (0/23955/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 16183832, avg network size: 396.08, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:33.607869  4635 Coordinator.h:214] commit: 30374 abort: 24592 (0/24592/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 11957336, avg network size: 393.67, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:34.607966  4635 Coordinator.h:214] commit: 28480 abort: 22777 (0/22777/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 11231808, avg network size: 394.375, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:35.608060  4635 Coordinator.h:214] commit: 49071 abort: 29986 (0/29986/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 19367368, avg network size: 394.681, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:36.608155  4635 Coordinator.h:214] commit: 25428 abort: 19101 (0/19101/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 9887232, avg network size: 388.832, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:37.608250  4635 Coordinator.h:214] commit: 41411 abort: 26323 (0/26323/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 16450976, avg network size: 397.261, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:38.608345  4635 Coordinator.h:214] commit: 12234 abort: 6588 (0/6588/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 4783980, avg network size: 391.04, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:39.608438  4635 Coordinator.h:214] commit: 38450 abort: 23182 (0/23182/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 15260114, avg network size: 396.882, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:40.608531  4635 Coordinator.h:214] commit: 54216 abort: 28662 (0/28662/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 21376000, avg network size: 394.275, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:41.608625  4635 Coordinator.h:214] commit: 45257 abort: 28613 (0/28613/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 17775740, avg network size: 392.773, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:42.608723  4635 Coordinator.h:214] commit: 33795 abort: 27552 (0/27552/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 13377538, avg network size: 395.844, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:43.608824  4635 Coordinator.h:214] commit: 19761 abort: 21898 (0/21898/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 7875580, avg network size: 398.542, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:44.608922  4635 Coordinator.h:214] commit: 24726 abort: 13702 (0/13702/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 9779580, avg network size: 395.518, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:44.608942  4635 Coordinator.h:240] average commit: 34434.9 abort: 22560.7 (0/22560.7/0), abort_rate: 0.395832, network size: 135934108, avg network size: 394.757, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:41:44.608952  4635 HStoreExecutor.h:4427]  Worker 0 commit: 258242. batch concurrency: 1. effective batch concurrency: 1. latency: 17 us (50%) 63 us (75%) 92 us (95%) 163 us (99%)  49 us (avg). dist txn latency: 72 us (50%) 82 us (75%) 142 us (95%) 213 us (99%)  avg 96 us (avg).  local txn latency: 10 us (50%) 16 us (75%) 22 us (95%) 60 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 15 32 47 56 41 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 46 execution_after_commit_time 10 scheduling_time 0. 
+ LOCAL count 9943 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 5978 txn stall 9 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:41:44.611599  4635 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:41:44.611603  4635 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:41:44.611606  4635 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:41:44.611608  4635 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:41:44.611610  4635 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:41:44.611613  4635 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:41:44.611614  4635 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:41:44.611616  4635 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:41:44.611617  4635 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:41:44.611619  4635 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:41:44.611621  4635 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:41:44.611624  4635 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:41:44.611625  4635 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:41:44.611627  4635 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:41:44.611629  4635 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:41:44.611630  4635 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:41:44.611632  4635 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:41:44.611634  4635 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:41:44.611636  4635 HStoreExecutor.h:4499] message stats, type: 17 count: 146100 total size: 8308128
+I0819 14:41:44.611639  4635 HStoreExecutor.h:4499] message stats, type: 18 count: 133544 total size: 60348216
+I0819 14:41:44.611639  4635 HStoreExecutor.h:4499] message stats, type: 19 count: 95672 total size: 34171638
+I0819 14:41:44.611641  4635 HStoreExecutor.h:4499] message stats, type: 20 count: 97183 total size: 874647
+I0819 14:41:44.611644  4635 HStoreExecutor.h:4499] message stats, type: 21 count: 99843 total size: 3494505
+I0819 14:41:44.611645  4635 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:41:44.611647  4635 HStoreExecutor.h:4499] message stats, type: 23 count: 146504 total size: 2344064
+I0819 14:41:44.611649  4635 HStoreExecutor.h:4499] message stats, type: 24 count: 133930 total size: 1607160
+I0819 14:41:44.611650  4635 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:41:44.611652  4635 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:41:44.611654  4635 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:41:44.611656  4635 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:41:44.611658  4635 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:41:44.611660  4635 HStoreExecutor.h:4499] message stats, type: 30 count: 95672 total size: 5166288
+I0819 14:41:44.612241  4653 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 146949, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:41:44.612264  4652 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 133935, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:41:44.613989  4653 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:41:44.613991  4652 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:41:44.614362  4635 HStoreExecutor.h:4427]  Worker 1 commit: 259171. batch concurrency: 1. effective batch concurrency: 1. latency: 18 us (50%) 64 us (75%) 92 us (95%) 162 us (99%)  62 us (avg). dist txn latency: 72 us (50%) 83 us (75%) 140 us (95%) 210 us (99%)  avg 153 us (avg).  local txn latency: 10 us (50%) 16 us (75%) 22 us (95%) 57 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 15 31 47 55 27 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 40 execution_after_commit_time 10 scheduling_time 0. 
+ LOCAL count 10140 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 5922 txn stall 44 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 28 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:41:44.616997  4635 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:41:44.614012  4654 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:41:44.617178  4635 Coordinator.h:258] total commit: 271240
+I0819 14:41:45.617250  4650 Dispatcher.h:153] Incoming Dispatcher exits, network size: 307948114. socket_message_recv_latency(50th) 0 socket_message_recv_latency(75th) 0 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0.317 socket_message_recv_cnt 101739 socket_read_syscall 46349302 internal_message_recv_cnt 6129
+I0819 14:41:45.617267  4651 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 307738724. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 11 msg_gen_to_sent_latency(75th) 16 msg_gen_to_sent_latency(95th) 20 msg_gen_to_sent_latency(99th) 22 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 1 send_ltc(100th) 9 send_ltc(avg) 0 sendto_cnt 1136992 network_size 307738724 network_msg_cnt 1610346 network_msg_group_size avg 1 50th 1 internal_network_size 20518139 internal_network_msg_cnt 101030
+I0819 14:41:45.647349  4635 Coordinator.h:94] round_trip_latency 24 (50th) 25 (75th) 27 (95th) 27 (99th) 
+I0819 14:41:45.647522  4635 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
+killing previous experiments...
+initializing cxl memory...
+I0819 14:42:12.342656  4778 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:42:12.342700  4778 Database.h:166] creating hash tables for database...
+I0819 14:42:12.343492  4778 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:42:12.343660  4778 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:42:12.470857  4778 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:42:12.486771  4778 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:42:12.545030  4778 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:42:12.813701  4778 Database.h:146] stock initialization finished in 268 milliseconds.
+I0819 14:42:12.860226  4778 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:42:12.860244  4778 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:42:12.860493  4778 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:42:12.860503  4778 HStoreExecutor.h:629] HStore active active mode
+I0819 14:42:12.860625  4778 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:42:12.860627  4778 HStoreExecutor.h:629] HStore active active mode
+I0819 14:42:12.933310  4778 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:42:12.933622  4792 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:42:12.933645  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.933656  4778 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:42:12.934010  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.934024  4778 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:42:12.934160  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.934165  4778 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:42:12.934257  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.934262  4778 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:42:12.934327  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.934336  4778 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:42:12.934403  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.934407  4778 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:42:12.934540  4778 Socket.h:69] Disabling nagle
+I0819 14:42:12.934545  4778 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:42:17.933905  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.933923  4792 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:42:17.933936  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.933938  4792 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:42:17.933944  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.933948  4792 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:42:17.933954  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.933955  4792 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:42:17.934137  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.934149  4792 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:42:17.934154  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.934156  4792 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:42:17.934245  4792 Socket.h:69] Disabling nagle
+I0819 14:42:17.934249  4792 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:42:17.934252  4792 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:42:17.934335  4778 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:42:17.934353  4778 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:42:17.934373  4778 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:42:17.934437  4793 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:42:17.934468  4778 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:42:17.934500  4794 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:42:17.934546  4795 HStoreExecutor.h:4286] Executor 0 starts with thread id4795
+I0819 14:42:17.934615  4797 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:42:17.934654  4796 HStoreExecutor.h:4286] Executor 1 starts with thread id4796
+I0819 14:42:18.934680  4778 Coordinator.h:214] commit: 35336 abort: 18479 (0/18479/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 18426828, avg network size: 521.475, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:19.934811  4778 Coordinator.h:214] commit: 33139 abort: 17671 (0/17671/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 17445234, avg network size: 526.426, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:20.934903  4778 Coordinator.h:214] commit: 27068 abort: 18424 (0/18424/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14164308, avg network size: 523.286, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:21.934994  4778 Coordinator.h:214] commit: 38875 abort: 21510 (0/21510/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 20596382, avg network size: 529.81, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:22.935093  4778 Coordinator.h:214] commit: 27469 abort: 21429 (0/21429/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14383416, avg network size: 523.624, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:23.935187  4778 Coordinator.h:214] commit: 27405 abort: 18204 (0/18204/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14436226, avg network size: 526.773, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:24.935279  4778 Coordinator.h:214] commit: 37112 abort: 21002 (0/21002/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 19389738, avg network size: 522.465, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:25.935374  4778 Coordinator.h:214] commit: 40107 abort: 20163 (0/20163/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 20880774, avg network size: 520.627, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:26.935468  4778 Coordinator.h:214] commit: 29948 abort: 19396 (0/19396/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 15822760, avg network size: 528.341, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:27.935560  4778 Coordinator.h:214] commit: 24834 abort: 15379 (0/15379/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 12921740, avg network size: 520.325, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:28.935658  4778 Coordinator.h:214] commit: 26783 abort: 16000 (0/16000/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14068082, avg network size: 525.262, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:29.935750  4778 Coordinator.h:214] commit: 29798 abort: 20797 (0/20797/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 15647590, avg network size: 525.122, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:30.935847  4778 Coordinator.h:214] commit: 27355 abort: 13929 (0/13929/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14327092, avg network size: 523.747, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:31.935946  4778 Coordinator.h:214] commit: 44080 abort: 21394 (0/21394/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23278576, avg network size: 528.098, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:32.936041  4778 Coordinator.h:214] commit: 44339 abort: 22683 (0/22683/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23376192, avg network size: 527.215, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:32.936069  4778 Coordinator.h:240] average commit: 33176.1 abort: 18894.7 (0/18894.7/0), abort_rate: 0.362866, network size: 174148770, avg network size: 524.922, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:42:32.936077  4778 HStoreExecutor.h:4427]  Worker 0 commit: 246259. batch concurrency: 1. effective batch concurrency: 1. latency: 37 us (50%) 72 us (75%) 101 us (95%) 170 us (99%)  52 us (avg). dist txn latency: 72 us (50%) 83 us (75%) 146 us (95%) 210 us (99%)  avg 87 us (avg).  local txn latency: 11 us (50%) 17 us (75%) 23 us (95%) 60 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 20 36 49 57 22 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 24 execution_after_commit_time 19 scheduling_time 0. 
+ LOCAL count 8228 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 8255 txn stall 49 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:42:32.938829  4778 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:42:32.938832  4778 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:42:32.938835  4778 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:42:32.938838  4778 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:42:32.938839  4778 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:42:32.938843  4778 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:42:32.938844  4778 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:42:32.938846  4778 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:42:32.938848  4778 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:42:32.938850  4778 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:42:32.938853  4778 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:42:32.938854  4778 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:42:32.938856  4778 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:42:32.938858  4778 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:42:32.938860  4778 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:42:32.938861  4778 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:42:32.938863  4778 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:42:32.938865  4778 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:42:32.938867  4778 HStoreExecutor.h:4499] message stats, type: 17 count: 153988 total size: 8724052
+I0819 14:42:32.938869  4778 HStoreExecutor.h:4499] message stats, type: 18 count: 162006 total size: 76820414
+I0819 14:42:32.938871  4778 HStoreExecutor.h:4499] message stats, type: 19 count: 121183 total size: 43337169
+I0819 14:42:32.938874  4778 HStoreExecutor.h:4499] message stats, type: 20 count: 123339 total size: 1110051
+I0819 14:42:32.938875  4778 HStoreExecutor.h:4499] message stats, type: 21 count: 126924 total size: 4442340
+I0819 14:42:32.938877  4778 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:42:32.938879  4778 HStoreExecutor.h:4499] message stats, type: 23 count: 154435 total size: 2470960
+I0819 14:42:32.938881  4778 HStoreExecutor.h:4499] message stats, type: 24 count: 162458 total size: 1949496
+I0819 14:42:32.938884  4778 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:42:32.938884  4778 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:42:32.938886  4778 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:42:32.938889  4778 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:42:32.938890  4778 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:42:32.938892  4778 HStoreExecutor.h:4499] message stats, type: 30 count: 121183 total size: 6543882
+I0819 14:42:32.939128  4795 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 162462, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:42:32.939271  4796 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 163064, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 1
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:42:32.941481  4795 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:42:32.941483  4796 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:42:32.941502  4797 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:42:32.942207  4778 HStoreExecutor.h:4427]  Worker 1 commit: 247441. batch concurrency: 1. effective batch concurrency: 1. latency: 37 us (50%) 72 us (75%) 100 us (95%) 166 us (99%)  47 us (avg). dist txn latency: 72 us (50%) 82 us (75%) 147 us (95%) 222 us (99%)  avg 91 us (avg).  local txn latency: 11 us (50%) 17 us (75%) 23 us (95%) 58 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 19 36 48 56 29 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 29 execution_after_commit_time 13 scheduling_time 0. 
+ LOCAL count 8412 txn stall 0 us,  local_work 4 us,  remote_work 0 us,  commit_work 2 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 18 us,  commit_release_lock 0 us 
+ DIST count 8314 txn stall 9 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:42:32.944923  4778 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:42:32.944932  4778 Coordinator.h:258] total commit: 260268
+I0819 14:42:33.945008  4793 Dispatcher.h:153] Incoming Dispatcher exits, network size: 378965674. socket_message_recv_latency(50th) 0 socket_message_recv_latency(75th) 0 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0.322 socket_message_recv_cnt 126244 socket_read_syscall 45740600 internal_message_recv_cnt 8362
+I0819 14:42:33.945019  4794 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 378816958. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 11 msg_gen_to_sent_latency(75th) 16 msg_gen_to_sent_latency(95th) 21 msg_gen_to_sent_latency(99th) 23 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 1 send_ltc(100th) 314 send_ltc(avg) 0 sendto_cnt 1289401 network_size 378816958 network_msg_cnt 1908945 network_msg_group_size avg 1 50th 1 internal_network_size 26408583 internal_network_msg_cnt 126569
+I0819 14:42:33.977000  4778 Coordinator.h:94] round_trip_latency 23 (50th) 25 (75th) 31 (95th) 31 (99th) 
+I0819 14:42:33.977191  4778 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
+killing previous experiments...
+initializing cxl memory...
+I0819 14:43:00.718868  4918 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:43:00.718911  4918 Database.h:166] creating hash tables for database...
+I0819 14:43:00.719735  4918 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:43:00.719893  4918 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:43:00.847437  4918 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:43:00.863111  4918 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:43:00.921489  4918 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:43:01.189409  4918 Database.h:146] stock initialization finished in 267 milliseconds.
+I0819 14:43:01.236047  4918 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:43:01.236063  4918 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:43:01.236325  4918 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:43:01.236335  4918 HStoreExecutor.h:629] HStore active active mode
+I0819 14:43:01.236452  4918 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:43:01.236455  4918 HStoreExecutor.h:629] HStore active active mode
+I0819 14:43:01.309468  4918 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:43:01.309756  4932 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:43:01.310137  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310154  4918 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:43:01.310290  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310295  4918 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:43:01.310473  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310477  4918 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:43:01.310550  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310554  4918 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:43:01.310634  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310638  4918 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:43:01.310891  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310901  4918 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:43:01.310992  4918 Socket.h:69] Disabling nagle
+I0819 14:43:01.310997  4918 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:43:06.310207  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310220  4932 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:43:06.310230  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310233  4932 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:43:06.310240  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310242  4932 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:43:06.310248  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310250  4932 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:43:06.310256  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310257  4932 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:43:06.310262  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310266  4932 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:43:06.310269  4932 Socket.h:69] Disabling nagle
+I0819 14:43:06.310272  4932 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:43:06.310273  4932 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:43:06.310346  4918 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:43:06.310372  4918 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:43:06.310388  4918 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:43:06.310437  4933 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:43:06.310465  4918 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:43:06.310500  4934 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:43:06.310537  4935 HStoreExecutor.h:4286] Executor 0 starts with thread id4935
+I0819 14:43:06.310606  4936 HStoreExecutor.h:4286] Executor 1 starts with thread id4936
+I0819 14:43:06.310653  4937 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:43:07.310669  4918 Coordinator.h:214] commit: 31489 abort: 15049 (0/15049/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 20686428, avg network size: 656.941, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:08.310813  4918 Coordinator.h:214] commit: 29757 abort: 14343 (0/14343/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 19648750, avg network size: 660.307, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:09.310932  4918 Coordinator.h:214] commit: 32410 abort: 14694 (0/14694/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 21312638, avg network size: 657.595, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:10.311049  4918 Coordinator.h:214] commit: 26993 abort: 16337 (0/16337/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 17807748, avg network size: 659.717, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:11.311172  4918 Coordinator.h:214] commit: 36105 abort: 17415 (0/17415/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23770058, avg network size: 658.359, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:12.311287  4918 Coordinator.h:214] commit: 29540 abort: 14988 (0/14988/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 19427536, avg network size: 657.669, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:13.311406  4918 Coordinator.h:214] commit: 18480 abort: 13943 (0/13943/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 12071158, avg network size: 653.201, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:14.311523  4918 Coordinator.h:214] commit: 35096 abort: 16749 (0/16749/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 22934688, avg network size: 653.484, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:15.311641  4918 Coordinator.h:214] commit: 32176 abort: 14865 (0/14865/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 21170048, avg network size: 657.945, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:16.311759  4918 Coordinator.h:214] commit: 37473 abort: 16953 (0/16953/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 24680626, avg network size: 658.624, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:17.311882  4918 Coordinator.h:214] commit: 37454 abort: 16368 (0/16368/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 24505840, avg network size: 654.292, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:18.311993  4918 Coordinator.h:214] commit: 21445 abort: 15224 (0/15224/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 14147416, avg network size: 659.707, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:19.312106  4918 Coordinator.h:214] commit: 8159 abort: 11021 (0/11021/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 5466738, avg network size: 670.025, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:20.312227  4918 Coordinator.h:214] commit: 28301 abort: 13068 (0/13068/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 18527346, avg network size: 654.653, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:21.312346  4918 Coordinator.h:214] commit: 32677 abort: 16232 (0/16232/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 21537796, avg network size: 659.112, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:21.312386  4918 Coordinator.h:240] average commit: 28080.1 abort: 14941.1 (0/14941.1/0), abort_rate: 0.347296, network size: 184469192, avg network size: 656.939, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:21.312639  4935 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 180236, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 1
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:43:21.312394  4918 HStoreExecutor.h:4427]  Worker 0 commit: 218860. batch concurrency: 1. effective batch concurrency: 1. latency: 52 us (50%) 77 us (75%) 120 us (95%) 187 us (99%)  60 us (avg). dist txn latency: 71 us (50%) 82 us (75%) 143 us (95%) 215 us (99%)  avg 83 us (avg).  local txn latency: 12 us (50%) 17 us (75%) 23 us (95%) 63 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 26 39 49 57 34 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 49 execution_after_commit_time 16 scheduling_time 0. 
+ LOCAL count 5160 txn stall 0 us,  local_work 5 us,  remote_work 0 us,  commit_work 3 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 23 us,  commit_release_lock 0 us 
+ DIST count 8559 txn stall 10 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:43:21.314729  4918 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:43:21.314733  4918 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:43:21.314734  4918 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:43:21.314736  4918 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:43:21.314738  4918 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:43:21.314740  4918 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:43:21.314742  4918 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:43:21.314744  4918 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:43:21.314745  4918 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:43:21.314747  4918 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:43:21.314749  4918 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:43:21.314751  4918 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:43:21.314754  4918 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:43:21.314754  4918 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:43:21.314756  4918 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:43:21.314759  4918 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:43:21.314760  4918 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:43:21.314761  4918 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:43:21.314764  4918 HStoreExecutor.h:4499] message stats, type: 17 count: 171532 total size: 9725080
+I0819 14:43:21.314766  4918 HStoreExecutor.h:4499] message stats, type: 18 count: 179673 total size: 85515915
+I0819 14:43:21.314769  4918 HStoreExecutor.h:4499] message stats, type: 19 count: 133010 total size: 47524244
+I0819 14:43:21.314770  4918 HStoreExecutor.h:4499] message stats, type: 20 count: 137065 total size: 1233585
+I0819 14:43:21.314772  4918 HStoreExecutor.h:4499] message stats, type: 21 count: 140021 total size: 4900735
+I0819 14:43:21.314774  4918 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:43:21.314775  4918 HStoreExecutor.h:4499] message stats, type: 23 count: 172076 total size: 2753216
+I0819 14:43:21.314777  4918 HStoreExecutor.h:4499] message stats, type: 24 count: 180236 total size: 2162832
+I0819 14:43:21.314779  4918 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:43:21.314780  4918 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:43:21.314782  4918 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:43:21.314785  4918 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:43:21.314786  4918 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:43:21.314788  4918 HStoreExecutor.h:4499] message stats, type: 30 count: 133010 total size: 7182540
+I0819 14:43:21.314818  4936 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 176338, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:43:21.316886  4936 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:43:21.316888  4935 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:43:21.316933  4937 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:43:21.317742  4918 HStoreExecutor.h:4427]  Worker 1 commit: 218696. batch concurrency: 1. effective batch concurrency: 1. latency: 51 us (50%) 76 us (75%) 120 us (95%) 184 us (99%)  64 us (avg). dist txn latency: 72 us (50%) 82 us (75%) 146 us (95%) 218 us (99%)  avg 94 us (avg).  local txn latency: 12 us (50%) 17 us (75%) 23 us (95%) 56 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 26 39 49 57 42 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 23 execution_after_commit_time 16 scheduling_time 0. 
+ LOCAL count 5002 txn stall 0 us,  local_work 5 us,  remote_work 0 us,  commit_work 3 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 1 us,  commit_release_lock 0 us 
+ DIST count 8501 txn stall 48 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:43:21.320017  4918 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:43:21.320026  4918 Coordinator.h:258] total commit: 219916
+I0819 14:43:22.320101  4933 Dispatcher.h:153] Incoming Dispatcher exits, network size: 417808175. socket_message_recv_latency(50th) 0 socket_message_recv_latency(75th) 0 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0.319 socket_message_recv_cnt 131296 socket_read_syscall 45963197 internal_message_recv_cnt 8780
+I0819 14:43:22.320120  4934 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 417785065. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 11 msg_gen_to_sent_latency(75th) 16 msg_gen_to_sent_latency(95th) 21 msg_gen_to_sent_latency(99th) 23 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 1 send_ltc(100th) 306 send_ltc(avg) 0 sendto_cnt 1387498 network_size 417785065 network_msg_cnt 2090557 network_msg_group_size avg 1 50th 1 internal_network_size 29178483 internal_network_msg_cnt 140974
+I0819 14:43:22.352259  4918 Coordinator.h:94] round_trip_latency 23 (50th) 25 (75th) 41 (95th) 41 (99th) 
+I0819 14:43:22.352547  4918 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
+killing previous experiments...
+initializing cxl memory...
+I0819 14:43:49.046713  5057 bench_tpcc.cpp:71] WAL Group Commiting off. Log to file _non_group_commit.txt using Blackhole Logger
+I0819 14:43:49.046759  5057 Database.h:166] creating hash tables for database...
+I0819 14:43:49.047521  5057 Database.h:146] warehouse initialization finished in 0 milliseconds.
+I0819 14:43:49.047664  5057 Database.h:146] district initialization finished in 0 milliseconds.
+I0819 14:43:49.175294  5057 Database.h:146] customer initialization finished in 127 milliseconds.
+I0819 14:43:49.191054  5057 Database.h:146] customer_name_idx initialization finished in 15 milliseconds.
+I0819 14:43:49.249302  5057 Database.h:146] item initialization finished in 58 milliseconds.
+I0819 14:43:49.517457  5057 Database.h:146] stock initialization finished in 268 milliseconds.
+I0819 14:43:49.564042  5057 CXLMemory.h:25] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I0819 14:43:49.564059  5057 Coordinator.h:40] Coordinator initializes 2 workers.
+I0819 14:43:49.564303  5057 HStoreExecutor.h:623] Cluster worker id 0 node worker id 0 partitions managed [0], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:43:49.564313  5057 HStoreExecutor.h:629] HStore active active mode
+I0819 14:43:49.564435  5057 HStoreExecutor.h:623] Cluster worker id 1 node worker id 1 partitions managed [8], replica granules maanged [] is_replica_worker 0 replica_cluster_worker_id-1
+I0819 14:43:49.564437  5057 HStoreExecutor.h:629] HStore active active mode
+I0819 14:43:49.637142  5057 Coordinator.h:289] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 8183 Bytes)
+I0819 14:43:49.637434  5071 Coordinator.h:325] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I0819 14:43:49.637444  5057 Coordinator.h:371] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I0819 14:43:54.637682  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.637698  5057 Coordinator.h:380] Coordinator 0 connected to 1
+I0819 14:43:54.637766  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637797  5071 Coordinator.h:340] Listener accepted connection from coordinator 3
+I0819 14:43:54.637806  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637809  5071 Coordinator.h:340] Listener accepted connection from coordinator 6
+I0819 14:43:54.637815  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637817  5071 Coordinator.h:340] Listener accepted connection from coordinator 5
+I0819 14:43:54.637825  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.637831  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637840  5057 Coordinator.h:380] Coordinator 0 connected to 2
+I0819 14:43:54.637843  5071 Coordinator.h:340] Listener accepted connection from coordinator 4
+I0819 14:43:54.637887  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637892  5071 Coordinator.h:340] Listener accepted connection from coordinator 1
+I0819 14:43:54.637899  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637902  5071 Coordinator.h:340] Listener accepted connection from coordinator 7
+I0819 14:43:54.637907  5071 Socket.h:69] Disabling nagle
+I0819 14:43:54.637908  5071 Coordinator.h:340] Listener accepted connection from coordinator 2
+I0819 14:43:54.637910  5071 Coordinator.h:343] Listener 0 on coordinator 0 exits.
+I0819 14:43:54.638000  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.638005  5057 Coordinator.h:380] Coordinator 0 connected to 3
+I0819 14:43:54.638067  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.638075  5057 Coordinator.h:380] Coordinator 0 connected to 4
+I0819 14:43:54.638139  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.638141  5057 Coordinator.h:380] Coordinator 0 connected to 5
+I0819 14:43:54.638199  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.638203  5057 Coordinator.h:380] Coordinator 0 connected to 6
+I0819 14:43:54.638263  5057 Socket.h:69] Disabling nagle
+I0819 14:43:54.638267  5057 Coordinator.h:380] Coordinator 0 connected to 7
+I0819 14:43:54.638273  5057 Coordinator.h:392] Coordinator 0 connected to all peers.
+I0819 14:43:54.638294  5057 Dispatcher.h:37] IncomingDispatcher 0 coord_id 0
+I0819 14:43:54.638310  5057 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I0819 14:43:54.638362  5072 Dispatcher.h:56] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 2, group id = 0, coordinator = 0
+I0819 14:43:54.638398  5057 Coordinator.h:144] Coordinator starts to run 3 workers.
+I0819 14:43:54.638420  5073 Dispatcher.h:222] Outgoing Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0
+I0819 14:43:54.638460  5074 HStoreExecutor.h:4286] Executor 0 starts with thread id5074
+I0819 14:43:54.638548  5076 Manager.h:226] Manager(worker id = 2) on the coordinator node started.
+I0819 14:43:54.638556  5075 HStoreExecutor.h:4286] Executor 1 starts with thread id5075
+I0819 14:43:55.638615  5057 Coordinator.h:214] commit: 29839 abort: 10212 (0/10212/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23674852, avg network size: 793.42, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:56.638752  5057 Coordinator.h:214] commit: 28604 abort: 10725 (0/10725/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 22673806, avg network size: 792.68, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:57.638849  5057 Coordinator.h:214] commit: 25904 abort: 11888 (0/11888/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 20583312, avg network size: 794.6, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:58.638945  5057 Coordinator.h:214] commit: 31722 abort: 10999 (0/10999/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 25110428, avg network size: 791.578, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:43:59.639050  5057 Coordinator.h:214] commit: 21520 abort: 11005 (0/11005/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 17025530, avg network size: 791.149, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:00.639151  5057 Coordinator.h:214] commit: 29271 abort: 11004 (0/11004/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23081876, avg network size: 788.558, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:01.639252  5057 Coordinator.h:214] commit: 31473 abort: 11171 (0/11171/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 24973318, avg network size: 793.484, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:02.639348  5057 Coordinator.h:214] commit: 31951 abort: 11090 (0/11090/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 25133954, avg network size: 786.641, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:03.639446  5057 Coordinator.h:214] commit: 19445 abort: 13869 (0/13869/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 15367650, avg network size: 790.314, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:04.639539  5057 Coordinator.h:214] commit: 23543 abort: 8743 (0/8743/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 18653592, avg network size: 792.32, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:05.639636  5057 Coordinator.h:214] commit: 28367 abort: 11194 (0/11194/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 22424148, avg network size: 790.501, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:06.639725  5057 Coordinator.h:214] commit: 30171 abort: 10425 (0/10425/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23768842, avg network size: 787.804, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:07.639815  5057 Coordinator.h:214] commit: 32475 abort: 11037 (0/11037/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 25649538, avg network size: 789.824, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:08.639909  5057 Coordinator.h:214] commit: 30484 abort: 10211 (0/10211/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 23908240, avg network size: 784.288, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:09.640007  5057 Coordinator.h:214] commit: 31501 abort: 11562 (0/11562/0), persistence latency 0, txn latency 0, queued lock latency 0, lock latency 0, active_txns 0, n_failed_read_lock 0, n_failed_write_lock 0, n_failed_cmd_not_ready 0, n_failed_no_cmd 0, network size: 24818846, avg network size: 787.875, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:09.640033  5057 Coordinator.h:240] average commit: 28868.1 abort: 11030.6 (0/11030.6/0), abort_rate: 0.276465, network size: 227780004, avg network size: 789.037, si_in_serializable: 0 0 %, local: 0 %
+I0819 14:44:09.640044  5057 HStoreExecutor.h:4427]  Worker 0 commit: 213051. batch concurrency: 1. effective batch concurrency: 1. latency: 61 us (50%) 79 us (75%) 130 us (95%) 193 us (99%)  59 us (avg). dist txn latency: 72 us (50%) 82 us (75%) 149 us (95%) 219 us (99%)  avg 80 us (avg).  local txn latency: 14 us (50%) 18 us (75%) 24 us (95%) 63 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 30 41 50 57 33 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 27 execution_after_commit_time 20 scheduling_time 0. 
+ LOCAL count 3574 txn stall 0 us,  local_work 6 us,  remote_work 0 us,  commit_work 3 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 2 us,  commit_release_lock 0 us 
+ DIST count 10614 txn stall 14 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:44:09.642498  5057 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:44:09.642503  5057 HStoreExecutor.h:4499] message stats, type: 0 count: 0 total size: 0
+I0819 14:44:09.642506  5057 HStoreExecutor.h:4499] message stats, type: 1 count: 0 total size: 0
+I0819 14:44:09.642508  5057 HStoreExecutor.h:4499] message stats, type: 2 count: 0 total size: 0
+I0819 14:44:09.642510  5057 HStoreExecutor.h:4499] message stats, type: 3 count: 0 total size: 0
+I0819 14:44:09.642513  5057 HStoreExecutor.h:4499] message stats, type: 4 count: 0 total size: 0
+I0819 14:44:09.642513  5057 HStoreExecutor.h:4499] message stats, type: 5 count: 0 total size: 0
+I0819 14:44:09.642515  5057 HStoreExecutor.h:4499] message stats, type: 6 count: 0 total size: 0
+I0819 14:44:09.642517  5057 HStoreExecutor.h:4499] message stats, type: 7 count: 0 total size: 0
+I0819 14:44:09.642519  5057 HStoreExecutor.h:4499] message stats, type: 8 count: 0 total size: 0
+I0819 14:44:09.642521  5057 HStoreExecutor.h:4499] message stats, type: 9 count: 0 total size: 0
+I0819 14:44:09.642524  5057 HStoreExecutor.h:4499] message stats, type: 10 count: 0 total size: 0
+I0819 14:44:09.642525  5057 HStoreExecutor.h:4499] message stats, type: 11 count: 0 total size: 0
+I0819 14:44:09.642527  5057 HStoreExecutor.h:4499] message stats, type: 12 count: 0 total size: 0
+I0819 14:44:09.642529  5057 HStoreExecutor.h:4499] message stats, type: 13 count: 0 total size: 0
+I0819 14:44:09.642530  5057 HStoreExecutor.h:4499] message stats, type: 14 count: 0 total size: 0
+I0819 14:44:09.642532  5057 HStoreExecutor.h:4499] message stats, type: 15 count: 0 total size: 0
+I0819 14:44:09.642534  5057 HStoreExecutor.h:4499] message stats, type: 16 count: 0 total size: 0
+I0819 14:44:09.642536  5057 HStoreExecutor.h:4499] message stats, type: 17 count: 193121 total size: 10938338
+I0819 14:44:09.642539  5057 HStoreExecutor.h:4499] message stats, type: 18 count: 197787 total size: 99850765
+I0819 14:44:09.642540  5057 HStoreExecutor.h:4499] message stats, type: 19 count: 156342 total size: 55972048
+I0819 14:44:09.642542  5057 HStoreExecutor.h:4499] message stats, type: 20 count: 160528 total size: 1444752
+I0819 14:44:09.642544  5057 HStoreExecutor.h:4499] message stats, type: 21 count: 164960 total size: 5773600
+I0819 14:44:09.642545  5057 HStoreExecutor.h:4499] message stats, type: 22 count: 0 total size: 0
+I0819 14:44:09.642547  5057 HStoreExecutor.h:4499] message stats, type: 23 count: 193775 total size: 3100400
+I0819 14:44:09.642549  5057 HStoreExecutor.h:4499] message stats, type: 24 count: 198387 total size: 2380644
+I0819 14:44:09.642551  5057 HStoreExecutor.h:4499] message stats, type: 25 count: 0 total size: 0
+I0819 14:44:09.642553  5057 HStoreExecutor.h:4499] message stats, type: 26 count: 0 total size: 0
+I0819 14:44:09.642555  5057 HStoreExecutor.h:4499] message stats, type: 27 count: 0 total size: 0
+I0819 14:44:09.642557  5057 HStoreExecutor.h:4499] message stats, type: 28 count: 0 total size: 0
+I0819 14:44:09.642558  5057 HStoreExecutor.h:4499] message stats, type: 29 count: 0 total size: 0
+I0819 14:44:09.642560  5057 HStoreExecutor.h:4499] message stats, type: 30 count: 156342 total size: 8442468
+I0819 14:44:09.643430  5075 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 198234, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:44:09.643442  5074 HStoreExecutor.h:4312] stats memory usage:
+txns_replayed 198396, delete_mp_txns 0
+cluster_worker_messages_ready 0
+lock_buckets 2000
+managed_partitions 1
+active_txns 0
+pending_txns 0
+granule_command_queues 0 cmd_left 0
+granule_command_queue_processing 0
+txns_candidate_for_reexecution 0 sizeof(TransactionType) 544, total bytes 0
+granule_replayed_log_index 0
+granule_lock_request_queues 0 lock_req_left 0
+granule_lock_reqeust_candidates 0
+lock_ids_by_this_replica_executor 0
+checkpoint_insts 0
+command_buffer_data 0
+command_buffer_outgoing_data 0
+I0819 14:44:09.644516  5075 HStoreExecutor.h:4324] Executor 1 exits.
+I0819 14:44:09.644517  5074 HStoreExecutor.h:4324] Executor 0 exits.
+I0819 14:44:09.644537  5076 Manager.h:228] Manager(worker id = 2) on the coordinator node exits.
+I0819 14:44:09.644929  5057 HStoreExecutor.h:4427]  Worker 1 commit: 213264. batch concurrency: 1. effective batch concurrency: 1. latency: 61 us (50%) 79 us (75%) 130 us (95%) 186 us (99%)  65 us (avg). dist txn latency: 72 us (50%) 82 us (75%) 145 us (95%) 226 us (99%)  avg 87 us (avg).  local txn latency: 14 us (50%) 18 us (75%) 24 us (95%) 64 us (99%). txn try times : 0 (50%) 0 (75%) 0 (95%) 0 (99%).  spread_avg_time 0 spread cnt 0 replay_query_time 0.  replica progress query latency 0 us(50%), 0 us(avg).  replication gap 0 replication sync comm rounds 0 replication time 0 txn tries 0 50th 0 75th 0 95th 0 99th 0 100th  acquire lock ltc 0 50th 0 75th 0 95th  single_partition_mp 0 cross_worker_mp 0 cross_node_mp 0 replay_loop_time 0 0 0 0 replay_concurrency 0 0 0 0 round_mp_initiated 0 0 0 zero_mp_initiated_cost 0 commit interval 31 41 50 57 37 mp_arrival_interval 0 0 0 0 handle request latency 0 0 0 0 handle message count 0 0 0 0 rtt 0 0 0 0 0 msg_send_latency 0 0 0 0 msg_recv_latency 0 0 0 0 msg_proc_latency 0 0 0 0 mp_concurrency_limit 1999 mp_avg_abort_rate 0 cmd queue time 0 cmd stall time by lock 0 serialize_cmd_time 0 execution phase time 33 execution_after_commit_time 20 scheduling_time 0. 
+ LOCAL count 3493 txn stall 0 us,  local_work 6 us,  remote_work 0 us,  commit_work 3 us,  commit_prepare 0 us,  commit_persistence 0 us,  commit_replication 0 us,  commit_write_back 2 us,  commit_release_lock 0 us 
+ DIST count 10627 txn stall 9 us,  local_work 3 us 3 us,  remote_work 0 us 0 us,  commit_work 2 us 2 us,  commit_prepare 0 us 0 us,  commit_persistence 27 us,  commit_replication 0 us,  commit_write_back 1 us 1 us,  commit_release_lock 0 us
+I0819 14:44:09.647261  5057 HStoreExecutor.h:4494] STRAGGLER DEBUG INFO:
+count 0
+I0819 14:44:09.647269  5057 Coordinator.h:258] total commit: 226244
+I0819 14:44:10.647351  5072 Dispatcher.h:153] Incoming Dispatcher exits, network size: 483394213. socket_message_recv_latency(50th) 0 socket_message_recv_latency(75th) 0 socket_message_recv_latency(95th) 1 socket_message_recv_latency(99th) 1 internal_message_recv_latency(50th) 0.314 socket_message_recv_cnt 156403 socket_read_syscall 45322291 internal_message_recv_cnt 11258
+I0819 14:44:10.647363  5073 Dispatcher.h:268] Outgoing Dispatcher exits, network size: 483149043. msg_send_latency(50th) 0 msg_send_latency(75th) 0 msg_send_latency(95th) 0 msg_send_latency(99th) 0 msg_send_latency(avg) 0 msg_gen_to_sent_latency(50th) 11 msg_gen_to_sent_latency(75th) 16 msg_gen_to_sent_latency(95th) 21 msg_gen_to_sent_latency(99th) 23 msg_gen_to_queue_latency(50th) 0 msg_gen_to_queue_latency(75th) 0 msg_gen_to_queue_latency(95th) 0 msg_gen_to_queue_latency(99th) 0 msg_disp_ltc(50th) 0 msg_disp_ltc(75th) 0 msg_disp_ltc(95th) 0 msg_disp_ltc(99th) 0 msg_disp_ltc(100th) 0 send_ltc(50th) 0 send_ltc(75th) 0 send_ltc(95th) 0 send_ltc(99th) 1 send_ltc(100th) 16 send_ltc(avg) 0 sendto_cnt 1542865 network_size 483149043 network_msg_cnt 2373258 network_msg_group_size avg 1 50th 1 internal_network_size 33874575 internal_network_msg_cnt 164021
+I0819 14:44:10.685711  5057 Coordinator.h:94] round_trip_latency 24 (50th) 37 (75th) 62 (95th) 62 (99th) 
+I0819 14:44:10.685907  5057 Coordinator.h:276] Coordinator exits.
+killing previous experiments...
