@@ -1,0 +1,93 @@
+#! /bin/bash
+
+set -uo pipefail
+# set -x
+
+typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+typeset current_date_time="`date +%Y%m%d%H%M`"
+
+function print_usage {
+        echo "[usage] ./remote_txn_overhead.sh"
+}
+
+if [ $# != 0 ]; then
+        print_usage
+        exit -1
+fi
+
+# common parameters
+typeset HOST_NUM=8
+typeset WORKER_NUM=2
+typeset CXL_TRANS_ENTRY_NUM=4096
+typeset RW_RATIO=50
+typeset ZIPF_THETA=0
+typeset RESULT_DIR=$SCRIPT_DIR/../results/remote_txn_overhead/$current_date_time
+
+function run_remote_txn_overhead_tpcc {
+        typeset RESULT_DIR=$1
+        typeset PROTOCOL=$2
+        typeset HOST_NUM=$3
+        typeset WORKER_NUM=$4
+        typeset USE_CXL_TRANS=$5
+        typeset CXL_TRANS_ENTRY_NUM=$6
+
+        typeset RESULT_FILE=$RESULT_DIR/tpcc-$PROTOCOL-$HOST_NUM-$WORKER_NUM-$USE_CXL_TRANS-$CXL_TRANS_ENTRY_NUM.txt
+
+        mkdir -p $RESULT_DIR
+
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 0 0 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 10 15 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 30 45 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 40 60 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 50 75 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 60 90 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+}
+
+function run_remote_txn_overhead_ycsb {
+        typeset RESULT_DIR=$1
+        typeset PROTOCOL=$2
+        typeset HOST_NUM=$3
+        typeset WORKER_NUM=$4
+        typeset RW_RATIO=$5
+        typeset ZIPF_THETA=$6
+        typeset USE_CXL_TRANS=$7
+        typeset CXL_TRANS_ENTRY_NUM=$8
+
+        typeset RESULT_FILE=$RESULT_DIR/ycsb-$PROTOCOL-$HOST_NUM-$WORKER_NUM-$RW_RATIO-$ZIPF_THETA-$USE_CXL_TRANS-$CXL_TRANS_ENTRY_NUM.txt
+
+        mkdir -p $RESULT_DIR
+
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 10 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 40 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 50 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 60 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 70 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 80 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 90 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh YCSB $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 100 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM 0 >> $RESULT_FILE 2>&1
+}
+
+mkdir -p $RESULT_DIR
+
+# TPCC with CXL transport
+run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_tpcc $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM 1 $CXL_TRANS_ENTRY_NUM
+
+# TPCC with Network transport
+run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 0 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 0 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_tpcc $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM 0 $CXL_TRANS_ENTRY_NUM
+
+# YCSB
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 1 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 1 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 1 $CXL_TRANS_ENTRY_NUM
+
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0 $CXL_TRANS_ENTRY_NUM
+run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0 $CXL_TRANS_ENTRY_NUM
