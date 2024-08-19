@@ -8,13 +8,13 @@ import statistics
 def construct_input_list_tpcc(res_dir):
         input_file_list = list()
         # CXL Transport
-        input_file_list.append(("SundialPasha", res_dir + "/tpcc-SundialPasha-8-2-1-4096.txt"))
-        input_file_list.append(("Sundial", res_dir + "/tpcc-Sundial-8-2-1-4096.txt"))
-        input_file_list.append(("Lotus", res_dir + "/tpcc-Lotus-8-2-1-4096.txt"))
+        input_file_list.append(("SundialPasha-CXL", res_dir + "/tpcc-SundialPasha-8-2-1-4096.txt"))
+        input_file_list.append(("Sundial-CXL", res_dir + "/tpcc-Sundial-8-2-1-4096.txt"))
+        input_file_list.append(("Lotus-CXL", res_dir + "/tpcc-Lotus-8-2-1-4096.txt"))
         # Network Transport
-        input_file_list.append(("SundialPasha", res_dir + "/tpcc-SundialPasha-8-2-0-4096.txt"))
-        input_file_list.append(("Sundial", res_dir + "/tpcc-Sundial-8-2-0-4096.txt"))
-        input_file_list.append(("Lotus", res_dir + "/tpcc-Lotus-8-2-0-4096.txt"))
+        input_file_list.append(("SundialPasha-NET", res_dir + "/tpcc-SundialPasha-8-2-0-4096.txt"))
+        input_file_list.append(("Sundial-NET", res_dir + "/tpcc-Sundial-8-2-0-4096.txt"))
+        input_file_list.append(("Lotus-NET", res_dir + "/tpcc-Lotus-8-2-0-4096.txt"))
         return input_file_list
 
 def construct_input_list_ycsb(res_dir):
@@ -78,4 +78,4 @@ if len(sys.argv) != 2:
 res_dir = sys.argv[1]
 
 parse_tpcc(res_dir)
-parse_ycsb(res_dir)
+# parse_ycsb(res_dir)
