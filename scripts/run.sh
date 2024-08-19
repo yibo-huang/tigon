@@ -10,8 +10,8 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE_SYNC/CI] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
-        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM"
+        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM GATHER_OUTPUTS"
+        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE_SYNC: HOST_NUM"
         echo "CI: HOST_NUM"
@@ -74,6 +74,7 @@ function run_exp_tpcc {
         typeset REMOTE_PAYMENT_PERC=$5
         typeset USE_CXL_TRANS=$6
         typeset CXL_TRANS_ENTRY_NUM=$7
+        typeset GATHER_OUTPUTS=$8
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -219,7 +220,10 @@ function run_exp_tpcc {
                 exit -1
         fi
 
-        gather_other_output $HOST_NUM
+        if [ $GATHER_OUTPUT == 1 ]; then
+                gather_other_output $HOST_NUM
+        fi
+
         kill_prev_exps
 }
 
@@ -232,6 +236,7 @@ function run_exp_ycsb {
         typeset CROSS_RATIO=$6
         typeset USE_CXL_TRANS=$7
         typeset CXL_TRANS_ENTRY_NUM=$8
+        typeset GATHER_OUTPUT=$9
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -377,7 +382,10 @@ function run_exp_ycsb {
                 exit -1
         fi
 
-        gather_other_output $HOST_NUM
+        if [ $GATHER_OUTPUT == 1 ]; then
+                gather_other_output $HOST_NUM
+        fi
+
         kill_prev_exps
 }
 
@@ -390,7 +398,7 @@ fi
 typeset RUN_TYPE=$1
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 8 ]; then
+        if [ $# != 9 ]; then
                 print_usage
                 exit -1
         fi
@@ -402,14 +410,12 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset REMOTE_PAYMENT_PERC=$6
         typeset USE_CXL_TRANS=$7
         typeset CXL_TRANS_ENTRY_NUM=$8
+        typeset GATHER_OUTPUT=$9
 
-        typeset i=0
-
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM
-
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 9 ]; then
+        if [ $# != 10 ]; then
                 print_usage
                 exit -1
         fi
@@ -422,11 +428,9 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset CROSS_RATIO=$7
         typeset USE_CXL_TRANS=$8
         typeset CXL_TRANS_ENTRY_NUM=$9
+        typeset GATHER_OUTPUT=${10}
 
-        typeset i=0
-
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM
-
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
