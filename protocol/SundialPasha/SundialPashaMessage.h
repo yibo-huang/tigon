@@ -13,6 +13,7 @@
 #include "protocol/SundialPasha/SundialPashaHelper.h"
 #include "protocol/SundialPasha/SundialPashaRWKey.h"
 #include "protocol/SundialPasha/SundialPashaTransaction.h"
+#include "protocol/SundialPasha/MigrationPolicy.h"
 
 namespace star
 {
@@ -113,7 +114,7 @@ class SundialPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                success = global_helper.move_from_partition_to_shared_region(&table, table.get_plain_key(key), row);
+                success = migration_manager.move_single_row_in(&table, table.get_plain_key(key), row);
                 DCHECK(success == true);
 
 		// prepare response message header

@@ -75,6 +75,8 @@ retry:
         // a migrated row can only be moved out if its ref_cnt == 0
         uint64_t ref_cnt{ 0 };
 
+        // a migrated tuple can be invalid if it is deleted or migrated out
+        bool is_valid{ false };
 };
 
 uint64_t SundialPashaMetadataLocalInit();
@@ -138,6 +140,7 @@ retry:
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         void *src = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
                         smeta->lock();
+                        CHECK(smeta->is_valid == true);
                         rts = smeta->rts;
                         wts = smeta->wts;
                         std::memcpy(dest, src, size);
@@ -157,6 +160,7 @@ retry:
                 void *src = row + sizeof(SundialPashaMetadataShared);
 
 		smeta->lock();
+                CHECK(smeta->is_valid == true);
                 rts = smeta->rts;
                 wts = smeta->wts;
                 std::memcpy(dest, src, size);
@@ -183,6 +187,7 @@ retry:
                 } else {
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
+                        CHECK(smeta->is_valid == true);
                         rwts.first = smeta->wts;
                         rwts.second = smeta->rts;
                         if (smeta->owner == 0 || smeta->owner == transaction_id) {
@@ -204,6 +209,7 @@ retry:
                 bool success = false; 
 
                 smeta->lock();
+                CHECK(smeta->is_valid == true);
                 rwts.first = smeta->wts;
                 rwts.second = smeta->rts;
                 if (smeta->owner == 0 || smeta->owner == transaction_id) {
@@ -232,6 +238,7 @@ retry:
                 } else {
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
+                        CHECK(smeta->is_valid == true);
                         if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
                                 success = false;
                         } else {
@@ -252,6 +259,7 @@ retry:
                 bool success = false; 
 
                 smeta->lock();
+                CHECK(smeta->is_valid == true);
                 if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
                         success = false;
                 } else {
@@ -280,6 +288,7 @@ retry:
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
                         smeta->lock();
+                        CHECK(smeta->is_valid == true);
                         DCHECK(smeta->wts == smeta->rts);
                         if (commit_ts > smeta->wts) { // Thomas write rule
                                 smeta->wts = smeta->rts = commit_ts;
@@ -297,6 +306,7 @@ retry:
                 void *data_ptr = row + sizeof(SundialPashaMetadataShared);
 
                 smeta->lock();
+                CHECK(smeta->is_valid == true);
                 DCHECK(smeta->wts == smeta->rts);
                 if (commit_ts > smeta->wts) { // Thomas write rule
                         smeta->wts = smeta->rts = commit_ts;
@@ -321,6 +331,7 @@ retry:
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
                         smeta->lock();
+                        CHECK(smeta->is_valid == true);
                         CHECK(smeta->owner == transaction_id);
                         memcpy(data_ptr, value, value_size);
                         smeta->wts = smeta->rts = commit_ts;
@@ -337,6 +348,7 @@ retry:
                 void *data_ptr = row + sizeof(SundialPashaMetadataShared);
 
                 smeta->lock();
+                CHECK(smeta->is_valid == true);
                 CHECK(smeta->owner == transaction_id);
                 memcpy(data_ptr, value, value_size);
                 smeta->wts = smeta->rts = commit_ts;
@@ -355,6 +367,7 @@ retry:
                 } else {
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
+                        CHECK(smeta->is_valid == true);
                         CHECK(smeta->owner == transaction_id);
 		        smeta->owner = 0;
                         smeta->unlock();
@@ -368,6 +381,7 @@ retry:
 		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
 
                 smeta->lock();
+                CHECK(smeta->is_valid == true);
                 CHECK(smeta->owner == transaction_id);
                 smeta->owner = 0;
                 smeta->unlock();
@@ -501,7 +515,7 @@ retry:
                         migrated_row_meta->unlock();
                         ret = true;
                 } else {
-                        // increase the reference count for the requesting host
+                        // increase the reference count for the requesting host, even if it is already migrated
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
 
                         smeta->lock();
@@ -522,46 +536,56 @@ retry:
                 DCHECK(0 != meta.load());
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(get_or_install_local_meta(meta));
 		DCHECK(lmeta != nullptr);
-
+                SundialPashaMetadataShared *smeta = nullptr;
                 bool ret = false;
 
                 lmeta->lock();
                 if (lmeta->is_migrated == true) {
                         void *local_data = std::get<1>(row);
-                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         char *migrated_row_value = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
 
                         // take the CXL latch
                         smeta->lock();
-                        if (smeta->is_migrated_out == false) {
-                                // copy metadata back
-                                lmeta->wts = smeta->wts;
-                                lmeta->rts = smeta->rts;
-                                lmeta->owner = smeta->owner;
+                        DCHECK(smeta->is_valid == true);
 
-                                // copy data back
-                                memcpy(local_data, migrated_row_value, table->value_size());
-
-                                // remove from CXL index
-                                CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                                ret = target_cxl_table->remove(plain_key, lmeta->migrated_row);
-                                DCHECK(ret == true);
-
-                                // mark the local row as not migrated
-                                lmeta->migrated_row = nullptr;
-                                lmeta->is_migrated = false;
-
-                                // TODO: register EBR
-
-                                ret = true;
-                        } else {
-                                // already migrated out, do nothing
-                                ret = false;
+                        // reference count > 0, cannot move out the tuple
+                        if (smeta->ref_cnt > 0) {
+                                smeta->unlock();
+                                lmeta->unlock();
+                                return false;
                         }
+
+                        // copy metadata back
+                        lmeta->wts = smeta->wts;
+                        lmeta->rts = smeta->rts;
+                        lmeta->owner = smeta->owner;
+
+                        // copy data back
+                        memcpy(local_data, migrated_row_value, table->value_size());
+
+                        // set the migrated row as invalid
+                        smeta->is_valid = false;
+
+                        // remove from CXL index
+                        CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                        ret = target_cxl_table->remove(plain_key, lmeta->migrated_row);
+                        DCHECK(ret == true);
+
+                        // mark the local row as not migrated
+                        lmeta->migrated_row = nullptr;
+                        lmeta->is_migrated = false;
+
+                        // TODO: register EBR
+
                         // release the CXL latch
                         smeta->unlock();
+                        ret = true;
+                } else {
+                        DCHECK(0);
                 }
                 lmeta->unlock();
+
                 return ret;
 	}
 
@@ -578,6 +602,7 @@ retry:
 
         CCHashTable *cxl_hashtables;
         std::vector<std::vector<CCHashTable *> > cxl_tbl_vecs;
+
         std::atomic<uint64_t> init_finished;
 };
 
