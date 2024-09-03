@@ -183,8 +183,19 @@ class SundialPashaRWKey {
 
 	void set_read_set_pos(int32_t pos)
 	{
-		DCHECK(this->read_set_pos = -1);
+		DCHECK(this->read_set_pos == -1);
 		this->read_set_pos = pos;
+	}
+
+        bool get_reference_counted()
+	{
+		return reference_counted;
+	}
+
+	void set_reference_counted()
+	{
+		DCHECK(this->reference_counted == false);
+		this->reference_counted = true;
 	}
 
     private:
@@ -207,6 +218,7 @@ class SundialPashaRWKey {
 	uint64_t rts = 0;
 	uint64_t wts = 0;
 	int32_t read_set_pos = -1;
+        bool reference_counted = false;
 
     public:
 	static constexpr uint64_t TABLE_ID_MASK = 0x1f;

@@ -85,11 +85,9 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 				}
 			} else {
                                 // I am not the owner of the data
-                                CCSet *row_set = global_helper.search_cxl_table(table_id, partition_id, table->get_plain_key(key));
-                                if (row_set != nullptr) {
+                                char *migrated_row = global_helper.get_migrated_row(table_id, partition_id, table->get_plain_key(key), true);
+                                if (migrated_row != nullptr) {
                                         // data is in the shared region
-                                        DCHECK(row_set->size() == 1);
-                                        char *migrated_row = row_set->get_element(0);
                                         bool success = true;
 
                                         std::pair<uint64_t, uint64_t> rwts;
@@ -109,6 +107,8 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                                         txn.abort_lock = true;
                                                 }
                                         }
+                                        // mark it as reference counted so that we know if we need to release it upon commit/abort
+                                        txn.readSet[key_offset].set_reference_counted();
                                 } else {
                                         // data is not in the shared region
                                         // ask the remote host to do the data migration

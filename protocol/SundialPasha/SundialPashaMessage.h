@@ -156,10 +156,8 @@ class SundialPashaMessageHandler {
 		SundialPashaRWKey &readKey = txn->readSet[key_offset];
 
                 // search cxl table and get the data
-                CCSet *row_set = global_helper.search_cxl_table(table_id, partition_id, table.get_plain_key(readKey.get_key()));
-                DCHECK(row_set != nullptr);
-                DCHECK(row_set->size() == 1);
-                char *migrated_row = row_set->get_element(0);
+                char *migrated_row = global_helper.get_migrated_row(table_id, partition_id, table.get_plain_key(readKey.get_key()), false);
+                CHECK(migrated_row != nullptr);
 
                 // perform execution phase operations
                 std::pair<uint64_t, uint64_t> rwts;
@@ -179,6 +177,8 @@ class SundialPashaMessageHandler {
                                 txn->abort_lock = true;
                         }
                 }
+                // mark it as reference counted so that we know if we need to release it upon commit/abort
+                readKey.set_reference_counted();
 
                 txn->pendingResponses--;
 	}

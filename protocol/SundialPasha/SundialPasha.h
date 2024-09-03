@@ -80,13 +80,14 @@ template <class Database> class SundialPasha {
 				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
                                 auto key = writeKey.get_key();
-				CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
-                                DCHECK(row_set != nullptr);
-                                DCHECK(row_set->size() == 1);
-                                char *migrated_row = row_set->get_element(0);
+				char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                CHECK(migrated_row != nullptr);
 				SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
 			}
 		}
+
+                // release migrated rows
+                release_migrated_rows(txn);
 	}
 
 	bool commit(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
@@ -139,6 +140,9 @@ template <class Database> class SundialPasha {
 			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_unlock_time(us); });
 			release_lock(txn, commit_tid, messages);
 		}
+
+                // release migrated rows
+                release_migrated_rows(txn);
 
 		return true;
 	}
@@ -326,10 +330,8 @@ template <class Database> class SundialPasha {
 						auto wts = readKey.get_wts();
 						auto commit_ts = txn.commit_ts;
 
-						CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
-                                                DCHECK(row_set != nullptr);
-                                                DCHECK(row_set->size() == 1);
-                                                char *migrated_row = row_set->get_element(0);
+						char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                                CHECK(migrated_row != nullptr);
 						bool success = global_helper.remote_renew_lease(migrated_row, wts, commit_ts);
 
 						if (success == false) { // renew_lease failed
@@ -481,11 +483,9 @@ template <class Database> class SundialPasha {
                                 auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
-                                CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
-                                DCHECK(row_set != nullptr);
-                                DCHECK(row_set->size() == 1);
-                                char *migrated_row = row_set->get_element(0);
-				SundialPashaHelper::remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
+                                char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                CHECK(migrated_row != nullptr);
+                                SundialPashaHelper::remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
 			}
 
 			// value replicate
@@ -564,14 +564,32 @@ template <class Database> class SundialPasha {
                                 // I am not the owner of the data
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
-                                CCSet *row_set = global_helper.search_cxl_table(tableId, partitionId, table->get_plain_key(key));
-                                DCHECK(row_set != nullptr);
-                                DCHECK(row_set->size() == 1);
-                                char *migrated_row = row_set->get_element(0);
-				SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
+                                char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                CHECK(migrated_row != nullptr);
+                                SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
 			}
 		}
 	}
+
+        void release_migrated_rows(TransactionType &txn)
+        {
+                auto &readSet = txn.readSet;
+
+                // release rows that are read but not written
+		for (auto i = 0u; i < readSet.size(); ++i) {
+			auto &readKey = readSet[i];
+                        auto tableId = readKey.get_table_id();
+			auto partitionId = readKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+
+			if (readKey.get_reference_counted() == true) {
+                                DCHECK(partitioner.has_master_partition(partitionId) == false);
+                                DCHECK(readKey.get_local_index_read_bit() == 0);
+                                auto key = readKey.get_key();
+                                global_helper.release_migrated_row(tableId, partitionId, table->get_plain_key(key));
+                        }
+		}
+        }
 
 	void sync_messages(TransactionType &txn, bool wait_response = true)
 	{

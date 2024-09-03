@@ -67,11 +67,14 @@ retry:
 		latch.store(0);
 	}
 
-        // a migrated tuple in CXL can be invalid if it is deleted or migrated out
-        bool is_migrated_out{ false };
 	uint64_t wts{ 0 };
 	uint64_t rts{ 0 };
 	uint64_t owner{ 0 };
+
+        // multi-host transaction accessing a cxl row would increase its reference count by 1
+        // a migrated row can only be moved out if its ref_cnt == 0
+        uint64_t ref_cnt{ 0 };
+
 };
 
 uint64_t SundialPashaMetadataLocalInit();
@@ -414,10 +417,38 @@ retry:
                 while (init_finished.load(std::memory_order_acquire) == 0);
         }
 
-        CCSet *search_cxl_table(std::size_t table_id, std::size_t partition_id, uint64_t plain_key)
+        char *get_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key, bool inc_ref_cnt)
         {
                 CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
-                return target_cxl_table->search(plain_key);
+                char *migrated_row = target_cxl_table->search(plain_key);
+
+                if (migrated_row != nullptr) {
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row);
+                        if (inc_ref_cnt == true) {
+                                smeta->lock();
+                                if (smeta->is_valid == true) {
+                                        smeta->ref_cnt++;
+                                } else {
+                                        migrated_row = nullptr;
+                                }
+                                smeta->unlock();
+                        }
+                }
+                return migrated_row;
+        }
+
+        void release_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key)
+        {
+                CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                char *migrated_row = target_cxl_table->search(plain_key);
+                CHECK(migrated_row != nullptr);
+
+                SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row);
+                smeta->lock();
+                CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
+                smeta->ref_cnt--;
+                smeta->unlock();
         }
 
         bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
@@ -451,6 +482,12 @@ retry:
                         // copy data
                         std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
 
+                        // set the migrated row as valid
+                        migrated_row_meta->is_valid = true;
+
+                        // increase the reference count for the requesting host
+                        migrated_row_meta->ref_cnt++;
+
                         // insert into CXL hash tables
                         CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
                         ret = target_cxl_table->insert(plain_key, migrated_row_ptr);
@@ -462,10 +499,15 @@ retry:
 
                         // release the CXL latch
                         migrated_row_meta->unlock();
-
                         ret = true;
                 } else {
-                        // do nothing
+                        // increase the reference count for the requesting host
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+
+                        smeta->lock();
+                        CHECK(smeta->is_valid == true);
+                        smeta->ref_cnt++;
+                        smeta->unlock();
                         ret = false;
                 }
 		lmeta->unlock();

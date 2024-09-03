@@ -20,7 +20,7 @@ class CCHashTable {
                         new(&buckets[i]) CCBucket();
         }
 
-	CCSet *search(uint64_t key)
+	char *search(uint64_t key)
         {
                 CCBucket *cur_bkt = &buckets[hash(key)];
 	        return cur_bkt->search(key);
@@ -61,7 +61,7 @@ class CCHashTable {
                         pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
                 }
 
-		CCSet *search(uint64_t key)
+		char *search(uint64_t key)
                 {
                         CCNode *node = nullptr;
 
@@ -71,10 +71,12 @@ class CCHashTable {
 
                         // note that we never delete the node
                         // so we need to check if it is empty
-                        if (node != nullptr && node->rows.empty() == false)
-                                return &node->rows;
-                        else
+                        if (node != nullptr && node->rows.empty() == false) {
+                                CHECK(node->rows.size() == 1);
+                                return node->rows.get_element(0);
+                        } else {
                                 return nullptr;
+                        }
                 }
 
 		bool insert(uint64_t key, char *row)
