@@ -9,10 +9,11 @@ typeset current_date_time="`date +%Y%m%d%H%M`"
 source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
-        echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE_SYNC/CI] EXP-SPECIFIC"
+        echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI] EXP-SPECIFIC"
         echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM GATHER_OUTPUTS"
         echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM GATHER_OUTPUTS"
         echo "KILL: None"
+        echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
         echo "CI: HOST_NUM"
 }
@@ -37,7 +38,6 @@ function gather_other_output {
         for (( i=1; i < $HOST_NUM; ++i ))
         do
                 ssh_command "cat pasha/output.txt" $i
-                ssh_command "rm pasha/output.txt" $i
         done
 }
 
@@ -390,7 +390,7 @@ function run_exp_ycsb {
 }
 
 # process arguments
-if [ $# -le 1 ]; then
+if [ $# -lt 1 ]; then
         print_usage
         exit -1
 fi
@@ -441,6 +441,20 @@ elif [ $RUN_TYPE = "KILL" ]; then
         typeset HOST_NUM=$2
 
         kill_prev_exps $HOST_NUM
+
+        exit 0
+elif [ $RUN_TYPE = "COMPILE" ]; then
+        if [ $# != 1 ]; then
+                print_usage
+                exit -1
+        fi
+
+        # compile
+        cd $SCRIPT_DIR/../
+        mkdir -p build
+        cd build
+        cmake ..
+        make -j
 
         exit 0
 elif [ $RUN_TYPE = "COMPILE_SYNC" ]; then
