@@ -74,7 +74,7 @@ template <std::size_t N> class makeYCSBQuery {
 				}
 			}
 
-			int32_t key;
+			uint32_t key;
 
 			// generate a key in a partition
 			bool retry;
@@ -84,10 +84,10 @@ template <std::size_t N> class makeYCSBQuery {
 				if (context.isUniform) {
 					// For the first key, we ensure that it will land in the granule specified by granuleID.
 					// This granule will be served as the coordinating granule
-					key = i == 0 ? random.uniform_dist(0, static_cast<int>(context.keysPerGranule) - 1) :
-						       random.uniform_dist(0, static_cast<int>(context.keysPerPartition) - 1);
+					key = i == 0 ? random.uniform_dist(0, static_cast<uint32_t>(context.keysPerGranule) - 1) :
+						       random.uniform_dist(0, static_cast<uint32_t>(context.keysPerPartition) - 1);
 				} else {
-					key = i == 0 ? random.uniform_dist(0, static_cast<int>(context.keysPerGranule) - 1) :
+					key = i == 0 ? random.uniform_dist(0, static_cast<uint32_t>(context.keysPerGranule) - 1) :
 						       Zipf::globalZipf().value(random.next_double());
 				}
 				int this_partition_idx = 0;
