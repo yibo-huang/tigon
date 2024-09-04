@@ -6,7 +6,7 @@
 
 #include "stdint.h"
 #include <mutex>
-#include <vector>
+#include <list>
 
 #include "core/Table.h"
 #include "SundialPashaHelper.h"
@@ -49,31 +49,28 @@ class MigrationManager {
 
         bool move_single_row_out()
         {
-                row_track_entity entity_to_evict;
-                std::vector<row_track_entity>::iterator it;
+                std::list<row_track_entity>::iterator it;
                 bool ret = false;
 
+                // eagerly moving out data
                 queue_mutex.lock();
-                if (fifo_queue.size() > max_row_num) {
-                        for (it = fifo_queue.begin(); it != fifo_queue.end(); it++) {
-                                entity_to_evict = fifo_queue.front();
-                                ret = global_helper.move_from_shared_region_to_partition(it->table, it->plain_key, it->local_row);
-                                if (ret == true)
-                                        break;
-                        }
+                it = fifo_queue.begin();
+                while (it != fifo_queue.end()) {
+                        ret = global_helper.move_from_shared_region_to_partition(it->table, it->plain_key, it->local_row);
                         if (ret == true) {
-                                // LOG(INFO) << "moved out row with key " << it->plain_key << " from table " << it->table->tableID();
-                                fifo_queue.erase(it);
+                                it = fifo_queue.erase(it);
+                        } else {
+                                it++;
                         }
                 }
                 queue_mutex.unlock();
 
-                return ret;
+                return true;
         }
 
     private:
-        static constexpr std::size_t max_row_num = 10000;
-        std::vector<row_track_entity> fifo_queue;
+        static constexpr std::size_t max_row_num = 100;
+        std::list<row_track_entity> fifo_queue;
         std::mutex queue_mutex;
 };
 
