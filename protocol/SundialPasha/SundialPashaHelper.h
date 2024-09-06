@@ -513,6 +513,9 @@ retry:
 
                         // release the CXL latch
                         migrated_row_meta->unlock();
+
+                        // LOG(INFO) << "moved in a row with key " << plain_key << " from table " << table->tableID();
+
                         ret = true;
                 } else {
                         // increase the reference count for the requesting host, even if it is already migrated
@@ -580,6 +583,9 @@ retry:
 
                         // release the CXL latch
                         smeta->unlock();
+
+                        // LOG(INFO) << "moved out a row with key " << plain_key << " from table " << table->tableID();
+
                         ret = true;
                 } else {
                         DCHECK(0);

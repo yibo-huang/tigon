@@ -6,6 +6,7 @@
 #pragma once
 
 #include "stdint.h"
+#include <glog/logging.h>
 #include <boost/interprocess/offset_ptr.hpp>
 
 namespace star
@@ -49,11 +50,11 @@ class CCSet {
         {
                 /* check for duplicates */
                 for (int i = 0; i < cur_size; i++)
-                        if (rows[i] == row)
+                        if (rows[i].get() == row)
                                 return false;
 
                 /* insert the row */
-                assert(cur_size != max_capacity);
+                CHECK(cur_size != max_capacity);
                 rows[cur_size] = row;
                 cur_size++;
                 return true;
@@ -66,7 +67,7 @@ class CCSet {
 
                 /* find the row */
                 for (int i = 0; i < cur_size; i++) {
-                        if (rows[i] == row) {
+                        if (rows[i].get() == row) {
                                 index = i;
                                 break;
                         }

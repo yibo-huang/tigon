@@ -108,7 +108,7 @@ namespace std
 #define DISTRICT_GET_PLAIN_KEY_FUNC                                     \
         uint64_t get_plain_key() const                                  \
         {                                                               \
-                return D_W_ID * DISTRICT_PER_WAREHOUSE + D_ID;          \
+                return D_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + D_ID;          \
         }
 
 DO_STRUCT(district, DISTRICT_KEY_FIELDS, DISTRICT_VALUE_FIELDS, NAMESPACE_FIELDS, DISTRICT_GET_PLAIN_KEY_FUNC)
@@ -119,27 +119,27 @@ DO_STRUCT(district, DISTRICT_KEY_FIELDS, DISTRICT_VALUE_FIELDS, NAMESPACE_FIELDS
 		y(FixedString<20>, C_CITY) y(FixedString<2>, C_STATE) y(FixedString<9>, C_ZIP) y(FixedString<16>, C_PHONE) y(uint64_t, C_SINCE)          \
 			y(FixedString<2>, C_CREDIT) y(float, C_CREDIT_LIM) y(float, C_DISCOUNT) y(float, C_BALANCE) y(float, C_YTD_PAYMENT)              \
 				y(int32_t, C_PAYMENT_CNT) y(int32_t, C_DELIVERY_CNT) y(FixedString<500>, C_DATA)
-#define CUSTOMER_KEY_GET_PLAIN_KEY_FUNC                                                                 \
-        uint64_t get_plain_key() const                                                                  \
-        {                                                                                               \
-                return (C_W_ID * DISTRICT_PER_WAREHOUSE + C_D_ID) * CUSTOMER_PER_DISTRICT + C_ID;       \
+#define CUSTOMER_KEY_GET_PLAIN_KEY_FUNC                                                                                 \
+        uint64_t get_plain_key() const                                                                                  \
+        {                                                                                                               \
+                return (C_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + C_D_ID) * (CUSTOMER_PER_DISTRICT + 1) + C_ID;           \
         }
 
 DO_STRUCT(customer, CUSTOMER_KEY_FIELDS, CUSTOMER_VALUE_FIELDS, NAMESPACE_FIELDS, CUSTOMER_KEY_GET_PLAIN_KEY_FUNC)
 
 #define CUSTOMER_NAME_IDX_KEY_FIELDS(x, y) x(int32_t, C_W_ID) y(int32_t, C_D_ID) y(FixedString<16>, C_LAST)
 #define CUSTOMER_NAME_IDX_VALUE_FIELDS(x, y) x(int32_t, C_ID)
-#define CUSTOMER_NAME_GET_PLAIN_KEY_FUNC                                \
-        uint64_t get_plain_key() const                                  \
-        {                                                               \
-                uint64_t key = 0;                                       \
-                const char offset = 'A';                                \
-                const char *lastname = C_LAST.c_str();                  \
-                for (uint32_t i = 0; i < C_LAST.size(); i++)            \
-                        key = (key << 2) + (lastname[i] - offset);      \
-                key = key << 3;                                         \
-                key += C_W_ID * DISTRICT_PER_WAREHOUSE + C_D_ID;        \
-                return key;                                             \
+#define CUSTOMER_NAME_GET_PLAIN_KEY_FUNC                                                                \
+        uint64_t get_plain_key() const                                                                  \
+        {                                                                                               \
+                uint64_t key = 0;                                                                       \
+                const char offset = 'A';                                                                \
+                const char *lastname = C_LAST.c_str();                                                  \
+                for (uint32_t i = 0; i < C_LAST.size(); i++)                                            \
+                        key = (key << 2) + (lastname[i] - offset);                                      \
+                key = key << 3;                                                                         \
+                key += (C_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + C_D_ID) * (CUSTOMER_PER_DISTRICT + 1);  \
+                return key;                                                                             \
         }
 
 DO_STRUCT(customer_name_idx, CUSTOMER_NAME_IDX_KEY_FIELDS, CUSTOMER_NAME_IDX_VALUE_FIELDS, NAMESPACE_FIELDS, CUSTOMER_NAME_GET_PLAIN_KEY_FUNC)
@@ -157,20 +157,20 @@ DO_STRUCT(history, HISTORY_KEY_FIELDS, HISTORY_VALUE_FIELDS, NAMESPACE_FIELDS, H
 
 #define NEW_ORDER_KEY_FIELDS(x, y) x(int32_t, NO_W_ID) y(int32_t, NO_D_ID) y(int32_t, NO_O_ID)
 #define NEW_ORDER_VALUE_FIELDS(x, y) x(int32_t, NO_DUMMY)
-#define NEW_ORDER_GET_PLAIN_KEY_FUNC                                                                    \
-        uint64_t get_plain_key() const                                                                  \
-        {                                                                                               \
-                return (NO_W_ID * DISTRICT_PER_WAREHOUSE + NO_D_ID) * ORDER_PER_DISTRICT + NO_O_ID;     \
+#define NEW_ORDER_GET_PLAIN_KEY_FUNC                                                                                    \
+        uint64_t get_plain_key() const                                                                                  \
+        {                                                                                                               \
+                return (NO_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + NO_D_ID) * (ORDER_PER_DISTRICT + 1) + NO_O_ID;         \
         }
 
 DO_STRUCT(new_order, NEW_ORDER_KEY_FIELDS, NEW_ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, NEW_ORDER_GET_PLAIN_KEY_FUNC)
 
 #define ORDER_KEY_FIELDS(x, y) x(int32_t, O_W_ID) y(int32_t, O_D_ID) y(int32_t, O_ID)
 #define ORDER_VALUE_FIELDS(x, y) x(float, O_C_ID) y(uint64_t, O_ENTRY_D) y(int32_t, O_CARRIER_ID) y(int8_t, O_OL_CNT) y(bool, O_ALL_LOCAL)
-#define ORDER_GET_PLAIN_KEY_FUNC                                                                \
-        uint64_t get_plain_key() const                                                          \
-        {                                                                                       \
-                return (O_W_ID * DISTRICT_PER_WAREHOUSE + O_D_ID) * ORDER_PER_DISTRICT + O_ID;  \
+#define ORDER_GET_PLAIN_KEY_FUNC                                                                                \
+        uint64_t get_plain_key() const                                                                          \
+        {                                                                                                       \
+                return (O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (ORDER_PER_DISTRICT + 1) + O_ID;      \
         }
 
 DO_STRUCT(order, ORDER_KEY_FIELDS, ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_GET_PLAIN_KEY_FUNC)
@@ -178,10 +178,10 @@ DO_STRUCT(order, ORDER_KEY_FIELDS, ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_G
 #define ORDER_LINE_KEY_FIELDS(x, y) x(int32_t, OL_W_ID) y(int32_t, OL_D_ID) y(int32_t, OL_O_ID) y(int8_t, OL_NUMBER)
 #define ORDER_LINE_VALUE_FIELDS(x, y) \
 	x(int32_t, OL_I_ID) y(int32_t, OL_SUPPLY_W_ID) y(uint64_t, OL_DELIVERY_D) y(int8_t, OL_QUANTITY) y(float, OL_AMOUNT) y(FixedString<24>, OL_DIST_INFO)
-#define ORDER_LINE_GET_PLAIN_KEY_FUNC                                                                                                           \
-        uint64_t get_plain_key() const                                                                                                          \
-        {                                                                                                                                       \
-                return ((OL_W_ID * DISTRICT_PER_WAREHOUSE + OL_D_ID) * ORDER_PER_DISTRICT + OL_O_ID) * MAX_ORDER_LINE_PER_ORDER + OL_NUMBER;    \
+#define ORDER_LINE_GET_PLAIN_KEY_FUNC                                                                                                                           \
+        uint64_t get_plain_key() const                                                                                                                          \
+        {                                                                                                                                                       \
+                return ((OL_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + OL_D_ID) * (ORDER_PER_DISTRICT + 1) + OL_O_ID) * (MAX_ORDER_LINE_PER_ORDER + 1) + OL_NUMBER;  \
         }
 
 DO_STRUCT(order_line, ORDER_LINE_KEY_FIELDS, ORDER_LINE_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_LINE_GET_PLAIN_KEY_FUNC)
@@ -202,10 +202,10 @@ DO_STRUCT(item, ITEM_KEY_FIELDS, ITEM_VALUE_FIELDS, NAMESPACE_FIELDS, ITEM_GET_P
 		y(FixedString<24>, S_DIST_05) y(FixedString<24>, S_DIST_06) y(FixedString<24>, S_DIST_07) y(FixedString<24>, S_DIST_08)                \
 			y(FixedString<24>, S_DIST_09) y(FixedString<24>, S_DIST_10) y(float, S_YTD) y(int32_t, S_ORDER_CNT) y(int32_t, S_REMOTE_CNT)   \
 				y(FixedString<50>, S_DATA)
-#define STOCK_GET_PLAIN_KEY_FUNC                                \
-        uint64_t get_plain_key() const                          \
-        {                                                       \
-                return S_W_ID * STOCK_PER_WAREHOUSE + S_I_ID;   \
+#define STOCK_GET_PLAIN_KEY_FUNC                                        \
+        uint64_t get_plain_key() const                                  \
+        {                                                               \
+                return S_W_ID * (STOCK_PER_WAREHOUSE + 1) + S_I_ID;     \
         }
 
 DO_STRUCT(stock, STOCK_KEY_FIELDS, STOCK_VALUE_FIELDS, NAMESPACE_FIELDS, STOCK_GET_PLAIN_KEY_FUNC)
