@@ -6,20 +6,32 @@
 typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 typeset current_date_time="`date +%Y%m%d%H%M`"
 
-if [ $# != 2 ]; then
-        echo "[Usage] ./setup.sh [deps/vms] HOST_NUM"
+function print_usage {
+        echo "[usage] ./setup.sh [deps/cur_host/vm_image/kill_vms/launch_vms/vms] EXP-SPECIFIC"
+        echo "deps: None"
+        echo "cur_host: None"
+        echo "vm_image: None"
+        echo "kill_vms: None"
+        echo "launch_vms: HOST_NUM"
+        echo "vms: HOST_NUM"
+}
+
+if [ $# -lt 1 ]; then
+        print_usage
         exit -1
 fi
 
 typeset TASK_TYPE=$1
-typeset HOST_NUM=$2
 
 source $SCRIPT_DIR/utilities.sh
 
 if [ $TASK_TYPE = "deps" ]; then
+        if [ $# != 1 ]; then
+                print_usage
+                exit -1
+        fi
         echo "Setting up dependencies..."
-
-        git submodule update --init --recursive
+        git submodule update --init
 
         # build cxl_shmem
         cd $SCRIPT_DIR/../dependencies/cxl_shmem
@@ -29,9 +41,70 @@ if [ $TASK_TYPE = "deps" ]; then
 
         echo "Finished!"
         exit 0
+elif [ $TASK_TYPE = "cur_host" ]; then
+        if [ $# != 1 ]; then
+                print_usage
+                exit -1
+        fi
+        echo "Setting up current machine... Will reboot the machine later"
+        git submodule update --init
 
+        # setup current host
+        cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/
+        ./setup_current_host.sh
+
+        echo "should never read here!"
+        exit -1
+elif [ $TASK_TYPE = "vm_image" ]; then
+        if [ $# != 1 ]; then
+                print_usage
+                exit -1
+        fi
+        echo "Building VM image..."
+        git submodule update --init
+
+        cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/setup_vm/
+        ./make_vmimg.sh
+
+        echo "Finished!"
+        exit 0
+elif [ $TASK_TYPE = "kill_vms" ]; then
+        if [ $# != 1 ]; then
+                print_usage
+                exit -1
+        fi
+        echo "Killing VMs..."
+        git submodule update --init
+
+        # setup current host
+        cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
+        ./kill_experiments.sh
+
+        echo "Finished!"
+        exit 0
+elif [ $TASK_TYPE = "launch_vms" ]; then
+        if [ $# != 2 ]; then
+                print_usage
+                exit -1
+        fi
+        typeset HOST_NUM=$2
+        echo "Launching VMs..."
+        git submodule update --init
+
+        # setup current host
+        cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
+        ./start_vm.sh --using-old-img --sriov 0 5 $HOST_NUM 1 1
+
+        echo "Finished!"
+        exit 0
 elif [ $TASK_TYPE = "vms" ]; then
+        if [ $# != 2 ]; then
+                print_usage
+                exit -1
+        fi
+        typeset HOST_NUM=$2
         echo "Setting up VMs..."
+        git submodule update --init
 
         # sync cxl_shmem
         echo "Sync cxl_shmem..."
@@ -57,6 +130,6 @@ elif [ $TASK_TYPE = "vms" ]; then
         echo "Finished"
         exit 0
 else
-        echo "[Usage] ./setup.sh [deps/vms] HOST_NUM"
+        print_usage
         exit -1
 fi
