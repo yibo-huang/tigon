@@ -4,13 +4,11 @@
 
 #pragma once
 
-#include "stdint.h"
 #include <mutex>
 #include <list>
+#include "stdint.h"
 
 #include "core/Table.h"
-#include "SundialPashaHelper.h"
-
 #include "protocol/Pasha/MigrationManager.h"
 
 namespace star
@@ -18,12 +16,17 @@ namespace star
 
 class PolicyEagerly : public MigrationManager {
     public:
+        PolicyEagerly(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
+                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition)
+        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition)
+        {}
+
         bool move_row_in(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
         {
                 bool ret = false;
 
                 queue_mutex.lock();
-                ret = global_helper.move_from_partition_to_shared_region(table, plain_key, row);
+                ret = move_from_partition_to_shared_region(table, plain_key, row);
                 if (ret == true) {
                         fifo_queue.push_back(migrated_row_entity(table, plain_key, row));
                 }
@@ -40,7 +43,7 @@ class PolicyEagerly : public MigrationManager {
                 queue_mutex.lock();
                 it = fifo_queue.begin();
                 while (it != fifo_queue.end()) {
-                        ret = global_helper.move_from_shared_region_to_partition(it->table, it->plain_key, it->local_row);
+                        ret = move_from_shared_region_to_partition(it->table, it->plain_key, it->local_row);
                         if (ret == true) {
                                 it = fifo_queue.erase(it);
                         } else {
