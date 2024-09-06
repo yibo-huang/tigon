@@ -9,6 +9,9 @@
 #include "core/Executor.h"
 #include "protocol/SundialPasha/SundialPasha.h"
 #include "protocol/SundialPasha/SundialPashaHelper.h"
+#include "protocol/Pasha/MigrationManager.h"
+
+#include "protocol/SundialPasha/PolicyEagerly.h"
 
 namespace star
 {
@@ -36,6 +39,10 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 		: base_type(coordinator_id, id, db, context, worker_status, n_complete_workers, n_started_workers)
 	{
                 if (id == 0) {
+                        // init migration manager
+                        migration_manager = new PolicyEagerly();
+
+                        // init helper
                         new(&global_helper) SundialPashaHelper(coordinator_id, context.coordinator_num, 
                                 db.get_table_num_per_partition(), context.partition_num / context.coordinator_num);
                         global_helper.init_pasha_metadata();

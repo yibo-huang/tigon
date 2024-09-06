@@ -34,7 +34,7 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/src/common_cpp
 )
 
-file(GLOB_RECURSE MISC_CPP_FILES common/*.cpp protocol/SundialPasha/*.cpp core/*.cpp)
+file(GLOB_RECURSE MISC_CPP_FILES common/*.cpp protocol/Pasha/*.cpp protocol/SundialPasha/*.cpp core/*.cpp)
 add_library(misc_cpp STATIC ${MISC_CPP_FILES})
 
 if(APPLE)
