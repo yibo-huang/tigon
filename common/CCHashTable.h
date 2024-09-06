@@ -64,19 +64,18 @@ class CCHashTable {
 		char *search(uint64_t key)
                 {
                         CCNode *node = nullptr;
+                        char *ret = nullptr;
 
                         pthread_spin_lock(&latch);
                         node = find_node(key);
-                        pthread_spin_unlock(&latch);
-
                         // note that we never delete the node
                         // so we need to check if it is empty
                         if (node != nullptr && node->rows.empty() == false) {
                                 CHECK(node->rows.size() == 1);
-                                return node->rows.get_element(0);
-                        } else {
-                                return nullptr;
+                                ret = node->rows.get_element(0);
                         }
+                        pthread_spin_unlock(&latch);
+                        return ret;
                 }
 
 		bool insert(uint64_t key, char *row)
