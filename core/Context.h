@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "common/WALLogger.h"
+#include "protocol/Pasha/MigrationManager.h"
 
 namespace star
 {
@@ -97,5 +98,8 @@ class Context {
         // CXL transport
         bool use_cxl_transport = false;
         uint64_t cxl_trans_entry_num = 4096;
+
+        // Pasha
+        std::string migration_policy;
 };
 } // namespace star

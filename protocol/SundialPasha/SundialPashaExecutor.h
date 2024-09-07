@@ -10,7 +10,7 @@
 #include "protocol/SundialPasha/SundialPasha.h"
 #include "protocol/SundialPasha/SundialPashaHelper.h"
 #include "protocol/Pasha/MigrationManager.h"
-#include "protocol/Pasha/PolicyEagerly.h"
+#include "protocol/Pasha/MigrationManagerFactory.h"
 
 namespace star
 {
@@ -44,8 +44,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         global_helper.init_pasha_metadata();
 
                         // init migration manager
-                        migration_manager = new PolicyEagerly(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                                        std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                        migration_manager = MigrationManagerFactory::create_migration_manager(context.migration_policy);
                 } else {
                         global_helper.wait_for_pasha_metadata_init();
                 }

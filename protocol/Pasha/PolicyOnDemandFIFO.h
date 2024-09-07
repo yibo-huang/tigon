@@ -14,9 +14,9 @@
 namespace star
 {
 
-class PolicyEagerly : public MigrationManager {
+class PolicyOnDemandFIFO : public MigrationManager {
     public:
-        PolicyEagerly(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
+        PolicyOnDemandFIFO(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
                          std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition)
         : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition)
         {}
@@ -39,20 +39,21 @@ class PolicyEagerly : public MigrationManager {
                 std::list<migrated_row_entity>::iterator it;
                 bool ret = false;
 
-                // eagerly moving out data
+                // move out one tuple each time
                 queue_mutex.lock();
                 it = fifo_queue.begin();
                 while (it != fifo_queue.end()) {
                         ret = move_from_shared_region_to_partition(it->table, it->plain_key, it->local_row);
                         if (ret == true) {
                                 it = fifo_queue.erase(it);
+                                break;
                         } else {
                                 it++;
                         }
                 }
                 queue_mutex.unlock();
 
-                return true;
+                return ret;
         }
 
     private:
