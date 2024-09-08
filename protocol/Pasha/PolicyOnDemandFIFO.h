@@ -17,8 +17,10 @@ namespace star
 class PolicyOnDemandFIFO : public MigrationManager {
     public:
         PolicyOnDemandFIFO(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
-                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition)
+                        std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+                        uint64_t max_migrated_rows)
         : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition)
+        , max_migrated_rows(max_migrated_rows)
         {}
 
         bool move_row_in(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
@@ -39,6 +41,10 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 std::list<migrated_row_entity>::iterator it;
                 bool ret = false;
 
+                CHECK(max_migrated_rows > 0);
+                if (fifo_queue.size() < max_migrated_rows)
+                        return ret;
+
                 // move out one tuple each time
                 queue_mutex.lock();
                 it = fifo_queue.begin();
@@ -57,6 +63,8 @@ class PolicyOnDemandFIFO : public MigrationManager {
         }
 
     private:
+        uint64_t max_migrated_rows;
+
         std::list<migrated_row_entity> fifo_queue;
         std::mutex queue_mutex;
 };

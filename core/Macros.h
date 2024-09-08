@@ -70,63 +70,67 @@ DEFINE_double(stragglers_zipf_factor, 0, "straggler zipfian factor");
 DEFINE_int32(sender_group_nop_count, 40000, "# nop insts to executes during TCP sender message grouping");
 DEFINE_int32(granule_count, 1, "# granules in a partition");
 DEFINE_bool(hstore_active_active, false, "H-Store style active-active replication");
+
 DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network transport");
 DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer");
-DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
 
-#define SETUP_CONTEXT(context)                                                        \
-	boost::algorithm::split(context.peers, FLAGS_servers, boost::is_any_of(";")); \
-	context.coordinator_num = context.peers.size();                               \
-	context.coordinator_id = FLAGS_id;                                            \
-	context.worker_num = FLAGS_threads;                                           \
-	context.io_thread_num = FLAGS_io;                                             \
-	context.partition_num = FLAGS_partition_num;                                  \
-	context.partitioner = FLAGS_partitioner;                                      \
-	context.sleep_on_retry = FLAGS_sleep_on_retry;                                \
-	context.batch_size = FLAGS_batch_size;                                        \
-	context.group_time = FLAGS_group_time;                                        \
-	context.batch_flush = FLAGS_batch_flush;                                      \
-	context.sleep_time = FLAGS_sleep_time;                                        \
-	context.protocol = FLAGS_protocol;                                            \
-	context.replica_group = FLAGS_replica_group;                                  \
-	context.lock_manager = FLAGS_lock_manager;                                    \
-	context.read_on_replica = FLAGS_read_on_replica;                              \
-	context.local_validation = FLAGS_local_validation;                            \
-	context.rts_sync = FLAGS_rts_sync;                                            \
-	context.star_sync_in_single_master_phase = FLAGS_star_sync;                   \
-	context.star_dynamic_batch_size = FLAGS_star_dynamic_batch_size;              \
-	context.parallel_locking_and_validation = FLAGS_plv;                          \
-	context.calvin_same_batch = FLAGS_calvin_same_batch;                          \
-	context.kiva_read_only_optmization = FLAGS_kiva_read_only;                    \
-	context.kiva_reordering_optmization = FLAGS_kiva_reordering;                  \
-	context.kiva_snapshot_isolation = FLAGS_kiva_si;                              \
-	context.delay_time = FLAGS_delay;                                             \
-	context.log_path = FLAGS_log_path;                                            \
-	context.cdf_path = FLAGS_cdf_path;                                            \
-	context.tcp_no_delay = FLAGS_tcp_no_delay;                                    \
-	context.tcp_quick_ack = FLAGS_tcp_quick_ack;                                  \
-	context.cpu_affinity = FLAGS_cpu_affinity;                                    \
-	context.enable_hstore_master = FLAGS_enable_hstore_master;                    \
-	context.cpu_core_id = FLAGS_cpu_core_id;                                      \
-	context.cross_txn_workers = FLAGS_cross_txn_workers;                          \
-	context.emulated_persist_latency = FLAGS_persist_latency;                     \
-	context.wal_group_commit_time = FLAGS_wal_group_commit_time;                  \
-	context.hstore_command_logging = FLAGS_hstore_command_logging;                \
-	context.group_commit_batch_size = FLAGS_wal_group_commit_size;                \
-	context.aria_read_only_optmization = FLAGS_aria_read_only;                    \
-	context.aria_reordering_optmization = FLAGS_aria_reordering;                  \
-	context.aria_snapshot_isolation = FLAGS_aria_si;                              \
-	context.stragglers_per_batch = FLAGS_stragglers_per_batch;                    \
-	context.stragglers_partition = FLAGS_stragglers_partition;                    \
-	context.sender_group_nop_count = FLAGS_sender_group_nop_count;                \
-	context.straggler_zipf_factor = FLAGS_stragglers_zipf_factor;                 \
-	context.straggler_num_txn_len = FLAGS_stragglers_num_txn_len;                 \
-	context.granules_per_partition = FLAGS_granule_count;                         \
-	context.lotus_async_repl = FLAGS_lotus_async_repl;                            \
-	context.lotus_checkpoint = FLAGS_lotus_checkpoint;                            \
-	context.lotus_checkpoint_location = FLAGS_lotus_checkpoint_location;          \
-	context.hstore_active_active = FLAGS_hstore_active_active;                    \
-        context.use_cxl_transport = FLAGS_use_cxl_transport;                          \
-        context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                      \
-        context.migration_policy = FLAGS_migration_policy;                            \
+DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
+DEFINE_uint64(max_migrated_rows, 1000, "the maximum number of migrated rows in OnDemand policies");
+
+#define SETUP_CONTEXT(context)                                                                  \
+	boost::algorithm::split(context.peers, FLAGS_servers, boost::is_any_of(";"));           \
+	context.coordinator_num = context.peers.size();                                         \
+	context.coordinator_id = FLAGS_id;                                                      \
+	context.worker_num = FLAGS_threads;                                                     \
+	context.io_thread_num = FLAGS_io;                                                       \
+	context.partition_num = FLAGS_partition_num;                                            \
+	context.partitioner = FLAGS_partitioner;                                                \
+	context.sleep_on_retry = FLAGS_sleep_on_retry;                                          \
+	context.batch_size = FLAGS_batch_size;                                                  \
+	context.group_time = FLAGS_group_time;                                                  \
+	context.batch_flush = FLAGS_batch_flush;                                                \
+	context.sleep_time = FLAGS_sleep_time;                                                  \
+	context.protocol = FLAGS_protocol;                                                      \
+	context.replica_group = FLAGS_replica_group;                                            \
+	context.lock_manager = FLAGS_lock_manager;                                              \
+	context.read_on_replica = FLAGS_read_on_replica;                                        \
+	context.local_validation = FLAGS_local_validation;                                      \
+	context.rts_sync = FLAGS_rts_sync;                                                      \
+	context.star_sync_in_single_master_phase = FLAGS_star_sync;                             \
+	context.star_dynamic_batch_size = FLAGS_star_dynamic_batch_size;                        \
+	context.parallel_locking_and_validation = FLAGS_plv;                                    \
+	context.calvin_same_batch = FLAGS_calvin_same_batch;                                    \
+	context.kiva_read_only_optmization = FLAGS_kiva_read_only;                              \
+	context.kiva_reordering_optmization = FLAGS_kiva_reordering;                            \
+	context.kiva_snapshot_isolation = FLAGS_kiva_si;                                        \
+	context.delay_time = FLAGS_delay;                                                       \
+	context.log_path = FLAGS_log_path;                                                      \
+	context.cdf_path = FLAGS_cdf_path;                                                      \
+	context.tcp_no_delay = FLAGS_tcp_no_delay;                                              \
+	context.tcp_quick_ack = FLAGS_tcp_quick_ack;                                            \
+	context.cpu_affinity = FLAGS_cpu_affinity;                                              \
+	context.enable_hstore_master = FLAGS_enable_hstore_master;                              \
+	context.cpu_core_id = FLAGS_cpu_core_id;                                                \
+	context.cross_txn_workers = FLAGS_cross_txn_workers;                                    \
+	context.emulated_persist_latency = FLAGS_persist_latency;                               \
+	context.wal_group_commit_time = FLAGS_wal_group_commit_time;                            \
+	context.hstore_command_logging = FLAGS_hstore_command_logging;                          \
+	context.group_commit_batch_size = FLAGS_wal_group_commit_size;                          \
+	context.aria_read_only_optmization = FLAGS_aria_read_only;                              \
+	context.aria_reordering_optmization = FLAGS_aria_reordering;                            \
+	context.aria_snapshot_isolation = FLAGS_aria_si;                                        \
+	context.stragglers_per_batch = FLAGS_stragglers_per_batch;                              \
+	context.stragglers_partition = FLAGS_stragglers_partition;                              \
+	context.sender_group_nop_count = FLAGS_sender_group_nop_count;                          \
+	context.straggler_zipf_factor = FLAGS_stragglers_zipf_factor;                           \
+	context.straggler_num_txn_len = FLAGS_stragglers_num_txn_len;                           \
+	context.granules_per_partition = FLAGS_granule_count;                                   \
+	context.lotus_async_repl = FLAGS_lotus_async_repl;                                      \
+	context.lotus_checkpoint = FLAGS_lotus_checkpoint;                                      \
+	context.lotus_checkpoint_location = FLAGS_lotus_checkpoint_location;                    \
+	context.hstore_active_active = FLAGS_hstore_active_active;                              \
+        context.use_cxl_transport = FLAGS_use_cxl_transport;                                    \
+        context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                                \
+        context.migration_policy = FLAGS_migration_policy;                                      \
+        context.max_migrated_rows = FLAGS_max_migrated_rows;        \
 	context.set_star_partitioner();

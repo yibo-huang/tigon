@@ -39,12 +39,12 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 	{
                 if (id == 0) {
                         // init helper
-                        new(&global_helper) SundialPashaHelper(coordinator_id, context.coordinator_num, 
+                        new(&global_helper) SundialPashaHelper(coordinator_id, context.coordinator_num,
                                 db.get_table_num_per_partition(), context.partition_num / context.coordinator_num);
                         global_helper.init_pasha_metadata();
 
                         // init migration manager
-                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy);
+                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy, context.max_migrated_rows);
                 } else {
                         global_helper.wait_for_pasha_metadata_init();
                 }

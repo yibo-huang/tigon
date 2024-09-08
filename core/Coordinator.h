@@ -152,7 +152,7 @@ class Coordinator {
 		}
 
 		// run timeToRun seconds
-		auto timeToRun = 15, warmup = 5, cooldown = 0;
+		auto timeToRun = 30, warmup = 5, cooldown = 0;
 		auto startTime = std::chrono::steady_clock::now();
 
 		uint64_t total_commit = 0, total_abort_no_retry = 0, total_abort_lock = 0, total_abort_read_validation = 0, total_local = 0,
