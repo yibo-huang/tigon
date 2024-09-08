@@ -9,6 +9,7 @@
 #include "protocol/Pasha/MigrationManager.h"
 #include "protocol/Pasha/PolicyEagerly.h"
 #include "protocol/Pasha/PolicyOnDemandFIFO.h"
+#include "protocol/Pasha/PolicyNoMoveOut.h"
 
 #include "protocol/SundialPasha/SundialPashaHelper.h"
 
@@ -29,6 +30,10 @@ class MigrationManagerFactory {
                                         max_migrated_rows);
                         } else if (migration_policy == "Eagerly") {
                                 migration_manager = new PolicyEagerly(
+                                        std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                                        std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                        } else if (migration_policy == "NoMoveOut") {
+                                migration_manager = new PolicyNoMoveOut(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
                         } else {
