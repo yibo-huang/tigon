@@ -123,7 +123,7 @@ retry:
 	}
 
 	// Returns <rts, wts> of the tuple.
-	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
+	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, std::atomic<uint64_t> &local_cxl_access)
 	{
                 uint64_t rts = 0, wts = 0;
 		MetaDataType &meta = *std::get<0>(row);
@@ -137,6 +137,9 @@ retry:
                         wts = lmeta->wts;
                         std::memcpy(dest, src, size);
                 } else {
+                        // statistics
+                        local_cxl_access.fetch_add(1);
+
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         void *src = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
                         smeta->lock();

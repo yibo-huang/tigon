@@ -68,6 +68,9 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 			}
 
 			if (local_index_read || local_read) {
+                                // statistics
+                                this->n_local_access.fetch_add(1);
+
                                 // I am the owner of the data
 				auto row = table->search(key);
 				bool success = true;
@@ -77,7 +80,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 					DCHECK(local_index_read == false);
 					success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
 				}
-				auto read_rwts = SundialPashaHelper::read(row, value, value_size);
+				auto read_rwts = SundialPashaHelper::read(row, value, value_size, this->n_local_cxl_access);
 				txn.readSet[key_offset].set_wts(read_rwts.first);
 				txn.readSet[key_offset].set_rts(read_rwts.second);
 				if (write_lock) {
@@ -90,6 +93,9 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 					}
 				}
 			} else {
+                                // statistics
+                                this->n_remote_access.fetch_add(1);
+
                                 // I am not the owner of the data
                                 char *migrated_row = global_helper.get_migrated_row(table_id, partition_id, table->get_plain_key(key), true);
                                 if (migrated_row != nullptr) {
@@ -116,6 +122,9 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                         // mark it as reference counted so that we know if we need to release it upon commit/abort
                                         txn.readSet[key_offset].set_reference_counted();
                                 } else {
+                                        // statistics
+                                        this->n_remote_access_with_req.fetch_add(1);
+
                                         // data is not in the shared region
                                         // ask the remote host to do the data migration
                                         auto coordinatorID = this->partitioner->master_coordinator(partition_id);

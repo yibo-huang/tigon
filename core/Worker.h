@@ -71,6 +71,9 @@ class Worker {
 	std::atomic<uint64_t> last_window_queued_lock_req_latency{ 0 };
 	std::atomic<uint64_t> last_window_lock_req_latency{ 0 };
 	std::atomic<uint64_t> last_window_active_txns{ 0 };
+
+        // Pasha statistics
+        std::atomic<uint64_t> n_local_access{ 0 }, n_local_cxl_access{ 0 }, n_remote_access{ 0 }, n_remote_access_with_req{ 0 };
 };
 
 } // namespace star
