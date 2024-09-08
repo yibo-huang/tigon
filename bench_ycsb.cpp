@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 	star::ycsb::Context::unit_testing(&context);
 	if (FLAGS_zipf > 0) {
 		context.isUniform = false;
-		star::Zipf::globalZipf().init(context.keysPerPartition * context.partition_num, FLAGS_zipf);
+		star::Zipf::globalZipf().init(context.keysPerPartition, FLAGS_zipf);
 	}
 
 	if (FLAGS_stragglers_zipf_factor > 0) {
