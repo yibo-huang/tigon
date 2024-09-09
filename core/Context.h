@@ -103,5 +103,9 @@ class Context {
         std::string migration_policy;
         std::string when_to_move_out;
         uint64_t max_migrated_rows = 1000;
+
+        // general
+        int time_to_run = 30;
+        int time_to_warmup = 10;
 };
 } // namespace star

@@ -78,6 +78,9 @@ DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
 DEFINE_string(when_to_move_out, "Reactive", "When to move data out");
 DEFINE_uint64(max_migrated_rows, 1000, "the maximum number of migrated rows in OnDemand policies");
 
+DEFINE_int32(time_to_run, 30, "time to run");
+DEFINE_int32(time_to_warmup, 10, "time to warm up");
+
 #define SETUP_CONTEXT(context)                                                                  \
 	boost::algorithm::split(context.peers, FLAGS_servers, boost::is_any_of(";"));           \
 	context.coordinator_num = context.peers.size();                                         \
@@ -135,4 +138,6 @@ DEFINE_uint64(max_migrated_rows, 1000, "the maximum number of migrated rows in O
         context.migration_policy = FLAGS_migration_policy;                                      \
         context.when_to_move_out = FLAGS_when_to_move_out;                                      \
         context.max_migrated_rows = FLAGS_max_migrated_rows;                                    \
+        context.time_to_run = FLAGS_time_to_run;                                                \
+        context.time_to_warmup = FLAGS_time_to_warmup;                                          \
 	context.set_star_partitioner();
