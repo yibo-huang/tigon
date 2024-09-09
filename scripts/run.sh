@@ -10,10 +10,8 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI/COLLECT_OUTPUTS] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC
-                    USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS GATHER_OUTPUTS"
-        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO
-                    USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS GATHER_OUTPUTS"
+        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS GATHER_OUTPUTS"
+        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
@@ -237,15 +235,16 @@ function run_exp_ycsb {
         typeset PROTOCOL=$1
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
-        typeset RW_RATIO=$4
-        typeset ZIPF_THETA=$5
-        typeset CROSS_RATIO=$6
-        typeset USE_CXL_TRANS=$7
-        typeset CXL_TRANS_ENTRY_NUM=$8
-        typeset MIGRATION_POLICY=$9
-        typeset WHEN_TO_MOVE_OUT=${10}
-        typeset MAX_MIGRATED_ROWS=${11}
-        typeset GATHER_OUTPUT=${12}
+        typeset KEYS=$4
+        typeset RW_RATIO=$5
+        typeset ZIPF_THETA=$6
+        typeset CROSS_RATIO=$7
+        typeset USE_CXL_TRANS=$8
+        typeset CXL_TRANS_ENTRY_NUM=$9
+        typeset MIGRATION_POLICY=${10}
+        typeset WHEN_TO_MOVE_OUT=${11}
+        typeset MAX_MIGRATED_ROWS=${12}
+        typeset GATHER_OUTPUT=${13}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -264,7 +263,7 @@ function run_exp_ycsb {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
-                                --protocol=SundialPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=SundialPasha --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -274,7 +273,7 @@ function run_exp_ycsb {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
-                        --protocol=SundialPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+                        --protocol=SundialPasha --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
@@ -286,7 +285,7 @@ function run_exp_ycsb {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=Sundial --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -296,7 +295,7 @@ function run_exp_ycsb {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=Sundial --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+                        --protocol=Sundial --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "TwoPLPasha" ]; then
                 # launch 1-$HOST_NUM processes
@@ -308,7 +307,7 @@ function run_exp_ycsb {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
-                                --protocol=TwoPLPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=TwoPLPasha --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -318,7 +317,7 @@ function run_exp_ycsb {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
-                        --protocol=TwoPLPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+                        --protocol=TwoPLPasha --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
                 # launch 1-$HOST_NUM processes
@@ -330,7 +329,7 @@ function run_exp_ycsb {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=TwoPL --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=TwoPL --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -340,7 +339,7 @@ function run_exp_ycsb {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=TwoPL --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+                        --protocol=TwoPL --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "Lotus" ]; then
                 # launch 1-$HOST_NUM processes
@@ -352,7 +351,7 @@ function run_exp_ycsb {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=HStore --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=HStore --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -362,7 +361,7 @@ function run_exp_ycsb {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=HStore --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+                        --protocol=HStore --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "Calvin" ]; then
                 # launch 1-$HOST_NUM processes
@@ -374,7 +373,7 @@ function run_exp_ycsb {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1200
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=Calvin --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
+                                --protocol=Calvin --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -384,7 +383,7 @@ function run_exp_ycsb {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=1200
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=Calvin --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
+                        --protocol=Calvin --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         else
                 echo "Protocol not supported!"
@@ -427,7 +426,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
         run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 13 ]; then
+        if [ $# != 14 ]; then
                 print_usage
                 exit -1
         fi
@@ -435,17 +434,18 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset PROTOCOL=$2
         typeset HOST_NUM=$3
         typeset WORKER_NUM=$4
-        typeset RW_RATIO=$5
-        typeset ZIPF_THETA=$6
-        typeset CROSS_RATIO=$7
-        typeset USE_CXL_TRANS=$8
-        typeset CXL_TRANS_ENTRY_NUM=$9
-        typeset MIGRATION_POLICY=${10}
-        typeset WHEN_TO_MOVE_OUT=${11}
-        typeset MAX_MIGRATED_ROWS=${12}
-        typeset GATHER_OUTPUT=${13}
+        typeset KEYS=$5
+        typeset RW_RATIO=$6
+        typeset ZIPF_THETA=$7
+        typeset CROSS_RATIO=$8
+        typeset USE_CXL_TRANS=$9
+        typeset CXL_TRANS_ENTRY_NUM=${10}
+        typeset MIGRATION_POLICY=${11}
+        typeset WHEN_TO_MOVE_OUT=${12}
+        typeset MAX_MIGRATED_ROWS=${13}
+        typeset GATHER_OUTPUT=${14}
 
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $GATHER_OUTPUT
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
