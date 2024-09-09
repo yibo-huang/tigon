@@ -14,6 +14,7 @@
 #include <chrono>
 #include <glog/logging.h>
 #include <vector>
+#include <unordered_set>
 
 namespace star
 {
@@ -346,6 +347,8 @@ class SundialPashaTransaction {
 	uint64_t straggler_wait_time = 0;
 
 	uint64_t commit_ts = 0;
+
+        std::unordered_set<std::size_t> remote_hosts_involved;
 };
 
 } // namespace star

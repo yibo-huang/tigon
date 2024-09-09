@@ -75,6 +75,7 @@ DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network tran
 DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer");
 
 DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
+DEFINE_string(when_to_move_out, "Reactive", "When to move data out");
 DEFINE_uint64(max_migrated_rows, 1000, "the maximum number of migrated rows in OnDemand policies");
 
 #define SETUP_CONTEXT(context)                                                                  \
@@ -132,5 +133,6 @@ DEFINE_uint64(max_migrated_rows, 1000, "the maximum number of migrated rows in O
         context.use_cxl_transport = FLAGS_use_cxl_transport;                                    \
         context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                                \
         context.migration_policy = FLAGS_migration_policy;                                      \
-        context.max_migrated_rows = FLAGS_max_migrated_rows;        \
+        context.when_to_move_out = FLAGS_when_to_move_out;                                      \
+        context.max_migrated_rows = FLAGS_max_migrated_rows;                                    \
 	context.set_star_partitioner();

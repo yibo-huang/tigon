@@ -88,6 +88,13 @@ template <class Database> class SundialPasha {
 
                 // release migrated rows
                 release_migrated_rows(txn);
+
+                if (migration_manager->when_to_move_out == MigrationManager::Reactive) {
+                        // send out data move out hints
+                        for (auto remote_host_id : txn.remote_hosts_involved) {
+                                txn.network_size += MessageFactoryType::new_data_move_out_hint_message(*messages[remote_host_id]);
+                        }
+                }
 	}
 
 	bool commit(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
@@ -143,6 +150,13 @@ template <class Database> class SundialPasha {
 
                 // release migrated rows
                 release_migrated_rows(txn);
+
+                if (migration_manager->when_to_move_out == MigrationManager::Reactive) {
+                        // send out data move out hints
+                        for (auto remote_host_id : txn.remote_hosts_involved) {
+                                txn.network_size += MessageFactoryType::new_data_move_out_hint_message(*messages[remote_host_id]);
+                        }
+                }
 
 		return true;
 	}

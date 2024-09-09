@@ -44,7 +44,8 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         global_helper.init_pasha_metadata();
 
                         // init migration manager
-                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy, context.max_migrated_rows);
+                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy, 
+                                context.when_to_move_out, context.max_migrated_rows);
                 } else {
                         global_helper.wait_for_pasha_metadata_init();
                 }
@@ -134,6 +135,12 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                 }
                                 // multi-host transaction
                                 txn.distributed_transaction = true;
+
+                                if (migration_manager->when_to_move_out == MigrationManager::Reactive) {
+                                        // update remote hosts involved
+                                        auto coordinatorID = this->partitioner->master_coordinator(partition_id);
+                                        txn.remote_hosts_involved.insert(coordinatorID);
+                                }
 			}
                         return;
 		};

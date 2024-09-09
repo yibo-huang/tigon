@@ -14,11 +14,25 @@ class MigrationManager {
     public:
         using MetaDataType = std::atomic<uint64_t>;
 
+        enum {
+                OnDemand,
+                Reactive
+        };
+
         MigrationManager(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
-                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition)
+                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+                         const std::string when_to_move_out_str)
         : move_from_partition_to_shared_region(move_from_partition_to_shared_region)
         , move_from_shared_region_to_partition(move_from_shared_region_to_partition)
-        {}
+        {
+                if (when_to_move_out_str == "OnDemand") {
+                        when_to_move_out = OnDemand;
+                } else if (when_to_move_out_str == "Reactive") {
+                        when_to_move_out = Reactive;
+                } else {
+                        CHECK(0);
+                }
+        }
 
         class migrated_row_entity
         {
@@ -41,6 +55,9 @@ class MigrationManager {
         // user-provided functions
         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region;
         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition;
+
+        // when to move out
+        int when_to_move_out;
 };
 
 extern MigrationManager *migration_manager;

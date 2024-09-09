@@ -17,8 +17,9 @@ namespace star
 class PolicyEagerly : public MigrationManager {
     public:
         PolicyEagerly(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
-                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition)
-        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition)
+                      std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+                      const std::string when_to_move_out_str)
+        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, when_to_move_out_str)
         {}
 
         bool move_row_in(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)

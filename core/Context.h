@@ -101,6 +101,7 @@ class Context {
 
         // Pasha
         std::string migration_policy;
+        std::string when_to_move_out;
         uint64_t max_migrated_rows = 1000;
 };
 } // namespace star

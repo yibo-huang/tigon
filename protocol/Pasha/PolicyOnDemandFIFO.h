@@ -18,8 +18,9 @@ class PolicyOnDemandFIFO : public MigrationManager {
     public:
         PolicyOnDemandFIFO(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+                        const std::string when_to_move_out_str,
                         uint64_t max_migrated_rows)
-        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition)
+        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, when_to_move_out_str)
         , max_migrated_rows(max_migrated_rows)
         {}
 

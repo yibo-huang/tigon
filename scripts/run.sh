@@ -10,8 +10,10 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI/COLLECT_OUTPUTS] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY MAX_MIGRATED_ROWS GATHER_OUTPUTS"
-        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY MAX_MIGRATED_ROWS GATHER_OUTPUTS"
+        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC
+                    USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS GATHER_OUTPUTS"
+        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM RW_RATIO ZIPF_THETA CROSS_RATIO
+                    USE_CXL_TRANS CXL_TRANS_ENTRY_NUM MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
@@ -76,8 +78,9 @@ function run_exp_tpcc {
         typeset USE_CXL_TRANS=$6
         typeset CXL_TRANS_ENTRY_NUM=$7
         typeset MIGRATION_POLICY=$8
-        typeset MAX_MIGRATED_ROWS=$9
-        typeset GATHER_OUTPUTS=${10}
+        typeset WHEN_TO_MOVE_OUT=$9
+        typeset MAX_MIGRATED_ROWS=${10}
+        typeset GATHER_OUTPUTS=${11}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -95,7 +98,7 @@ function run_exp_tpcc {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                                 --protocol=SundialPasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -105,7 +108,7 @@ function run_exp_tpcc {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                         --protocol=SundialPasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "Sundial" ]; then
@@ -139,7 +142,7 @@ function run_exp_tpcc {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                                 --protocol=TwoPL --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -149,7 +152,7 @@ function run_exp_tpcc {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                         --protocol=TwoPL --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
@@ -240,8 +243,9 @@ function run_exp_ycsb {
         typeset USE_CXL_TRANS=$7
         typeset CXL_TRANS_ENTRY_NUM=$8
         typeset MIGRATION_POLICY=$9
-        typeset MAX_MIGRATED_ROWS=${10}
-        typeset GATHER_OUTPUT=${11}
+        typeset WHEN_TO_MOVE_OUT=${10}
+        typeset MAX_MIGRATED_ROWS=${11}
+        typeset GATHER_OUTPUT=${12}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -259,7 +263,7 @@ function run_exp_ycsb {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                                 --protocol=SundialPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -269,7 +273,7 @@ function run_exp_ycsb {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                         --protocol=SundialPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "Sundial" ]; then
@@ -303,7 +307,7 @@ function run_exp_ycsb {
                                 --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                                 --protocol=TwoPLPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -313,7 +317,7 @@ function run_exp_ycsb {
                         --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --max_migrated_rows=$MAX_MIGRATED_ROWS
+                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows=$MAX_MIGRATED_ROWS
                         --protocol=TwoPLPasha --keys=100000 --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
@@ -403,7 +407,7 @@ fi
 typeset RUN_TYPE=$1
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 11 ]; then
+        if [ $# != 12 ]; then
                 print_usage
                 exit -1
         fi
@@ -416,13 +420,14 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset USE_CXL_TRANS=$7
         typeset CXL_TRANS_ENTRY_NUM=$8
         typeset MIGRATION_POLICY=$9
-        typeset MAX_MIGRATED_ROWS=${10}
-        typeset GATHER_OUTPUT=${11}
+        typeset WHEN_TO_MOVE_OUT=${10}
+        typeset MAX_MIGRATED_ROWS=${11}
+        typeset GATHER_OUTPUT=${12}
 
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $MAX_MIGRATED_ROWS $GATHER_OUTPUT
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 12 ]; then
+        if [ $# != 13 ]; then
                 print_usage
                 exit -1
         fi
@@ -436,10 +441,11 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset USE_CXL_TRANS=$8
         typeset CXL_TRANS_ENTRY_NUM=$9
         typeset MIGRATION_POLICY=${10}
-        typeset MAX_MIGRATED_ROWS=${11}
-        typeset GATHER_OUTPUT=${12}
+        typeset WHEN_TO_MOVE_OUT=${11}
+        typeset MAX_MIGRATED_ROWS=${12}
+        typeset GATHER_OUTPUT=${13}
 
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $MAX_MIGRATED_ROWS $GATHER_OUTPUT
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
