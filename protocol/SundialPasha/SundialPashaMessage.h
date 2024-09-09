@@ -131,11 +131,6 @@ class SundialPashaMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-                if (migration_manager->when_to_move_out == MigrationManager::OnDemand) {
-                        // before moving in the tuple, we move out tuples
-                        migration_manager->move_row_out();
-                }
-
                 // move the tuple to the shared region if it is not currently there
                 success = migration_manager->move_row_in(&table, table.get_plain_key(key), row);
                 DCHECK(success == true);
@@ -149,6 +144,11 @@ class SundialPashaMessageHandler {
 		encoder << message_piece_header;
                 encoder << success << key_offset;
 		responseMessage.flush();
+
+                if (migration_manager->when_to_move_out == MigrationManager::OnDemand) {
+                        // before moving in the tuple, we move out tuples
+                        migration_manager->move_row_out();
+                }
 	}
 
 	static void data_migration_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
