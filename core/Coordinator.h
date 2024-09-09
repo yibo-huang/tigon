@@ -227,12 +227,12 @@ class Coordinator {
 
                                 n_remote_access_with_req += workers[i]->n_remote_access_with_req.load();
 				workers[i]->n_remote_access_with_req.store(0);
-
-                                n_data_move_in += num_data_move_in;
-                                num_data_move_in.store(0);
-                                n_data_move_out += num_data_move_out;
-                                num_data_move_out.store(0);
 			}
+
+                        n_data_move_out += num_data_move_out;
+                        n_data_move_in += num_data_move_in;
+                        num_data_move_out.store(0);
+                        num_data_move_in.store(0);
 
 			LOG(INFO) << "commit: " << n_commit << " abort: " << n_abort_no_retry + n_abort_lock + n_abort_read_validation << " ("
 				  << n_abort_no_retry << "/" << n_abort_lock << "/" << n_abort_read_validation << "), persistence latency "
