@@ -43,11 +43,13 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 bool ret = false;
 
                 CHECK(max_migrated_rows > 0);
-                if (fifo_queue.size() < max_migrated_rows)
-                        return ret;
 
                 // move out one tuple each time
                 queue_mutex.lock();
+                if (fifo_queue.size() < max_migrated_rows) {
+                        queue_mutex.unlock();
+                        return ret;
+                }
                 it = fifo_queue.begin();
                 while (it != fifo_queue.end()) {
                         ret = move_from_shared_region_to_partition(it->table, it->plain_key, it->local_row);

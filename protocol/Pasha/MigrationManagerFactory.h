@@ -34,7 +34,8 @@ class MigrationManagerFactory {
                                 migration_manager = new PolicyEagerly(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                                        when_to_move_out);
+                                        when_to_move_out,
+                                        max_migrated_rows);
                         } else if (migration_policy == "NoMoveOut") {
                                 migration_manager = new PolicyNoMoveOut(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
