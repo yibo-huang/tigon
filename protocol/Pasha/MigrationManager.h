@@ -58,8 +58,13 @@ class MigrationManager {
 
         // when to move out
         int when_to_move_out;
+
+        std::atomic<uint64_t> n_data_move_in{ 0 }, n_data_move_out{ 0 };
 };
 
 extern MigrationManager *migration_manager;
+
+extern std::atomic<uint64_t> num_data_move_in;
+extern std::atomic<uint64_t> num_data_move_out;
 
 } // namespace star

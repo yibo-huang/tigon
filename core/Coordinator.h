@@ -21,6 +21,8 @@
 #include <chrono>
 #include <memory>
 
+#include "protocol/Pasha/MigrationManager.h"
+
 namespace star
 {
 bool warmed_up = false;
@@ -157,7 +159,8 @@ class Coordinator {
 
 		uint64_t total_commit = 0, total_abort_no_retry = 0, total_abort_lock = 0, total_abort_read_validation = 0, total_local = 0,
 			 total_si_in_serializable = 0, total_network_size = 0,
-                         total_local_access = 0, total_local_cxl_access = 0, total_remote_access = 0, total_remote_access_with_req = 0;
+                         total_local_access = 0, total_local_cxl_access = 0, total_remote_access = 0, total_remote_access_with_req = 0,
+                         total_data_move_in = 0, total_data_move_out = 0;
 		int count = 0;
 
 		do {
@@ -172,6 +175,7 @@ class Coordinator {
 			uint64_t total_lock_latency = 0;
 			uint64_t n_failed_read_lock = 0, n_failed_write_lock = 0, n_failed_no_cmd = 0, n_failed_cmd_not_ready = 0;
                         uint64_t n_local_access = 0, n_local_cxl_access = 0, n_remote_access = 0, n_remote_access_with_req = 0;
+                        uint64_t n_data_move_in = 0, n_data_move_out = 0;
 			for (auto i = 0u; i < workers.size(); i++) {
 				n_failed_read_lock += workers[i]->n_failed_read_lock;
 				workers[i]->n_failed_read_lock.store(0);
@@ -223,6 +227,11 @@ class Coordinator {
 
                                 n_remote_access_with_req += workers[i]->n_remote_access_with_req.load();
 				workers[i]->n_remote_access_with_req.store(0);
+
+                                n_data_move_in += num_data_move_in;
+                                num_data_move_in.store(0);
+                                n_data_move_out += num_data_move_out;
+                                num_data_move_out.store(0);
 			}
 
 			LOG(INFO) << "commit: " << n_commit << " abort: " << n_abort_no_retry + n_abort_lock + n_abort_read_validation << " ("
@@ -236,9 +245,11 @@ class Coordinator {
 				  << ", si_in_serializable: " << n_si_in_serializable << " " << 100.0 * n_si_in_serializable / n_commit << " %"
 				  << ", local: " << 100.0 * n_local / n_commit << " %"
                                   << ", local_access: " << n_local_access
-                                  << ", local_cxl_access " << n_local_cxl_access << " (" << 100.0 * n_local_cxl_access / n_local_access << "%)"
-                                  << ", remote_access " << n_remote_access
-                                  << ", remote_access_with_req " << n_remote_access_with_req << " (" << 100.0 * n_remote_access_with_req / n_remote_access << "%)";
+                                  << ", local_cxl_access: " << n_local_cxl_access << " (" << 100.0 * n_local_cxl_access / n_local_access << "%)"
+                                  << ", remote_access: " << n_remote_access
+                                  << ", remote_access_with_req: " << n_remote_access_with_req << " (" << 100.0 * n_remote_access_with_req / n_remote_access << "%)"
+                                  << ", data_move_in: " << n_data_move_in
+                                  << ", n_data_move_out: " << n_data_move_out;
 			count++;
 			if (count > warmup && count <= timeToRun - cooldown) {
 				warmed_up = true;
@@ -253,6 +264,8 @@ class Coordinator {
                                 total_local_cxl_access += n_local_cxl_access;
                                 total_remote_access += n_remote_access;
                                 total_remote_access_with_req += n_remote_access_with_req;
+                                total_data_move_in += n_data_move_in;
+                                total_data_move_out += n_data_move_out;
 			}
 
 		} while (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - startTime).count() < timeToRun);
@@ -267,9 +280,11 @@ class Coordinator {
 			  << 100.0 * total_si_in_serializable / total_commit << " %"
 			  << ", local: " << 100.0 * total_local / total_commit << " %"
                           << ", local_access: " << total_local_access
-                          << ", local_cxl_access " << total_local_cxl_access << " (" << 100.0 * total_local_cxl_access / total_local_access << "%)"
-                          << ", remote_access " << total_remote_access
-                          << ", remote_access_with_req " << total_remote_access_with_req << " (" << 100.0 * total_remote_access_with_req / total_remote_access << "%)";
+                          << ", local_cxl_access: " << total_local_cxl_access << " (" << 100.0 * total_local_cxl_access / total_local_access << "%)"
+                          << ", remote_access: " << total_remote_access
+                          << ", remote_access_with_req: " << total_remote_access_with_req << " (" << 100.0 * total_remote_access_with_req / total_remote_access << "%)"
+                          << ", data_move_in: " << total_data_move_in
+                          << ", data_move_out: " << total_data_move_out;
 
 		workerStopFlag.store(true);
 

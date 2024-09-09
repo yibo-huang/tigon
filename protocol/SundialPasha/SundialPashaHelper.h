@@ -14,6 +14,8 @@
 #include "core/Table.h"
 #include "glog/logging.h"
 
+#include "protocol/Pasha/MigrationManager.h"
+
 namespace star
 {
 
@@ -520,6 +522,9 @@ retry:
                         // LOG(INFO) << "moved in a row with key " << plain_key << " from table " << table->tableID();
 
                         ret = true;
+
+                        // statistic
+                        num_data_move_in.fetch_add(1);
                 } else {
                         // increase the reference count for the requesting host, even if it is already migrated
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
@@ -590,6 +595,9 @@ retry:
                         // LOG(INFO) << "moved out a row with key " << plain_key << " from table " << table->tableID();
 
                         ret = true;
+
+                        // statistic
+                        num_data_move_out.fetch_add(1);
                 } else {
                         DCHECK(0);
                 }
