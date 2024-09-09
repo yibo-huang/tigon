@@ -432,7 +432,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
         run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $TIME_TO_RUN $TIME_TO_WARMUP $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 14 ]; then
+        if [ $# != 16 ]; then
                 print_usage
                 exit -1
         fi
