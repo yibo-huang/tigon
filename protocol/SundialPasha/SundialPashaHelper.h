@@ -588,7 +588,10 @@ retry:
                         lmeta->migrated_row = nullptr;
                         lmeta->is_migrated = false;
 
+                        // free the CXL row
                         // TODO: register EBR
+                        std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
+                        cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size, CXLMemory::DATA_FREE);
 
                         // release the CXL latch
                         smeta->unlock();

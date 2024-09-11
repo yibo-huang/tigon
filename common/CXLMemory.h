@@ -18,11 +18,18 @@ class CXLMemory {
         enum {
                 INDEX_ALLOCATION,
                 DATA_ALLOCATION,
-                TRANSPORT_ALLOCATION
+                TRANSPORT_ALLOCATION,
+                INDEX_FREE,
+                DATA_FREE,
+                TRANSPORT_FREE
         };
         std::atomic<uint64_t> size_index_alloc{ 0 };
         std::atomic<uint64_t> size_data_alloc{ 0 };
         std::atomic<uint64_t> size_transport_alloc{ 0 };
+
+        std::atomic<uint64_t> size_index_free{ 0 };
+        std::atomic<uint64_t> size_data_free{ 0 };
+        std::atomic<uint64_t> size_transport_free{ 0 };
 
         static constexpr uint64_t default_cxl_mem_size = (((1024 * 1024 * 1024) + 64 * 1024) * (uint64_t)31);
 
@@ -62,6 +69,25 @@ class CXLMemory {
                 return cxlalloc_malloc(size);
         }
 
+        void cxlalloc_free_wrapper(void *ptr, uint64_t size, int category)
+        {
+                // collect statistics
+                switch (category) {
+                case INDEX_FREE:
+                        size_index_free.fetch_add(size);
+                        break;
+                case DATA_FREE:
+                        size_data_free.fetch_add(size);
+                        break;
+                case TRANSPORT_FREE:
+                        size_transport_free.fetch_add(size);
+                        break;
+                default:
+                        CHECK(0);
+                }
+        }
+
+
         static void commit_shared_data_initialization(uint64_t root_index, void *shared_data)
         {
                 cxlalloc_set_root(root_index, shared_data);
@@ -81,10 +107,16 @@ class CXLMemory {
 
         void print_stats()
         {
-                LOG(INFO) << "CXL memory usage:";
-                LOG(INFO) << "num_index_allocation: " << size_index_alloc
-                          << " num_data_allocation: " << size_data_alloc
-                          << " num_cxl_transport_allocation: " << size_transport_alloc;
+                LOG(INFO) << "CXL memory usage:"
+                          << " size_index_usage: " << size_index_alloc - size_index_free
+                          << " size_index_allocation: " << size_index_alloc
+                          << " size_index_free: " << size_index_free
+                          << " size_data_usage: " << size_data_alloc - size_data_free
+                          << " size_data_allocation: " << size_data_alloc
+                          << " size_data_free: " << size_data_free
+                          << " size_transport_usage: " << size_transport_alloc - size_transport_free
+                          << " size_transport_allocation: " << size_transport_alloc
+                          << " size_transport_free: " << size_transport_free;
         }
 };
 
