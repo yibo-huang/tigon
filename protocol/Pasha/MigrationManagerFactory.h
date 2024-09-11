@@ -19,7 +19,7 @@ namespace star
 class MigrationManagerFactory {
     public:
 	static MigrationManager *create_migration_manager(const std::string &protocol, const std::string &migration_policy,
-                                                          const std::string &when_to_move_out, uint64_t max_migrated_rows)
+                                                          const std::string &when_to_move_out, uint64_t max_migrated_rows_size)
 	{
                 MigrationManager *migration_manager = nullptr;
 
@@ -29,13 +29,13 @@ class MigrationManagerFactory {
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         when_to_move_out,
-                                        max_migrated_rows);
+                                        max_migrated_rows_size);
                         } else if (migration_policy == "Eagerly") {
                                 migration_manager = new PolicyEagerly(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         when_to_move_out,
-                                        max_migrated_rows);
+                                        max_migrated_rows_size);
                         } else if (migration_policy == "NoMoveOut") {
                                 migration_manager = new PolicyNoMoveOut(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),

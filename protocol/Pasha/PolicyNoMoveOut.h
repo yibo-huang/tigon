@@ -22,7 +22,7 @@ class PolicyNoMoveOut : public MigrationManager {
         : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, when_to_move_out_str)
         {}
 
-        bool move_row_in(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_row_in(ITable *table, uint64_t plain_key, uint64_t size, const std::tuple<MetaDataType *, void *> &row)
         {
                 return move_from_partition_to_shared_region(table, plain_key, row);
         }

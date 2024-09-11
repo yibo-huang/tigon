@@ -38,7 +38,7 @@ class MigrationManager {
         {
             public:
                 migrated_row_entity() = default;
-                migrated_row_entity(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> row)
+                migrated_row_entity(ITable *table, uint64_t plain_key, uint64_t size, const std::tuple<MetaDataType *, void *> row)
                         : table(table)
                         , plain_key(plain_key)
                         , local_row(row)
@@ -46,10 +46,11 @@ class MigrationManager {
 
                 ITable *table;
                 uint64_t plain_key;
+                uint64_t size;
                 std::tuple<MetaDataType *, void *> local_row;
         };
 
-        virtual bool move_row_in(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row) = 0;
+        virtual bool move_row_in(ITable *table, uint64_t plain_key, uint64_t size, const std::tuple<MetaDataType *, void *> &row) = 0;
         virtual bool move_row_out() = 0;
 
         // user-provided functions

@@ -132,7 +132,7 @@ class SundialPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                success = migration_manager->move_row_in(&table, table.get_plain_key(key), row);
+                success = migration_manager->move_row_in(&table, table.get_plain_key(key), sizeof(SundialPashaMetadataShared) + table.value_size(), row);
                 DCHECK(success == true);
 
 		// prepare response message header
