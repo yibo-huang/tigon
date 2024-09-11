@@ -100,7 +100,7 @@ run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 4
 
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly Reactive 1
 
-YCSB (High-skewness)
+# YCSB (High-skewness)
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0.99 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM NoMoveOut OnDemand 100
 
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0.99 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 100
