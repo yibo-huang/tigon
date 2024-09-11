@@ -15,7 +15,8 @@ class CCHashTable {
 	CCHashTable(uint64_t bucket_cnt)
                 : bucket_cnt(bucket_cnt)
         {
-                buckets = reinterpret_cast<CCBucket *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCBucket) * bucket_cnt));
+                buckets = reinterpret_cast<CCBucket *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCBucket) * bucket_cnt, 
+                        CXLMemory::INDEX_ALLOCATION));
                 for (int i = 0; i < bucket_cnt; i++)
                         new(&buckets[i]) CCBucket();
         }
@@ -86,7 +87,8 @@ class CCHashTable {
                         pthread_spin_lock(&latch);
                         node = find_node(key);
                         if (node == nullptr) {
-                                node = reinterpret_cast<CCNode *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCNode)));
+                                node = reinterpret_cast<CCNode *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCNode), 
+                                        CXLMemory::INDEX_ALLOCATION));
                                 new(node) CCNode(key);
                                 ret = node->rows.insert(row);   // insert row into node
                                 DCHECK(ret == true);

@@ -401,7 +401,8 @@ retry:
 
                 // init CXL hash tables
                 if (coordinator_id == 0) {
-                        cxl_hashtables = reinterpret_cast<CCHashTable *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num));
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num, 
+                                CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < table_num_per_partition; i++) {
                                 cxl_tbl_vecs[i].resize(total_partition_num);
                                 for (int j = 0; j < total_partition_num; j++) {
@@ -485,7 +486,7 @@ retry:
 
                         // allocate the CXL row
                         std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
-                        char *migrated_row_ptr = reinterpret_cast<char *>(CXLMemory::cxlalloc_malloc_wrapper(row_total_size));
+                        char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size, CXLMemory::DATA_ALLOCATION));
                         char *migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataShared);
                         SundialPashaMetadataShared *migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
                         new(migrated_row_meta) SundialPashaMetadataShared();

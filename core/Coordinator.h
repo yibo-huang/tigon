@@ -35,7 +35,7 @@ class Coordinator {
 		, peers(context.peers)
 		, context(context)
 	{
-                CXLMemory::init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
+                cxl_memory.init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
 
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
@@ -293,6 +293,9 @@ class Coordinator {
 			threads[i].join();
 		}
 
+                // print CXL memory usage
+                cxl_memory.print_stats();
+
 		// gather throughput
 		double sum_commit = gather(1.0 * total_commit / count);
 		if (id == 0) {
@@ -323,7 +326,8 @@ class Coordinator {
                 void *tmp = NULL;
 
                 if (id == 0) {
-                        cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(MPSCRingBuffer) * coordinator_num));
+                        cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(MPSCRingBuffer) * coordinator_num, 
+                                CXLMemory::TRANSPORT_ALLOCATION));
                         for (i = 0; i < coordinator_num; i++)
                                 new(&cxl_ringbuffers[i]) MPSCRingBuffer(context.cxl_trans_entry_num);
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_transport_root_index, cxl_ringbuffers);

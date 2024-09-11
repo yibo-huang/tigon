@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <atomic>
+
 #include "cxlalloc.h"
 #include <glog/logging.h>
 
@@ -12,6 +14,16 @@ namespace star
 
 class CXLMemory {
     public:
+        // statistics
+        enum {
+                INDEX_ALLOCATION,
+                DATA_ALLOCATION,
+                TRANSPORT_ALLOCATION
+        };
+        std::atomic<uint64_t> size_index_alloc{ 0 };
+        std::atomic<uint64_t> size_data_alloc{ 0 };
+        std::atomic<uint64_t> size_transport_alloc{ 0 };
+
         static constexpr uint64_t default_cxl_mem_size = (((1024 * 1024 * 1024) + 64 * 1024) * (uint64_t)31);
 
         static constexpr uint64_t cxl_transport_root_index = 0;
@@ -19,7 +31,7 @@ class CXLMemory {
 
         static constexpr uint64_t minimal_cxlalloc_size = 512;
 
-        static void init_cxlalloc_for_given_thread(uint64_t threads_num_per_host, uint64_t thread_id, uint64_t hosts_num, uint64_t host_id)
+        void init_cxlalloc_for_given_thread(uint64_t threads_num_per_host, uint64_t thread_id, uint64_t hosts_num, uint64_t host_id)
         {
                 cxlalloc_init("SS", default_cxl_mem_size, thread_id + threads_num_per_host * host_id, threads_num_per_host * hosts_num, host_id, hosts_num);
                 LOG(INFO) << "cxlalloc initialized for thread " << thread_id 
@@ -27,8 +39,23 @@ class CXLMemory {
                         << ") on host " << host_id;
         }
 
-        static void *cxlalloc_malloc_wrapper(uint64_t size)
+        void *cxlalloc_malloc_wrapper(uint64_t size, int category)
         {
+                // collect statistics
+                switch (category) {
+                case INDEX_ALLOCATION:
+                        size_index_alloc.fetch_add(size);
+                        break;
+                case DATA_ALLOCATION:
+                        size_data_alloc.fetch_add(size);
+                        break;
+                case TRANSPORT_ALLOCATION:
+                        size_transport_alloc.fetch_add(size);
+                        break;
+                default:
+                        CHECK(0);
+                }
+
                 // unfortunately, our allocator has bug
                 if (size < minimal_cxlalloc_size)
                         size = minimal_cxlalloc_size;
@@ -51,6 +78,16 @@ class CXLMemory {
 
                 *shared_data = addr;
         }
+
+        void print_stats()
+        {
+                LOG(INFO) << "CXL memory usage:";
+                LOG(INFO) << "num_index_allocation: " << size_index_alloc
+                          << " num_data_allocation: " << size_data_alloc
+                          << " num_cxl_transport_allocation: " << size_transport_alloc;
+        }
 };
+
+extern CXLMemory cxl_memory;
 
 }

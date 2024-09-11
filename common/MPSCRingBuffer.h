@@ -35,7 +35,8 @@ class MPSCRingBuffer {
                 int i = 0;
 
                 DCHECK(entry_struct_size == sizeof(Entry));
-                entries = reinterpret_cast<Entry *>(CXLMemory::cxlalloc_malloc_wrapper(sizeof(Entry) * entry_num));
+                entries = reinterpret_cast<Entry *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(Entry) * entry_num,
+                        CXLMemory::TRANSPORT_ALLOCATION));
                 for (i = 0; i < entry_num; i++) {
                         entries[i].is_ready = 0;
                         entries[i].remaining_size = 0;
