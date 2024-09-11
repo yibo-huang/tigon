@@ -79,7 +79,7 @@ class Coordinator {
 				// LOG(INFO) << "Message " << i << " to";
 				auto message = std::make_unique<Message>();
 				init_message(message.get(), 0, 1);
-				ControlMessageFactory::new_statistics_message(*message, id, 0);
+				ControlMessageFactory::new_statistics_message(*message, id, 0, 0, 0, 0);
 				sendMessage(message.get(), outSockets[0][1]);
 				while (true) {
 					auto message = reader.next_message();
@@ -109,7 +109,7 @@ class Coordinator {
 				}
 				auto message = std::make_unique<Message>();
 				init_message(message.get(), 1, 0);
-				ControlMessageFactory::new_statistics_message(*message, id, 0);
+				ControlMessageFactory::new_statistics_message(*message, id, 0, 0, 0, 0);
 				sendMessage(message.get(), outSockets[0][0]);
 				++i;
 			}
@@ -297,10 +297,8 @@ class Coordinator {
                 cxl_memory.print_stats();
 
 		// gather throughput
-		double sum_commit = gather(1.0 * total_commit / count);
-		if (id == 0) {
-			LOG(INFO) << "total commit: " << sum_commit;
-		}
+		gather_and_print(1.0 * total_commit / count, cxl_memory.get_stats(CXLMemory::INDEX_USAGE),
+                                 cxl_memory.get_stats(CXLMemory::DATA_USAGE), cxl_memory.get_stats(CXLMemory::TRANSPORT_USAGE));
 
 		// make sure all messages are sent
 		std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -437,7 +435,7 @@ class Coordinator {
 		LOG(INFO) << "Coordinator " << id << " connected to all peers.";
 	}
 
-	double gather(double value)
+	void gather_and_print(double commit, uint64_t size_index_usage, uint64_t size_data_usgae, uint64_t size_transport_usage)
 	{
 		auto init_message = [](Message *message, std::size_t coordinator_id, std::size_t dest_node_id) {
 			message->set_source_node_id(coordinator_id);
@@ -445,8 +443,8 @@ class Coordinator {
 			message->set_worker_id(0);
 		};
 
-		double sum = value;
 		double replica_sum = 0;
+
 		if (id == 0) {
 			auto partitioner = PartitionerFactory::create_partitioner(context.partitioner, id, context.coordinator_num);
 			for (std::size_t i = 0; i < coordinator_num - 1; i++) {
@@ -459,32 +457,44 @@ class Coordinator {
 				MessagePiece messagePiece = *(message->begin());
 
 				CHECK(messagePiece.get_message_type() == static_cast<uint32_t>(ControlMessage::STATISTICS));
-				CHECK(messagePiece.get_message_length() == MessagePiece::get_header_size() + sizeof(double) + sizeof(int));
+				CHECK(messagePiece.get_message_length() == MessagePiece::get_header_size() + sizeof(int) + sizeof(double) + sizeof(uint64_t) + sizeof(uint64_t) + sizeof(uint64_t));
 				Decoder dec(messagePiece.toStringPiece());
 				int coordinator_id;
-				double v;
-				dec >> coordinator_id >> v;
+				double r_commit;
+                                uint64_t r_size_index_usage, r_size_data_usgae, r_size_transport_usage;
+				dec >> coordinator_id >> r_commit >> r_size_index_usage >> r_size_data_usgae >> r_size_transport_usage;
 				if (context.partitioner == "hpb") {
 					if (coordinator_id < (int)partitioner->num_coordinator_for_one_replica()) {
-						sum += v;
+						commit += r_commit;
 					} else {
-						replica_sum += v;
+						replica_sum += r_commit;
 					}
 				} else {
-					sum += v;
+					commit += r_commit;
 				}
+                                size_index_usage += r_size_index_usage;
+                                size_data_usgae += r_size_data_usgae;
+                                size_transport_usage += r_size_transport_usage;
 			}
 
 		} else {
 			auto message = std::make_unique<Message>();
 			init_message(message.get(), id, 0);
-			ControlMessageFactory::new_statistics_message(*message, id, value);
+			ControlMessageFactory::new_statistics_message(*message, id, commit, size_index_usage, size_data_usgae, size_transport_usage);
 			out_queue.push(message.release());
 		}
 		if (context.partitioner == "hpb") {
 			LOG(INFO) << "replica total commit " << replica_sum;
 		}
-		return sum;
+
+                // print stats
+                if (id == 0) {
+                        LOG(INFO) << "Global Stats:"
+                                  << " total_commit: " << commit 
+                                  << " total_size_index_usage: " << size_index_usage
+                                  << " total_size_data_usage: " << size_data_usgae
+                                  << " total_size_transport_usage: " << size_transport_usage;
+                }
 	}
 
     private:

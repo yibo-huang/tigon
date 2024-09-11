@@ -16,6 +16,9 @@ class CXLMemory {
     public:
         // statistics
         enum {
+                INDEX_USAGE,
+                DATA_USAGE,
+                TRANSPORT_USAGE,
                 INDEX_ALLOCATION,
                 DATA_ALLOCATION,
                 TRANSPORT_ALLOCATION,
@@ -23,13 +26,6 @@ class CXLMemory {
                 DATA_FREE,
                 TRANSPORT_FREE
         };
-        std::atomic<uint64_t> size_index_alloc{ 0 };
-        std::atomic<uint64_t> size_data_alloc{ 0 };
-        std::atomic<uint64_t> size_transport_alloc{ 0 };
-
-        std::atomic<uint64_t> size_index_free{ 0 };
-        std::atomic<uint64_t> size_data_free{ 0 };
-        std::atomic<uint64_t> size_transport_free{ 0 };
 
         static constexpr uint64_t default_cxl_mem_size = (((1024 * 1024 * 1024) + 64 * 1024) * (uint64_t)31);
 
@@ -105,6 +101,32 @@ class CXLMemory {
                 *shared_data = addr;
         }
 
+        uint64_t get_stats(int category)
+        {
+                switch (category) {
+                case INDEX_USAGE:
+                        return size_index_alloc - size_index_free;
+                case DATA_USAGE:
+                        return size_data_alloc - size_data_free;
+                case TRANSPORT_USAGE:
+                        return size_transport_alloc - size_transport_free;
+                case INDEX_ALLOCATION:
+                        return size_index_alloc;
+                case DATA_ALLOCATION:
+                        return size_data_alloc;
+                case TRANSPORT_ALLOCATION:
+                        return size_transport_alloc;
+                case INDEX_FREE:
+                        return size_index_free;
+                case DATA_FREE:
+                        return size_data_free;
+                case TRANSPORT_FREE:
+                        return size_transport_free;
+                default:
+                        CHECK(0);
+                }
+        }
+
         void print_stats()
         {
                 LOG(INFO) << "CXL memory usage:"
@@ -118,6 +140,15 @@ class CXLMemory {
                           << " size_transport_allocation: " << size_transport_alloc
                           << " size_transport_free: " << size_transport_free;
         }
+
+    private:
+        std::atomic<uint64_t> size_index_alloc{ 0 };
+        std::atomic<uint64_t> size_data_alloc{ 0 };
+        std::atomic<uint64_t> size_transport_alloc{ 0 };
+
+        std::atomic<uint64_t> size_index_free{ 0 };
+        std::atomic<uint64_t> size_data_free{ 0 };
+        std::atomic<uint64_t> size_transport_free{ 0 };
 };
 
 extern CXLMemory cxl_memory;

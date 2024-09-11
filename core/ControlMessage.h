@@ -15,7 +15,7 @@ enum class ControlMessage { STATISTICS, SIGNAL, ACK, STOP, NFIELDS };
 
 class ControlMessageFactory {
     public:
-	static std::size_t new_statistics_message(Message &message, int coordinator_id, double value)
+	static std::size_t new_statistics_message(Message &message, int coordinator_id, double commit, uint64_t size_index_usage, uint64_t size_data_usgae, uint64_t size_transport_usage)
 	{
 		/*
 		 * The structure of a statistics message: (statistics value : double)
@@ -23,12 +23,12 @@ class ControlMessageFactory {
 		 */
 
 		// the message is not associated with a table or a partition, use 0.
-		auto message_size = MessagePiece::get_header_size() + sizeof(double) + sizeof(coordinator_id);
+		auto message_size = MessagePiece::get_header_size() + sizeof(coordinator_id) + sizeof(commit) + sizeof(size_index_usage) + sizeof(size_data_usgae) + sizeof(size_transport_usage);
 		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(ControlMessage::STATISTICS), message_size, 0, 0);
 
 		Encoder encoder(message.data);
 		encoder << message_piece_header;
-		encoder << coordinator_id << value;
+		encoder << coordinator_id << commit << size_index_usage << size_data_usgae << size_transport_usage;
 		message.flush();
 		message.set_gen_time(Time::now());
 		return message_size;
