@@ -102,7 +102,7 @@ class Context {
         // Pasha
         std::string migration_policy;
         std::string when_to_move_out;
-        uint64_t max_migrated_rows_size = 20000000;
+        uint64_t max_migrated_rows_size = 10000000;     // 10 MB
 
         // general
         int time_to_run = 30;

@@ -70,14 +70,14 @@ mkdir -p $RESULT_DIR
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM NoMoveOut OnDemand 0
 
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 10000            # 10 KB
+run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 100000           # 100 KB
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000000          # 1 MB
+run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 10000000         # 10 MB
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 100000000        # 100 MB
-run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000000000       # 1 GB
 
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 10000
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 1000000
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 100000000
-run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 1000000000
 
 run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly Reactive 1
 
@@ -85,14 +85,16 @@ run_migration_policy_stats_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 2
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM NoMoveOut OnDemand 0
 
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 10000
+run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 100000
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000000
+run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 10000000
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 100000000
-run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000000000
 
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 10000
+run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 100000
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 1000000
+run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 10000000
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 100000000
-run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly OnDemand 1000000000
 
 run_migration_policy_stats_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 20 $USE_CXL_TRANS $CXL_TRANS_ENTRY_NUM Eagerly Reactive 1
 

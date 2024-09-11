@@ -41,6 +41,7 @@ class MigrationManager {
                 migrated_row_entity(ITable *table, uint64_t plain_key, uint64_t size, const std::tuple<MetaDataType *, void *> row)
                         : table(table)
                         , plain_key(plain_key)
+                        , size(size)
                         , local_row(row)
                 {}
 

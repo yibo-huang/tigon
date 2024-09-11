@@ -44,7 +44,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         global_helper.init_pasha_metadata();
 
                         // init migration manager
-                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy, 
+                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
                                 context.when_to_move_out, context.max_migrated_rows_size);
                 } else {
                         global_helper.wait_for_pasha_metadata_init();
