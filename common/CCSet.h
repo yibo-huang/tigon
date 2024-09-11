@@ -15,7 +15,7 @@ namespace star
 // TODO: make it crash-consistent
 class CCSet {
     public:
-        static constexpr uint64_t max_capacity = 10;
+        static constexpr uint64_t max_capacity = 1;
 
         CCSet()
 		: cur_size(0)
