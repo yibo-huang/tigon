@@ -31,6 +31,7 @@ class MPSCRingBuffer {
                 , tail(0)
                 , count(0)
         {
+                LOG(INFO) << "entry_struct_size: " << entry_struct_size << " entry_num: " << entry_num;
                 entries_buffer = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(entry_struct_size * entry_num, CXLMemory::TRANSPORT_ALLOCATION));
                 for (int i = 0; i < entry_num; i++) {
                         Entry *entry = reinterpret_cast<Entry *>(entries_buffer.get() + i * entry_struct_size);
