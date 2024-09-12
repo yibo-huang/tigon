@@ -5,45 +5,45 @@ import csv
 import fileinput
 import statistics
 
-def construct_input_list_tpcc(res_dir):
+def construct_input_list_tpcc(res_dir, remote_neworder, remote_payment):
         input_file_list = list()
 
-        input_file_list.append(("NoMoveOut-OnDemand-0", res_dir + "/tpcc-SundialPasha-NoMoveOut-OnDemand-0.txt"))
+        input_file_list.append(("NoMoveOut-OnDemand-0", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-NoMoveOut-OnDemand-0.txt"))
 
-        input_file_list.append(("Eagerly-OnDemand-10K", res_dir + "/tpcc-SundialPasha-Eagerly-OnDemand-10000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-100K", res_dir + "/tpcc-SundialPasha-Eagerly-OnDemand-100000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-1MB", res_dir + "/tpcc-SundialPasha-Eagerly-OnDemand-1000000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-10MB", res_dir + "/tpcc-SundialPasha-Eagerly-OnDemand-10000000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-100MB", res_dir + "/tpcc-SundialPasha-Eagerly-OnDemand-100000000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-10K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-10000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-100K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-100000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-1MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-1000000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-10MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-10000000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-100MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-100000000.txt"))
 
-        input_file_list.append(("Eagerly-Reactive-1", res_dir + "/tpcc-SundialPasha-Eagerly-Reactive-1.txt"))
+        input_file_list.append(("Eagerly-Reactive-1", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-Reactive-1.txt"))
 
-        input_file_list.append(("OnDemandFIFO-OnDemand-10K", res_dir + "/tpcc-SundialPasha-OnDemandFIFO-OnDemand-10000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-100K", res_dir + "/tpcc-SundialPasha-OnDemandFIFO-OnDemand-100000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-1MB", res_dir + "/tpcc-SundialPasha-OnDemandFIFO-OnDemand-1000000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-10MB", res_dir + "/tpcc-SundialPasha-OnDemandFIFO-OnDemand-10000000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-100MB", res_dir + "/tpcc-SundialPasha-OnDemandFIFO-OnDemand-100000000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-10K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-10000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-100K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-100000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-1MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-1000000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-10MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-10000000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-100MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-100000000.txt"))
 
         return input_file_list
 
-def construct_input_list_ycsb(res_dir, zipf_theta):
+def construct_input_list_ycsb(res_dir, zipf_theta, cross_ratio):
         input_file_list = list()
 
-        input_file_list.append(("NoMoveOut-OnDemand-0", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-NoMoveOut-OnDemand-0.txt"))
+        input_file_list.append(("NoMoveOut-OnDemand-0", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-NoMoveOut-OnDemand-0.txt"))
 
-        input_file_list.append(("Eagerly-OnDemand-10K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-Eagerly-OnDemand-10000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-100K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-Eagerly-OnDemand-100000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-1MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-Eagerly-OnDemand-1000000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-10MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-Eagerly-OnDemand-10000000.txt"))
-        input_file_list.append(("Eagerly-OnDemand-100MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-Eagerly-OnDemand-100000000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-10K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-10000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-100K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-100000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-1MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-1000000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-10MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-10000000.txt"))
+        input_file_list.append(("Eagerly-OnDemand-100MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-100000000.txt"))
 
-        input_file_list.append(("Eagerly-Reactive-1", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-Eagerly-Reactive-1.txt"))
+        input_file_list.append(("Eagerly-Reactive-1", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-Reactive-1.txt"))
 
-        input_file_list.append(("OnDemandFIFO-OnDemand-10K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-OnDemandFIFO-OnDemand-10000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-100K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-OnDemandFIFO-OnDemand-100000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-1MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-OnDemandFIFO-OnDemand-1000000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-10MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-OnDemandFIFO-OnDemand-10000000.txt"))
-        input_file_list.append(("OnDemandFIFO-OnDemand-100MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-OnDemandFIFO-OnDemand-100000000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-10K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-10000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-100K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-100000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-1MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-1000000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-10MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-10000000.txt"))
+        input_file_list.append(("OnDemandFIFO-OnDemand-100MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-100000000.txt"))
 
         return input_file_list
 
@@ -105,14 +105,14 @@ def parse_results(input_list, output_file_name, header_row):
                 output_writer = csv.writer(output_file)
                 output_writer.writerows(rows)
 
-def parse_tpcc(res_dir):
-        input_file_list = construct_input_list_tpcc(res_dir)
+def parse_tpcc(res_dir, remote_neworder, remote_payment):
+        input_file_list = construct_input_list_tpcc(res_dir, remote_neworder, remote_payment)
         output_file_name = res_dir + "/tpcc.csv"
         header_row = ["Policy", "tput", "CXL_usage_index", "CXL_usage_data", "CXL_usage_transport", "msg_exchange_num", "msg_exchange_size", "abort_rate", "local_cxl_access_ratio", "remote_access_with_req_ratio", "data_move_in_num", "data_move_out_num", "data_move_in_size", "data_move_out_size"]
         parse_results(input_file_list, output_file_name, header_row)
 
-def parse_ycsb(res_dir, zipf_theta):
-        input_file_list = construct_input_list_ycsb(res_dir, zipf_theta)
+def parse_ycsb(res_dir, zipf_theta, cross_ratio):
+        input_file_list = construct_input_list_ycsb(res_dir, zipf_theta, cross_ratio)
         output_file_name = res_dir + "/ycsb-" + zipf_theta + ".csv"
         header_row = ["Policy", "tput", "CXL_usage_index", "CXL_usage_data", "CXL_usage_transport", "msg_exchange_num", "msg_exchange_size", "abort_rate", "local_cxl_access_ratio", "remote_access_with_req_ratio", "data_move_in_num", "data_move_out_num", "data_move_in_size", "data_move_out_size"]
         parse_results(input_file_list, output_file_name, header_row)
@@ -124,6 +124,6 @@ if len(sys.argv) != 2:
 
 res_dir = sys.argv[1]
 
-parse_tpcc(res_dir)
-parse_ycsb(res_dir, "0")
-parse_ycsb(res_dir, "0.99")
+parse_tpcc(res_dir, "10", "15")
+parse_ycsb(res_dir, "0", "10")
+parse_ycsb(res_dir, "0.99", "10")
