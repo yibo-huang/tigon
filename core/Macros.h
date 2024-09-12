@@ -72,6 +72,7 @@ DEFINE_int32(granule_count, 1, "# granules in a partition");
 DEFINE_bool(hstore_active_active, false, "H-Store style active-active replication");
 
 DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network transport");
+DEFINE_uint64(cxl_trans_entry_struct_size, 8192, "size of enrty in a MPSC ringbuffer");
 DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer");
 
 DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
@@ -134,6 +135,7 @@ DEFINE_int32(time_to_warmup, 10, "time to warm up");
 	context.lotus_checkpoint_location = FLAGS_lotus_checkpoint_location;                    \
 	context.hstore_active_active = FLAGS_hstore_active_active;                              \
         context.use_cxl_transport = FLAGS_use_cxl_transport;                                    \
+        context.cxl_trans_entry_struct_size = FLAGS_cxl_trans_entry_struct_size;                \
         context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                                \
         context.migration_policy = FLAGS_migration_policy;                                      \
         context.when_to_move_out = FLAGS_when_to_move_out;                                      \

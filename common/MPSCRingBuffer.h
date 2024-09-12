@@ -16,32 +16,28 @@ namespace star
 
 class MPSCRingBuffer {
     public:
-        static constexpr uint64_t entry_struct_size = 8192;
-        static constexpr uint64_t entry_data_size = entry_struct_size - 9;
-
         struct Entry {
                 uint32_t remaining_size;
                 uint32_t dequeue_offset;
                 std::atomic<uint8_t> is_ready;
-                uint8_t data[entry_data_size];
+                uint8_t data[];
         };
 
-        MPSCRingBuffer(uint64_t entry_num)
-                : entry_num(entry_num)
+        MPSCRingBuffer(uint64_t entry_struct_size, uint64_t entry_num)
+                : entry_struct_size(entry_struct_size)
+                , entry_data_size(entry_struct_size - 9)
+                , entry_num(entry_num)
                 , head(0)
                 , tail(0)
                 , count(0)
         {
-                int i = 0;
-
-                DCHECK(entry_struct_size == sizeof(Entry));
-                entries = reinterpret_cast<Entry *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(Entry) * entry_num,
-                        CXLMemory::TRANSPORT_ALLOCATION));
-                for (i = 0; i < entry_num; i++) {
-                        entries[i].is_ready = 0;
-                        entries[i].remaining_size = 0;
-                        entries[i].dequeue_offset = 0;
-                        memset(entries[i].data, 0, entry_data_size);
+                entries_buffer = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(entry_struct_size * entry_num, CXLMemory::TRANSPORT_ALLOCATION));
+                for (int i = 0; i < entry_num; i++) {
+                        Entry *entry = reinterpret_cast<Entry *>(entries_buffer.get() + i * entry_struct_size);
+                        entry->is_ready = 0;
+                        entry->remaining_size = 0;
+                        entry->dequeue_offset = 0;
+                        memset(entry->data, 0, entry_data_size);
                 }
         }
 
@@ -70,6 +66,7 @@ class MPSCRingBuffer {
         bool enqueue(char *data, uint64_t data_size)
         {
                 uint64_t cur_count = 0, cur_tail = 0;
+                Entry *entry = nullptr;
 
                 DCHECK(data_size <= entry_data_size);
 
@@ -85,13 +82,16 @@ class MPSCRingBuffer {
                 cur_tail = std::atomic_fetch_add_explicit(&tail, 1, std::memory_order_release);
                 cur_tail %= entry_num;
 
+                /* get the entry */
+                entry = reinterpret_cast<Entry *>(entries_buffer.get() + cur_tail * entry_struct_size);
+
                 /* memcpy the data to the target endpoint's receive queue */
-                memcpy(entries[cur_tail].data, data, data_size);
-                entries[cur_tail].remaining_size = data_size;
-                entries[cur_tail].dequeue_offset = 0;
+                memcpy(entry->data, data, data_size);
+                entry->remaining_size = data_size;
+                entry->dequeue_offset = 0;
 
                 /* mark the entry as ready */
-                entries[cur_tail].is_ready.store(1, std::memory_order_release);
+                entry->is_ready.store(1, std::memory_order_release);
 
                 return true;
         }
@@ -100,6 +100,7 @@ class MPSCRingBuffer {
         {
                 uint64_t cur_head = 0, cur_tail = 0;
                 uint64_t dequeue_size = 0;
+                Entry *entry = nullptr;
 
                 if (buffer_size == 0)
                         return 0;
@@ -109,29 +110,32 @@ class MPSCRingBuffer {
 
                 cur_head = head.load(std::memory_order_acquire);
 
+                /* get the entry */
+                entry = reinterpret_cast<Entry *>(entries_buffer.get() + cur_head * entry_struct_size);
+
                 /* wait for the entry to be ready */
-                while (entries[cur_head].is_ready.load(std::memory_order_acquire) != 1);
+                while (entry->is_ready.load(std::memory_order_acquire) != 1);
 
                 /* only dequeue part of the data if the buffer is not large enough */
-                if (buffer_size < entries[cur_head].remaining_size)
+                if (buffer_size < entry->remaining_size)
                         dequeue_size = buffer_size;
                 else
-                        dequeue_size = entries[cur_head].remaining_size;
+                        dequeue_size = entry->remaining_size;
 
                 /* partial dequeue is not supported for now */
-                DCHECK(dequeue_size == entries[cur_head].remaining_size);
+                DCHECK(dequeue_size == entry->remaining_size);
 
                 /* memcpy the data to the user-provided buffer and update the metadata */
-                memcpy(data_buffer, entries[cur_head].data, dequeue_size);
-                entries[cur_head].dequeue_offset += dequeue_size;
-                entries[cur_head].remaining_size -= dequeue_size;
+                memcpy(data_buffer, entry->data, dequeue_size);
+                entry->dequeue_offset += dequeue_size;
+                entry->remaining_size -= dequeue_size;
 
-                if (entries[cur_head].remaining_size == 0) {
+                if (entry->remaining_size == 0) {
                         /* reset metadata */
-                        entries[cur_tail].dequeue_offset = 0;
+                        entry->dequeue_offset = 0;
 
                         /* mark it as not ready */
-                        entries[cur_head].is_ready.store(0, std::memory_order_relaxed);
+                        entry->is_ready.store(0, std::memory_order_relaxed);
 
                         /* increase head by 1 */
                         head.store((cur_head + 1) % entry_num, std::memory_order_release);
@@ -163,12 +167,14 @@ class MPSCRingBuffer {
         }
 
     private:
+        uint64_t entry_struct_size;
+        uint64_t entry_data_size;
         uint64_t entry_num;
 
         std::atomic<uint64_t> head;
         std::atomic<uint64_t> tail;
         std::atomic<uint64_t> count;
-        boost::interprocess::offset_ptr<Entry> entries;
+        boost::interprocess::offset_ptr<char> entries_buffer;
 };
 
 }

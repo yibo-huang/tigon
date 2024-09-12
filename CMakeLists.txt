@@ -8,7 +8,8 @@ set(CMAKE_C_STANDARD 14)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -fno-omit-frame-pointer -pedantic  -O3 -DNDEBUG -g3 -Wno-long-long -Wno-unused-variable -Wno-unused-but-set-variable -Wno-variadic-macros -Wno-unused-lambda-capture")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -fno-omit-frame-pointer -pedantic  -O3 -DNDEBUG -g3 -Wno-long-long -Wno-unused-variable \
+                    -Wno-unused-but-set-variable -Wno-variadic-macros -Wno-unused-lambda-capture -Wno-c99-extensions")
 set(CMAKE_EXE_LINKER_FLAGS "-lnuma -O3 -no-pie -fuse-ld=lld-15")
 
 # -O3 -DNDEBUG

@@ -97,6 +97,7 @@ class Context {
 
         // CXL transport
         bool use_cxl_transport = false;
+        uint64_t cxl_trans_entry_struct_size = 8192;
         uint64_t cxl_trans_entry_num = 4096;
 
         // Pasha

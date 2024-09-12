@@ -327,7 +327,7 @@ class Coordinator {
                         cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(MPSCRingBuffer) * coordinator_num, 
                                 CXLMemory::TRANSPORT_ALLOCATION));
                         for (i = 0; i < coordinator_num; i++)
-                                new(&cxl_ringbuffers[i]) MPSCRingBuffer(context.cxl_trans_entry_num);
+                                new(&cxl_ringbuffers[i]) MPSCRingBuffer(context.cxl_trans_entry_struct_size, context.cxl_trans_entry_num);
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_transport_root_index, cxl_ringbuffers);
                         LOG(INFO) << "Coordinator " << id << " initializes CXL transport metadata ("
                                 << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "
