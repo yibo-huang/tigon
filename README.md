@@ -29,7 +29,17 @@ cd pasha
 ./scripts/setup.sh deps
 
 # launch VMs
-./scripts/setup.sh launch_vms 8 # we will launch 8 VMs each with 5 cores
+./scripts/setup.sh launch_vms chameleon 8 # we will launch 8 VMs each with 5 cores
+
+# setup VMs
+./scripts/setup.sh vms 8
+```
+
+# Setup Environment for the UIUC machine
+
+```sh
+# launch VMs
+./scripts/setup.sh launch_vms uiuc 8 # we will launch 8 VMs each with 5 cores
 
 # setup VMs
 ./scripts/setup.sh vms 8
