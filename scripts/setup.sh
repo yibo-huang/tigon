@@ -12,7 +12,7 @@ function print_usage {
         echo "cur_host: None"
         echo "vm_image: None"
         echo "kill_vms: None"
-        echo "launch_vms: HOST_NUM"
+        echo "launch_vms: HOST_TYPE HOST_NUM"
         echo "vms: HOST_NUM"
 }
 
@@ -53,7 +53,7 @@ elif [ $TASK_TYPE = "cur_host" ]; then
         cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/
         ./setup_current_host.sh
 
-        echo "should never read here!"
+        echo "should never reach here!"
         exit -1
 elif [ $TASK_TYPE = "vm_image" ]; then
         if [ $# != 1 ]; then
@@ -83,17 +83,22 @@ elif [ $TASK_TYPE = "kill_vms" ]; then
         echo "Finished!"
         exit 0
 elif [ $TASK_TYPE = "launch_vms" ]; then
-        if [ $# != 2 ]; then
+        if [ $# != 3 ]; then
                 print_usage
                 exit -1
         fi
+        typeset HOST_TYPE=$1
         typeset HOST_NUM=$2
         echo "Launching VMs..."
         git submodule update --init
 
-        # setup current host
         cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
-        ./start_vm.sh --using-old-img --sriov 0 5 $HOST_NUM 1 1
+
+        if [ $HOST_TYPE = "chameleon" ]; then
+                ./start_vm.sh --using-old-img --sriov 0 5 $HOST_NUM 1 1
+        elif [ $HOST_TYPE = "uiuc" ]; then
+                ./start_vm.sh --using-old-img --sriov 0 5 $HOST_NUM 0 2
+        fi
 
         echo "Finished!"
         exit 0
