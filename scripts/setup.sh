@@ -31,7 +31,7 @@ if [ $TASK_TYPE = "deps" ]; then
                 exit -1
         fi
         echo "Setting up dependencies..."
-        git submodule update --init
+        git submodule update --init --recursive
 
         # build cxl_shmem
         cd $SCRIPT_DIR/../dependencies/cxl_shmem
@@ -47,7 +47,7 @@ elif [ $TASK_TYPE = "cur_host" ]; then
                 exit -1
         fi
         echo "Setting up current machine... Will reboot the machine later"
-        git submodule update --init
+        git submodule update --init --recursive
 
         # setup current host
         cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/
@@ -61,7 +61,7 @@ elif [ $TASK_TYPE = "vm_image" ]; then
                 exit -1
         fi
         echo "Building VM image..."
-        git submodule update --init
+        git submodule update --init --recursive
 
         cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/setup_vm/
         ./make_vmimg.sh
@@ -74,7 +74,7 @@ elif [ $TASK_TYPE = "kill_vms" ]; then
                 exit -1
         fi
         echo "Killing VMs..."
-        git submodule update --init
+        git submodule update --init --recursive
 
         # setup current host
         cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
@@ -90,7 +90,7 @@ elif [ $TASK_TYPE = "launch_vms" ]; then
         typeset HOST_TYPE=$2
         typeset HOST_NUM=$3
         echo "Launching VMs..."
-        git submodule update --init
+        git submodule update --init --recursive
 
         cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
 
@@ -109,7 +109,7 @@ elif [ $TASK_TYPE = "vms" ]; then
         fi
         typeset HOST_NUM=$2
         echo "Setting up VMs..."
-        git submodule update --init
+        git submodule update --init --recursive
 
         # sync cxl_shmem
         echo "Sync cxl_shmem..."
