@@ -87,8 +87,8 @@ elif [ $TASK_TYPE = "launch_vms" ]; then
                 print_usage
                 exit -1
         fi
-        typeset HOST_TYPE=$1
-        typeset HOST_NUM=$2
+        typeset HOST_TYPE=$2
+        typeset HOST_NUM=$3
         echo "Launching VMs..."
         git submodule update --init
 
