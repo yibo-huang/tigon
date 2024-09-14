@@ -22,7 +22,6 @@ typeset WORKER_NUM=2
 # YCSB
 typeset KEYS=40960
 typeset RW_RATIO=50
-typeset ZIPF_THETA=0
 
 # migration policy
 typeset MIGRATION_POLICY=NoMoveOut
@@ -85,21 +84,30 @@ function run_remote_txn_overhead_ycsb {
 
 mkdir -p $RESULT_DIR
 
-# TPCC with CXL transport
-run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1
-run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1
-run_remote_txn_overhead_tpcc $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM 1
+# # TPCC with CXL transport
+# run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1
+# run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1
+# # run_remote_txn_overhead_tpcc $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM 1
 
-# TPCC with Network transport
-run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 0
-run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 0
-run_remote_txn_overhead_tpcc $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM 0
+# # TPCC with Network transport
+# run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 0
+# run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 0
+# # run_remote_txn_overhead_tpcc $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM 0
 
-# YCSB
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 1
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 1
-run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 1
+# # YCSB with Uniform Distribution
+# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 1
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0 1
+# # run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO 0 1
 
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0
-run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO $ZIPF_THETA 0
+# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 0
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0 0
+# # run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO 0 0
+
+# YCSB with High-skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1
+# run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1
+
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0
+# run_remote_txn_overhead_ycsb $RESULT_DIR Lotus $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0
