@@ -15,6 +15,7 @@
 #include "glog/logging.h"
 
 #include "protocol/Pasha/MigrationManager.h"
+#include "protocol/Pasha/SCCManager.h"
 
 namespace star
 {
@@ -148,7 +149,7 @@ retry:
                         CHECK(smeta->is_valid == true);
                         rts = smeta->rts;
                         wts = smeta->wts;
-                        std::memcpy(dest, src, size);
+                        scc_manager->do_read(dest, src, size);
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -168,7 +169,7 @@ retry:
                 CHECK(smeta->is_valid == true);
                 rts = smeta->rts;
                 wts = smeta->wts;
-                std::memcpy(dest, src, size);
+                scc_manager->do_read(dest, src, size);
 		smeta->unlock();
 
 		return std::make_pair(wts, rts);
@@ -338,7 +339,7 @@ retry:
                         smeta->lock();
                         CHECK(smeta->is_valid == true);
                         CHECK(smeta->owner == transaction_id);
-                        memcpy(data_ptr, value, value_size);
+                        scc_manager->do_write(data_ptr, value, value_size);
                         smeta->wts = smeta->rts = commit_ts;
                         smeta->unlock();
                 }
@@ -355,7 +356,7 @@ retry:
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
                 CHECK(smeta->owner == transaction_id);
-                memcpy(data_ptr, value, value_size);
+                scc_manager->do_write(data_ptr, value, value_size);
                 smeta->wts = smeta->rts = commit_ts;
                 smeta->unlock();
 	}

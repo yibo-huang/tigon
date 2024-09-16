@@ -100,10 +100,13 @@ class Context {
         uint64_t cxl_trans_entry_struct_size = 8192;
         uint64_t cxl_trans_entry_num = 4096;
 
-        // Pasha
+        // Pasha migration policy
         std::string migration_policy;
         std::string when_to_move_out;
         uint64_t max_migrated_rows_size = 10000000;     // 10 MB
+
+        // Pasha software cache-coherence
+        std::string scc_mechanism;
 
         // general
         int time_to_run = 30;

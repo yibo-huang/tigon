@@ -11,6 +11,8 @@
 #include "protocol/SundialPasha/SundialPashaHelper.h"
 #include "protocol/Pasha/MigrationManager.h"
 #include "protocol/Pasha/MigrationManagerFactory.h"
+#include "protocol/Pasha/SCCManager.h"
+#include "protocol/Pasha/SCCManagerFacrtory.h"
 
 namespace star
 {
@@ -41,11 +43,16 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         // init helper
                         new(&global_helper) SundialPashaHelper(coordinator_id, context.coordinator_num,
                                 db.get_table_num_per_partition(), context.partition_num / context.coordinator_num);
-                        global_helper.init_pasha_metadata();
 
                         // init migration manager
                         migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
                                 context.when_to_move_out, context.max_migrated_rows_size);
+
+                        // init software cache-coherence manager
+                        scc_manager = SCCManagerFactory::create_scc_manager(context.protocol, context.scc_mechanism);
+
+                        // init CXL hash tables
+                        global_helper.init_pasha_metadata();
                 } else {
                         global_helper.wait_for_pasha_metadata_init();
                 }

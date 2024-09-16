@@ -79,6 +79,8 @@ DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
 DEFINE_string(when_to_move_out, "Reactive", "When to move data out");
 DEFINE_uint64(max_migrated_rows_size, 20000000, "the maximum number of migrated rows in OnDemand policies");
 
+DEFINE_string(scc_mechanism, "NoOP", "Pasha software cache-coherence mechanism");
+
 DEFINE_int32(time_to_run, 30, "time to run");
 DEFINE_int32(time_to_warmup, 10, "time to warm up");
 
@@ -140,6 +142,7 @@ DEFINE_int32(time_to_warmup, 10, "time to warm up");
         context.migration_policy = FLAGS_migration_policy;                                      \
         context.when_to_move_out = FLAGS_when_to_move_out;                                      \
         context.max_migrated_rows_size = FLAGS_max_migrated_rows_size;                          \
+        context.scc_mechanism = FLAGS_scc_mechanism;                                            \
         context.time_to_run = FLAGS_time_to_run;                                                \
         context.time_to_warmup = FLAGS_time_to_warmup;                                          \
 	context.set_star_partitioner();
