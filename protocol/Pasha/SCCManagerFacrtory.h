@@ -7,8 +7,9 @@
 #include <string>
 
 #include "protocol/Pasha/SCCManager.h"
-#include "protocol/Pasha/SCCAllNTP.h"
+#include "protocol/Pasha/SCCNonTemporal.h"
 #include "protocol/Pasha/SCCNoOP.h"
+#include "protocol/Pasha/SCCWriteThrough.h"
 
 namespace star
 {
@@ -20,11 +21,12 @@ class SCCManagerFactory {
                 SCCManager *scc_manager = nullptr;
 
                 if (protocol == "SundialPasha") {
-                        if (scc_mechanism == "AllNTP") {
-                                scc_manager = new SCCAllNTP();
+                        if (scc_mechanism == "NonTemporal") {
+                                scc_manager = new SCCNonTemporal();
                         } else if (scc_mechanism == "NoOP") {
-                                LOG(INFO) << "reach here";
                                 scc_manager = new SCCNoOP();
+                        } else if (scc_mechanism == "WriteThrough") {
+                                scc_manager = new SCCWriteThrough();
                         } else {
                                 CHECK(0);
                         }

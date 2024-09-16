@@ -17,6 +17,8 @@
 #include "protocol/Pasha/MigrationManager.h"
 #include "protocol/Pasha/SCCManager.h"
 
+#include <boost/interprocess/offset_ptr.hpp>
+
 namespace star
 {
 
@@ -80,6 +82,9 @@ retry:
 
         // a migrated tuple can be invalid if it is deleted or migrated out
         bool is_valid{ false };
+
+        // software cache-coherence metadata
+        boost::interprocess::offset_ptr<void> scc_meta{ nullptr };
 };
 
 uint64_t SundialPashaMetadataLocalInit();
@@ -126,7 +131,7 @@ retry:
 	}
 
 	// Returns <rts, wts> of the tuple.
-	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, std::atomic<uint64_t> &local_cxl_access)
+	std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, std::atomic<uint64_t> &local_cxl_access)
 	{
                 uint64_t rts = 0, wts = 0;
 		MetaDataType &meta = *std::get<0>(row);
@@ -149,7 +154,7 @@ retry:
                         CHECK(smeta->is_valid == true);
                         rts = smeta->rts;
                         wts = smeta->wts;
-                        scc_manager->do_read(dest, src, size);
+                        scc_manager->do_read(smeta->scc_meta.get(), coordinator_id, dest, src, size);
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -158,7 +163,7 @@ retry:
 	}
 
         // Returns <rts, wts> of the tuple.
-	static std::pair<uint64_t, uint64_t> remote_read(char *row, void *dest, std::size_t size)
+	std::pair<uint64_t, uint64_t> remote_read(char *row, void *dest, std::size_t size)
 	{
                 DCHECK(row != nullptr);
                 uint64_t rts = 0, wts = 0;
@@ -169,7 +174,7 @@ retry:
                 CHECK(smeta->is_valid == true);
                 rts = smeta->rts;
                 wts = smeta->wts;
-                scc_manager->do_read(dest, src, size);
+                scc_manager->do_read(smeta->scc_meta.get(), coordinator_id, dest, src, size);
 		smeta->unlock();
 
 		return std::make_pair(wts, rts);
@@ -321,7 +326,7 @@ retry:
                 smeta->unlock();
 	}
 
-	static void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
+	void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 			   uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
@@ -339,14 +344,14 @@ retry:
                         smeta->lock();
                         CHECK(smeta->is_valid == true);
                         CHECK(smeta->owner == transaction_id);
-                        scc_manager->do_write(data_ptr, value, value_size);
+                        scc_manager->do_write(smeta->scc_meta.get(), coordinator_id, data_ptr, value, value_size);
                         smeta->wts = smeta->rts = commit_ts;
                         smeta->unlock();
                 }
 		lmeta->unlock();
 	}
 
-        static void remote_update(char *row, const void *value, std::size_t value_size, uint64_t commit_ts,
+        void remote_update(char *row, const void *value, std::size_t value_size, uint64_t commit_ts,
 			   uint64_t transaction_id)
 	{
 		DCHECK(row != nullptr);
@@ -356,7 +361,7 @@ retry:
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
                 CHECK(smeta->owner == transaction_id);
-                scc_manager->do_write(data_ptr, value, value_size);
+                scc_manager->do_write(smeta->scc_meta.get(), coordinator_id, data_ptr, value, value_size);
                 smeta->wts = smeta->rts = commit_ts;
                 smeta->unlock();
 	}
@@ -492,6 +497,9 @@ retry:
                         SundialPashaMetadataShared *migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
                         new(migrated_row_meta) SundialPashaMetadataShared();
 
+                        // init software cache-coherence metadata
+                        migrated_row_meta->scc_meta = scc_manager->create_scc_metadata(coordinator_id);
+
                         // take the CXL latch
                         migrated_row_meta->lock();
 
@@ -575,7 +583,7 @@ retry:
                         lmeta->owner = smeta->owner;
 
                         // copy data back
-                        memcpy(local_data, migrated_row_value, table->value_size());
+                        scc_manager->do_read(smeta->scc_meta.get(), coordinator_id, local_data, migrated_row_value, table->value_size());
 
                         // set the migrated row as invalid
                         smeta->is_valid = false;

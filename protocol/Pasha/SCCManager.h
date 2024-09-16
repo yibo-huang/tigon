@@ -22,10 +22,14 @@ namespace star
 
 class SCCManager {
     public:
+        static constexpr uint64_t max_metadata_size_in_bytes = 8;
+
+        virtual void *create_scc_metadata(std::size_t cur_host_id) = 0;
+
         // assuming every function call is protected by a lock so that
         // we do not need to worry about memory ordering
-        virtual void do_read(void *buffer, const void *src, uint64_t size) = 0;
-        virtual void do_write(void *dst, const void *buffer, uint64_t size) = 0;
+        virtual void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) = 0;
+        virtual void do_write(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) = 0;
 
     protected:
         static constexpr uint64_t cacheline_size = 64;

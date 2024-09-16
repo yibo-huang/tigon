@@ -10,7 +10,7 @@
 namespace star
 {
 
-class SCCNoOP : public SCCManager {
+class SCCNonTemporal : public SCCManager {
     public:
         void *create_scc_metadata(std::size_t cur_host_id)
         {
@@ -19,12 +19,14 @@ class SCCNoOP : public SCCManager {
 
         void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size)
         {
+                clflush(src, size);
                 std::memcpy(dst, src, size);
         }
 
         void do_write(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size)
         {
                 std::memcpy(dst, src, size);
+                clwb(dst, size);
         }
 };
 

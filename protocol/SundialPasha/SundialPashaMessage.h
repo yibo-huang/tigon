@@ -189,7 +189,7 @@ class SundialPashaMessageHandler {
                         DCHECK(readKey.get_local_index_read_bit() == 0);
                         success = SundialPashaHelper::remote_write_lock(migrated_row, rwts, txn->transaction_id);
                 }
-                auto read_rwts = SundialPashaHelper::remote_read(migrated_row, readKey.get_value(), value_size);
+                auto read_rwts = global_helper.remote_read(migrated_row, readKey.get_value(), value_size);
                 readKey.set_wts(read_rwts.first);
                 readKey.set_rts(read_rwts.second);
                 if (readKey.get_write_request_bit()) {

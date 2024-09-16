@@ -491,7 +491,7 @@ template <class Database> class SundialPasha {
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
 				auto row = table->search(key);
-				SundialPashaHelper::update(row, value, value_size, txn.commit_ts, txn.transaction_id);
+				global_helper.update(row, value, value_size, txn.commit_ts, txn.transaction_id);
 			} else {
                                 // I am not the owner of the data
                                 auto key = writeKey.get_key();
@@ -499,7 +499,7 @@ template <class Database> class SundialPasha {
 				auto value_size = table->value_size();
                                 char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
                                 CHECK(migrated_row != nullptr);
-                                SundialPashaHelper::remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
+                                global_helper.remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
 			}
 
 			// value replicate

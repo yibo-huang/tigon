@@ -88,7 +88,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 					DCHECK(local_index_read == false);
 					success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
 				}
-				auto read_rwts = SundialPashaHelper::read(row, value, value_size, this->n_local_cxl_access);
+				auto read_rwts = global_helper.read(row, value, value_size, this->n_local_cxl_access);
 				txn.readSet[key_offset].set_wts(read_rwts.first);
 				txn.readSet[key_offset].set_rts(read_rwts.second);
 				if (write_lock) {
@@ -115,7 +115,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                                 DCHECK(local_index_read == false);
                                                 success = SundialPashaHelper::remote_write_lock(migrated_row, rwts, txn.transaction_id);
                                         }
-                                        auto read_rwts = SundialPashaHelper::remote_read(migrated_row, value, value_size);
+                                        auto read_rwts = global_helper.remote_read(migrated_row, value, value_size);
                                         txn.readSet[key_offset].set_wts(read_rwts.first);
                                         txn.readSet[key_offset].set_rts(read_rwts.second);
                                         if (write_lock) {
