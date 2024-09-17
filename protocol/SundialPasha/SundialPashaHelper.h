@@ -84,7 +84,7 @@ retry:
         bool is_valid{ false };
 
         // software cache-coherence metadata
-        boost::interprocess::offset_ptr<void> scc_meta{ nullptr };
+        uint64_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
 };
 
 uint64_t SundialPashaMetadataLocalInit();
@@ -154,7 +154,7 @@ retry:
                         CHECK(smeta->is_valid == true);
                         rts = smeta->rts;
                         wts = smeta->wts;
-                        scc_manager->do_read(smeta->scc_meta.get(), coordinator_id, dest, src, size);
+                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -174,7 +174,7 @@ retry:
                 CHECK(smeta->is_valid == true);
                 rts = smeta->rts;
                 wts = smeta->wts;
-                scc_manager->do_read(smeta->scc_meta.get(), coordinator_id, dest, src, size);
+                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
 		smeta->unlock();
 
 		return std::make_pair(wts, rts);
@@ -344,7 +344,7 @@ retry:
                         smeta->lock();
                         CHECK(smeta->is_valid == true);
                         CHECK(smeta->owner == transaction_id);
-                        scc_manager->do_write(smeta->scc_meta.get(), coordinator_id, data_ptr, value, value_size);
+                        scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
                         smeta->wts = smeta->rts = commit_ts;
                         smeta->unlock();
                 }
@@ -361,7 +361,7 @@ retry:
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
                 CHECK(smeta->owner == transaction_id);
-                scc_manager->do_write(smeta->scc_meta.get(), coordinator_id, data_ptr, value, value_size);
+                scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
                 smeta->wts = smeta->rts = commit_ts;
                 smeta->unlock();
 	}
@@ -498,7 +498,7 @@ retry:
                         new(migrated_row_meta) SundialPashaMetadataShared();
 
                         // init software cache-coherence metadata
-                        migrated_row_meta->scc_meta = scc_manager->create_scc_metadata(coordinator_id);
+                        scc_manager->init_scc_metadata(&migrated_row_meta->scc_meta, coordinator_id);
 
                         // take the CXL latch
                         migrated_row_meta->lock();
@@ -583,7 +583,7 @@ retry:
                         lmeta->owner = smeta->owner;
 
                         // copy data back
-                        scc_manager->do_read(smeta->scc_meta.get(), coordinator_id, local_data, migrated_row_value, table->value_size());
+                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, migrated_row_value, table->value_size());
 
                         // set the migrated row as invalid
                         smeta->is_valid = false;

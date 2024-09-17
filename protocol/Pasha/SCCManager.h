@@ -25,7 +25,7 @@ class SCCManager {
     public:
         static constexpr uint64_t max_metadata_size_in_bytes = 8;
 
-        virtual void *create_scc_metadata(std::size_t cur_host_id) = 0;
+        virtual void init_scc_metadata(void *scc_meta, std::size_t cur_host_id) = 0;
 
         // assuming every function call is protected by a lock so that
         // we do not need to worry about memory ordering

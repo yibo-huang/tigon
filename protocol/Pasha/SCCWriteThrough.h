@@ -18,15 +18,11 @@ namespace star
  */
 class SCCWriteThrough : public SCCManager {
     public:
-        void *create_scc_metadata(std::size_t cur_host_id)
+        void init_scc_metadata(void *scc_meta, std::size_t cur_host_id)
         {
-                MetaType *meta = reinterpret_cast<MetaType *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(MetaType), CXLMemory::DATA_ALLOCATION));
-                CHECK(meta != nullptr);
-
+                MetaType *meta = reinterpret_cast<MetaType *>(scc_meta);
                 clear_all_bits(*meta);
                 set_bit(*meta, cur_host_id);
-
-                return meta;
         }
 
         void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size)
