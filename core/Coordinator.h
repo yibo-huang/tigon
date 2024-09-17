@@ -296,6 +296,10 @@ class Coordinator {
                 // print CXL memory usage
                 cxl_memory.print_stats();
 
+                // print software cache-coherence stats
+                if (scc_manager != nullptr)
+                        scc_manager->print_stats();
+
 		// gather throughput
 		gather_and_print(1.0 * total_commit / count, cxl_memory.get_stats(CXLMemory::INDEX_USAGE),
                                  cxl_memory.get_stats(CXLMemory::DATA_USAGE), cxl_memory.get_stats(CXLMemory::TRANSPORT_USAGE));

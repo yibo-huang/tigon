@@ -36,6 +36,12 @@ class SCCWriteThrough : public SCCManager {
                 if (is_bit_set(*meta, cur_host_id) == false) {
                         clflush(src, size);
                         set_bit(*meta, cur_host_id);
+
+                        // statistics
+                        num_cache_miss.fetch_add(1);
+                } else {
+                        // statistics
+                        num_cache_hit.fetch_add(1);
                 }
 
                 // do read
