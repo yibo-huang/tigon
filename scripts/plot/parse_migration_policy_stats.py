@@ -62,7 +62,7 @@ def get_row(input):
         # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
         for line in fileinput.FileInput(input[1]):
                 tokens = line.strip().split()
-                if len(tokens) > 7 and tokens[3] == "Coordinator.h:492]":
+                if len(tokens) > 7 and tokens[3] == "Coordinator.h:496]":
                         row.append(tokens[7])
                         row.append(tokens[9])
                         row.append(tokens[11])
