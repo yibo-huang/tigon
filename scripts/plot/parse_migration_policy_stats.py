@@ -17,20 +17,20 @@ def construct_input_list_tpcc(res_dir, remote_neworder, remote_payment):
         construct_input_list_with_scc(input_file_list, "NoMoveOut-OnDemand-0", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-NoMoveOut-OnDemand-0")
 
 
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-10K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-10000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-80K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-10000")
 
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-100K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-100000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-1MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-1000000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-10MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-10000000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-100MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-100000000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-800K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-100000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-8MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-1000000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-80MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-10000000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-800MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-OnDemand-100000000")
 
         construct_input_list_with_scc(input_file_list, "Eagerly-Reactive-1", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-Eagerly-Reactive-1")
 
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-10K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-10000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-100K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-100000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-1MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-1000000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-10MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-10000000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-100MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-100000000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-80K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-10000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-800K", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-100000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-8MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-1000000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-80MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-10000000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-800MB", res_dir + "/tpcc-SundialPasha-" + remote_neworder + "-" + remote_payment + "-OnDemandFIFO-OnDemand-100000000")
 
         return input_file_list
 
@@ -39,19 +39,19 @@ def construct_input_list_ycsb(res_dir, zipf_theta, cross_ratio):
 
         construct_input_list_with_scc(input_file_list, "NoMoveOut-OnDemand-0", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-NoMoveOut-OnDemand-0")
 
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-10K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-10000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-100K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-100000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-1MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-1000000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-10MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-10000000")
-        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-100MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-100000000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-80K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-10000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-800K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-100000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-8MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-1000000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-80MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-10000000")
+        construct_input_list_with_scc(input_file_list, "Eagerly-OnDemand-800MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-OnDemand-100000000")
 
         construct_input_list_with_scc(input_file_list, "Eagerly-Reactive-1", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-Eagerly-Reactive-1")
 
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-10K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-10000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-100K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-100000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-1MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-1000000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-10MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-10000000")
-        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-100MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-100000000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-80K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-10000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-800K", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-100000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-8MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-1000000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-80MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-10000000")
+        construct_input_list_with_scc(input_file_list, "OnDemandFIFO-OnDemand-800MB", res_dir + "/ycsb-SundialPasha-" + zipf_theta + "-" + cross_ratio + "-OnDemandFIFO-OnDemand-100000000")
 
         return input_file_list
 
