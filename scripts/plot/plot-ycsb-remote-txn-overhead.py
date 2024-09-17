@@ -6,11 +6,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-if len(sys.argv) != 2:
-        print("Usage: ./plot.py res_dir")
+if len(sys.argv) != 3:
+        print("Usage: ./plot-ycsb-remote-txn-overhead.py res_dir zipf_theta")
         sys.exit(-1)
 
 res_dir = sys.argv[1]
+zipf_theta = sys.argv[2]
 
 marker_size = 10.0
 marker_edge_width=1.6
@@ -25,7 +26,7 @@ plt.yticks(**basic_font)
 plt.grid(axis='y')
 
 ### plot TPCC ###
-res_csv = res_dir + "/tpcc.csv"
+res_csv = res_dir + "/ycsb-" + zipf_theta + ".csv"
 
 # Read the CSV file into a Pandas DataFrame
 res_df = pd.read_csv(res_csv)
@@ -42,7 +43,7 @@ sundial_net_y = res_df["Sundial-NET"]
 
 
 # plt.title("TPCC Remote Transaction Overhead", **basic_font)
-plt.xlabel("Multi-host Transaction Percentage (NewOrder/Payment)", **basic_font)
+plt.xlabel("Multi-host Transaction Percentage", **basic_font)
 plt.ylabel("Throughput (txns/sec)", **basic_font)
 
 # Configure axis range
@@ -70,4 +71,4 @@ plt.plot(x, sundial_net_y, color="#CD5C5C", marker="s", markersize=marker_size, 
 # Configure legend
 ax.legend(loc='upper center', frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
 
-plt.savefig(res_dir + "tpcc_remote_txn_overhead.pdf", format="pdf", bbox_inches="tight")
+plt.savefig(res_dir + "ycsb_remote_txn_overhead_" + zipf_theta + ".pdf", format="pdf", bbox_inches="tight")
