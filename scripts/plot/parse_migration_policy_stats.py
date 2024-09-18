@@ -6,8 +6,8 @@ import fileinput
 import statistics
 
 def construct_input_list_with_scc(input_file_list, entry_name, orig_file_name):
-        input_file_list.append((entry_name + "-WriteThrough", orig_file_name + "-WriteThrough" + ".txt"))
         input_file_list.append((entry_name + "-NoOP", orig_file_name + "-NoOP" + ".txt"))
+        input_file_list.append((entry_name + "-WriteThrough", orig_file_name + "-WriteThrough" + ".txt"))
         input_file_list.append((entry_name + "-NonTemporal", orig_file_name + "-NonTemporal" + ".txt"))
 
 
