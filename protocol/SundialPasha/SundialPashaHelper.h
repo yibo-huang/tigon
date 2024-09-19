@@ -623,7 +623,7 @@ retry:
 	static constexpr int LOCK_BIT_OFFSET = 63;
 	static constexpr uint64_t LOCK_BIT_MASK = 0x1ull;
     private:
-        static constexpr uint64_t cxl_hashtable_bkt_cnt = 1000;
+        static constexpr uint64_t cxl_hashtable_bkt_cnt = 50000;
 
         std::size_t coordinator_id;
         std::size_t coordinator_num;
