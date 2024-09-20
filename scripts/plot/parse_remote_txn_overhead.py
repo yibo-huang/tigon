@@ -9,24 +9,24 @@ def construct_input_list_tpcc(res_dir, migration_policy, when_to_move_out, max_m
         input_file_list = list()
         # CXL Transport
         input_file_list.append(("SundialPasha-CXL", res_dir + "/tpcc-SundialPasha-8-2-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        input_file_list.append(("Sundial-CXL", res_dir + "/tpcc-Sundial-8-2-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        # input_file_list.append(("Lotus-CXL", res_dir + "/tpcc-Lotus-8-2-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
+        input_file_list.append(("Sundial-CXL", res_dir + "/tpcc-Sundial-8-2-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
+        # input_file_list.append(("Lotus-CXL", res_dir + "/tpcc-Lotus-8-2-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
         # Network Transport
         input_file_list.append(("SundialPasha-NET", res_dir + "/tpcc-SundialPasha-8-2-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        input_file_list.append(("Sundial-NET", res_dir + "/tpcc-Sundial-8-2-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        # input_file_list.append(("Lotus-NET", res_dir + "/tpcc-Lotus-8-2-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
+        input_file_list.append(("Sundial-NET", res_dir + "/tpcc-Sundial-8-2-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
+        # input_file_list.append(("Lotus-NET", res_dir + "/tpcc-Lotus-8-2-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
         return input_file_list
 
 def construct_input_list_ycsb(res_dir, zipf_theta, migration_policy, when_to_move_out, max_migrated_row_size, scc_mechanism):
         input_file_list = list()
         # CXL Transport
         input_file_list.append(("SundialPasha-CXL", res_dir + "/ycsb-SundialPasha-8-2-50-" + zipf_theta + "-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        input_file_list.append(("Sundial-CXL", res_dir + "/ycsb-Sundial-8-2-50-" + zipf_theta + "-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        # input_file_list.append(("Lotus", res_dir + "/ycsb-Lotus-8-2-50-" + zipf_theta + "-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
+        input_file_list.append(("Sundial-CXL", res_dir + "/ycsb-Sundial-8-2-50-" + zipf_theta + "-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
+        # input_file_list.append(("Lotus", res_dir + "/ycsb-Lotus-8-2-50-" + zipf_theta + "-1-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
         # Network Transport
         input_file_list.append(("SundialPasha-NET", res_dir + "/ycsb-SundialPasha-8-2-50-" + zipf_theta + "-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        input_file_list.append(("Sundial-NET", res_dir + "/ycsb-Sundial-8-2-50-" + zipf_theta + "-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
-        # input_file_list.append(("Lotus", res_dir + "/ycsb-Lotus-8-2-50-" + zipf_theta + "-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + scc_mechanism + ".txt"))
+        input_file_list.append(("Sundial-NET", res_dir + "/ycsb-Sundial-8-2-50-" + zipf_theta + "-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
+        # input_file_list.append(("Lotus", res_dir + "/ycsb-Lotus-8-2-50-" + zipf_theta + "-0-" + migration_policy + "-" + when_to_move_out + "-" + max_migrated_row_size + "-" + "NoOP" + ".txt"))
         return input_file_list
 
 def get_row(input):
@@ -36,7 +36,7 @@ def get_row(input):
         # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
         for line in fileinput.FileInput(input[1]):
                 tokens = line.strip().split()
-                if len(tokens) > 7 and tokens[3] == "Coordinator.h:492]":
+                if len(tokens) > 7 and tokens[3] == "Coordinator.h:496]":
                         tputs.append(float(tokens[7]))
 
         return tputs
