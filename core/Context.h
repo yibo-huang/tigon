@@ -111,5 +111,8 @@ class Context {
         // general
         int time_to_run = 30;
         int time_to_warmup = 10;
+
+        // pre-migrate
+        std::string pre_migrate;
 };
 } // namespace star

@@ -434,7 +434,10 @@ retry:
                         LOG(INFO) << "SundialPasha Helper retrieves data migration metadata ("
                                 << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
                 }
+        }
 
+        void commit_pasha_metadata_init()
+        {
                 init_finished.store(1, std::memory_order_release);
         }
 

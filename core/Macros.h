@@ -84,6 +84,8 @@ DEFINE_string(scc_mechanism, "NoOP", "Pasha software cache-coherence mechanism")
 DEFINE_int32(time_to_run, 30, "time to run");
 DEFINE_int32(time_to_warmup, 10, "time to warm up");
 
+DEFINE_string(pre_migrate, "None", "what tuples to pre-migrate?");
+
 #define SETUP_CONTEXT(context)                                                                  \
 	boost::algorithm::split(context.peers, FLAGS_servers, boost::is_any_of(";"));           \
 	context.coordinator_num = context.peers.size();                                         \
@@ -145,4 +147,5 @@ DEFINE_int32(time_to_warmup, 10, "time to warm up");
         context.scc_mechanism = FLAGS_scc_mechanism;                                            \
         context.time_to_run = FLAGS_time_to_run;                                                \
         context.time_to_warmup = FLAGS_time_to_warmup;                                          \
+        context.pre_migrate = FLAGS_pre_migrate;                                                \
 	context.set_star_partitioner();

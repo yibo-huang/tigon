@@ -53,6 +53,21 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 
                         // init CXL hash tables
                         global_helper.init_pasha_metadata();
+
+                        // handle pre-migration
+                        if (context.pre_migrate == "None") {
+                                // do nothing
+                        } else if (context.pre_migrate == "All") {
+                                db.move_all_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                                                            context.coordinator_id);
+                        } else if (context.pre_migrate == "NonPart") {
+                                CHECK(0);
+                        } else {
+                                CHECK(0);
+                        }
+
+                        // commit metadata init
+                        global_helper.commit_pasha_metadata_init();
                 } else {
                         global_helper.wait_for_pasha_metadata_init();
                 }

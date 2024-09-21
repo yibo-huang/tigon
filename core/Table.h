@@ -74,6 +74,10 @@ class ITable {
 	{
 		return []() {};
 	}
+
+        virtual void move_all_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func)
+        {
+        }
 };
 
 class MetaInitFuncNothing {
@@ -224,6 +228,19 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		tid_check();
 		return partitionID_;
 	}
+
+        void move_all_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func) override
+        {
+                auto processor = [&](const KeyType &key, std::tuple<MetaDataType, ValueType> &row) {
+                        MetaDataType *meta_ptr = &std::get<0>(row);
+                        ValueType *data_ptr = &std::get<1>(row);
+                        std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
+			bool ret = move_in_func(this, get_plain_key(&key), row_tuple);
+                        CHECK(ret == true);
+		};
+
+                map_.iterate_non_const(processor, []() {});
+        }
 
     private:
 	HashMap<N, KeyType, std::tuple<MetaDataType, ValueType> > map_;
