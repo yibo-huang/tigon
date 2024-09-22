@@ -130,7 +130,7 @@ private:
 enum class RemovePredicateResult{ GOOD = 0, VALUE_HAS_OTHER_REFERENCE, VALUE_NOT_SATISFYING_PREDICATE};
 enum class RemoveResult{ GOOD = 0, KEY_NOT_FOUND, VALUE_HAS_OTHER_REFERENCE, VALUE_NOT_SATISFYING_PREDICATE};
 
-static void prefetch(char *ptr, size_t len) {
+static inline void prefetch(char *ptr, size_t len) {
     // if (ptr == nullptr) return;
     // for (char *p = ptr; p < ptr + len; p += 64) {
     //     __builtin_prefetch(p);
@@ -398,8 +398,8 @@ class BPlusTree {
 
         bool tryReleaseRead() {
             uint64_t w = word.load();
-            [[maybe_unused]] uint64_t readerCount = getReaderCount(w);
-            [[maybe_unused]] uint64_t writerId = getWriterId(w);
+            uint64_t readerCount = getReaderCount(w);
+            uint64_t writerId = getWriterId(w);
             assert(writerId == 0);
             assert(readerCount > 0);
             uint64_t neww = makeNewWord(readerCount - 1, 0);
@@ -410,8 +410,8 @@ class BPlusTree {
 
         bool tryReleaseWrite() {
             uint64_t w = word.load();
-            [[maybe_unused]] uint64_t readerCount = getReaderCount(w);
-            [[maybe_unused]] uint64_t writerId = getWriterId(w);
+            uint64_t readerCount = getReaderCount(w);
+            uint64_t writerId = getWriterId(w);
             assert(writerId == RWSpinLatchThreadId);
             assert(readerCount == 0);
             uint64_t neww = makeNewWord(0, 0);
@@ -1576,7 +1576,7 @@ class BPlusTree {
                     makeRoot(sep, inner, newInner);
 
                 // Unlock and restart
-	            node->writeUnlock();
+	        node->writeUnlock();
                 if (parent) {
                     parent->writeUnlock();
                 }
