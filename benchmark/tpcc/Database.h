@@ -565,12 +565,25 @@ class Database {
 		}
 	}
 
-        void move_all_tables_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func, std::size_t partition_id)
+        void move_all_tables_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func)
         {
                 for (int i = 0; i < tbl_vecs.size(); i++) {
                         for (int j = 0; j < tbl_vecs[i].size(); j++) {
                                 tbl_vecs[i][j]->move_all_into_cxl(move_in_func);
                         }
+                }
+        }
+
+        void move_non_part_tables_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func)
+        {
+                // customer ID
+                for (int i = 0; i < tbl_customer_vec.size(); i++) {
+                        tbl_customer_vec[i]->move_all_into_cxl(move_in_func);
+                }
+
+                // stock
+                for (int i = 0; i < tbl_stock_vec.size(); i++) {
+                        tbl_stock_vec[i]->move_all_into_cxl(move_in_func);
                 }
         }
 
