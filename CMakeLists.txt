@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -fno-omit-frame-pointer -pedantic  -O3 -DNDEBUG -g3 -Wno-long-long -Wno-unused-variable \
                     -Wno-unused-but-set-variable -Wno-variadic-macros -Wno-unused-lambda-capture -Wno-c99-extensions \
-                    -Wno-zero-length-array")
+                    -Wno-zero-length-array -Wno-deprecated-declarations")
 set(CMAKE_EXE_LINKER_FLAGS "-lnuma -O3 -no-pie -fuse-ld=lld-15")
 
 # -O3 -DNDEBUG
@@ -52,3 +52,6 @@ target_link_libraries(bench_tpcc misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_s
 
 add_executable(bench_ycsb bench_ycsb.cpp)
 target_link_libraries(bench_ycsb misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
+
+add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
+target_link_libraries(btreeolc_test gtest)
