@@ -103,7 +103,8 @@ class EBR {
         }
 
         void addRetiredNode(void *p) {
-            addRetiredNode(p, control_block_->local_epoch_.load(std::memory_order_relaxed));
+                // TODO: EBR is kind of disabled now
+                //     addRetiredNode(p, control_block_->local_epoch_.load(std::memory_order_relaxed));
         }
 
        private:

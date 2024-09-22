@@ -2086,7 +2086,7 @@ class BPlusTree {
         }
         if (leaf == nullptr) return;
 
-        //leaf->iteratorEnter(needRestart);  already held a reference 
+        leaf->iteratorEnter(needRestart);
         {
             BPlusTreeIterator itr(leaf, pos);
             if (itr == retryItr()) goto restart;
