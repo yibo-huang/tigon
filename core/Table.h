@@ -10,6 +10,7 @@
 #include "common/Encoder.h"
 #include "common/HashMap.h"
 #include "common/StringPiece.h"
+#include "common/btree_olc/BTreeOLC.h"
 
 static thread_local uint64_t tid = std::numeric_limits<uint64_t>::max();
 extern bool do_tid_check;
@@ -106,13 +107,13 @@ class MetaInitFuncSundialPasha {
 	}
 };
 
-template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = MetaInitFuncNothing> class Table : public ITable {
+template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = MetaInitFuncNothing> class TableHashMap : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
-	virtual ~Table() override = default;
+	virtual ~TableHashMap() override = default;
 
-	Table(std::size_t tableID, std::size_t partitionID)
+	TableHashMap(std::size_t tableID, std::size_t partitionID)
 		: tableID_(tableID)
 		, partitionID_(partitionID)
 	{
@@ -244,6 +245,192 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 
     private:
 	HashMap<N, KeyType, std::tuple<MetaDataType, ValueType> > map_;
+	std::size_t tableID_;
+	std::size_t partitionID_;
+};
+
+template <class KeyType, class ValueType, class KeyComparator, class ValueComparator, class MetaInitFunc = MetaInitFuncNothing> class TableBTreeOLC : public ITable {
+    public:
+        static constexpr uint64_t update_threshold = 1024;
+        static constexpr uint64_t leaf_page_size = 4096;
+        static constexpr uint64_t inner_page_size = 4096;
+
+        struct TupleValueComparator {
+                int operator()(const std::tuple<MetaDataType, ValueType> &a, const std::tuple<MetaDataType, ValueType> &b) const
+                {
+                        return ValueComparator(std::get<0>(a), std::get<0>(b));
+                }
+        };
+
+        using BTree = btreeolc::BPlusTree<KeyType, std::tuple<uint64_t, ValueType>, KeyComparator, TupleValueComparator, update_threshold, leaf_page_size, inner_page_size>;
+	using MetaDataType = std::atomic<uint64_t>;
+
+	virtual ~TableBTreeOLC() override = default;
+
+	TableBTreeOLC(std::size_t tableID, std::size_t partitionID)
+		: tableID_(tableID)
+		, partitionID_(partitionID)
+	{
+	}
+
+        uint64_t get_plain_key(const void *key) override
+        {
+                tid_check();
+                const auto &k = *static_cast<const KeyType *>(key);
+                return k.get_plain_key();
+        }
+
+	std::tuple<MetaDataType *, void *> search(const void *key) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+                std::tuple<uint64_t, ValueType> row;
+
+                bool success = btree.lookup(k, row);
+                CHECK(success == true);
+
+                MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&std::get<0>(row));
+		return std::make_tuple(meta_ptr, &std::get<1>(row));
+	}
+
+	void *search_value(const void *key) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+                std::tuple<uint64_t, ValueType> row;
+
+                bool success = btree.lookup(k, row);
+                CHECK(success == true);
+
+		return &std::get<1>(row);
+	}
+
+	MetaDataType &search_metadata(const void *key) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+                std::tuple<uint64_t, ValueType> row;
+
+                bool success = btree.lookup(k, row);
+                CHECK(success == true);
+
+                MetaDataType &meta = *reinterpret_cast<MetaDataType *>(&std::get<0>(row));
+		return meta;
+	}
+
+	bool contains(const void *key) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+                std::tuple<uint64_t, ValueType> row;
+
+                return btree.lookup(k, row);
+	}
+
+	void insert(const void *key, const void *value) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+		const auto &v = *static_cast<const ValueType *>(value);
+
+                std::tuple<uint64_t, ValueType> row;
+                std::get<0>(row) = MetaInitFunc()();
+		std::get<1>(row) = v;
+
+		bool success = btree.insert(k, row);
+		CHECK(success == true);
+	}
+
+	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+		const auto &v = *static_cast<const ValueType *>(value);
+
+                std::tuple<uint64_t, ValueType> row;
+                bool success = btree.lookup(k, row);
+                CHECK(success == true);
+
+		on_update(key, &std::get<1>(row));
+		std::get<1>(row) = v;
+	}
+
+	void deserialize_value(const void *key, StringPiece stringPiece) override
+	{
+		tid_check();
+		std::size_t size = stringPiece.size();
+		const auto &k = *static_cast<const KeyType *>(key);
+
+		std::tuple<uint64_t, ValueType> row;
+                bool success = btree.lookup(k, row);
+                CHECK(success == true);
+
+		auto &v = std::get<1>(row);
+
+		Decoder dec(stringPiece);
+		dec >> v;
+
+		DCHECK(size - dec.size() == ClassOf<ValueType>::size());
+	}
+
+
+	void serialize_value(Encoder &enc, const void *value) override
+	{
+		tid_check();
+		std::size_t size = enc.size();
+		const auto &v = *static_cast<const ValueType *>(value);
+		enc << v;
+
+		DCHECK(enc.size() - size == ClassOf<ValueType>::size());
+	}
+
+	std::size_t key_size() override
+	{
+		tid_check();
+		return sizeof(KeyType);
+	}
+
+	std::size_t value_size() override
+	{
+		tid_check();
+		return sizeof(ValueType);
+	}
+
+	std::size_t field_size() override
+	{
+		tid_check();
+		return ClassOf<ValueType>::size();
+	}
+
+	std::size_t tableID() override
+	{
+		tid_check();
+		return tableID_;
+	}
+
+	std::size_t partitionID() override
+	{
+		tid_check();
+		return partitionID_;
+	}
+
+        void move_all_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func) override
+        {
+                auto processor = [&](const KeyType &key, std::tuple<uint64_t, ValueType> &row, bool) -> bool {
+                        MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&std::get<0>(row));
+                        ValueType *data_ptr = &std::get<1>(row);
+                        std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
+			bool ret = move_in_func(this, get_plain_key(&key), row_tuple);
+                        CHECK(ret == true);
+                        return true;
+		};
+
+                KeyType start_key;
+                btree.scanForUpdate(start_key, processor);
+        }
+
+    private:
+	BTree btree;
 	std::size_t tableID_;
 	std::size_t partitionID_;
 };

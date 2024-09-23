@@ -96,11 +96,11 @@ class Database {
 		for (auto partitionID = 0u; partitionID < partitionNum; partitionID++) {
 			auto ycsbTableID = ycsb::tableID;
 			if (context.protocol == "Sundial") {
-				tbl_ycsb_vec.push_back(std::make_unique<Table<997, ycsb::key, ycsb::value, MetaInitFuncSundial> >(ycsbTableID, partitionID));
+				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncSundial> >(ycsbTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
-                                tbl_ycsb_vec.push_back(std::make_unique<Table<997, ycsb::key, ycsb::value, MetaInitFuncSundialPasha> >(ycsbTableID, partitionID));
+                                tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncSundialPasha> >(ycsbTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_ycsb_vec.push_back(std::make_unique<Table<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
+				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
