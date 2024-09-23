@@ -86,6 +86,9 @@ struct warehouse
                 enum { W_NAME_field, W_STREET_1_field, W_STREET_2_field, W_CITY_field, W_STATE_field, W_ZIP_field, W_TAX_field, W_YTD_field, NFIELDS }; 
         }; 
 
+        struct KeyComparator { int operator()(const key &a, const key &b) const { if (a.get_plain_key() > b.get_plain_key()) return 1; else if (a.get_plain_key() == b.get_plain_key()) return 0; else return -1; } };
+        struct ValueComparator { int operator()(const value &a, const value &b) const { if (a != b) return 1; else return 0; } };
+
         static constexpr std::size_t tableID = 24 - __BASE_COUNTER__; 
 }; 
 } 
