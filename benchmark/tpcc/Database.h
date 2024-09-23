@@ -269,10 +269,7 @@ class Database {
 					std::make_unique<TableHashMap<997, new_order::key, new_order::value, MetaInitFuncSundial> >(newOrderTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_new_order_vec.push_back(
-					std::make_unique<TableHashMap<997, new_order::key, new_order::value, MetaInitFuncSundialPasha> >(newOrderTableID, partitionID));
-
-                                std::unique_ptr<ITable> ordered_table =
-                                        std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator, MetaInitFuncSundialPasha> >(newOrderTableID, partitionID);
+					std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator, MetaInitFuncSundialPasha> >(newOrderTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_new_order_vec.push_back(std::make_unique<TableHashMap<997, new_order::key, new_order::value> >(newOrderTableID, partitionID));
 			} else {
@@ -293,10 +290,7 @@ class Database {
 					std::make_unique<TableHashMap<997, order::key, order::value, MetaInitFuncSundial> >(orderTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_order_vec.push_back(
-					std::make_unique<TableHashMap<997, order::key, order::value, MetaInitFuncSundialPasha> >(orderTableID, partitionID));
-
-                                std::unique_ptr<ITable> ordered_table =
-                                        std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator, MetaInitFuncSundialPasha> >(orderTableID, partitionID);
+					std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator, MetaInitFuncSundialPasha> >(orderTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_order_vec.push_back(std::make_unique<TableHashMap<997, order::key, order::value> >(orderTableID, partitionID));
 			} else {
@@ -314,9 +308,7 @@ class Database {
 					std::make_unique<TableHashMap<997, order_line::key, order_line::value, MetaInitFuncSundial> >(orderLineTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_order_line_vec.push_back(
-					std::make_unique<TableHashMap<997, order_line::key, order_line::value, MetaInitFuncSundialPasha> >(orderLineTableID, partitionID));
-                                std::unique_ptr<ITable> ordered_table =
-                                        std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator, MetaInitFuncSundialPasha> >(orderLineTableID, partitionID);
+					std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator, MetaInitFuncSundialPasha> >(orderLineTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_order_line_vec.push_back(std::make_unique<TableHashMap<997, order_line::key, order_line::value> >(orderLineTableID, partitionID));
 			} else {
