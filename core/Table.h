@@ -444,11 +444,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
 			bool ret = move_in_func(this, get_plain_key(&key), row_tuple);
                         CHECK(ret == true);
-                        return true;
+                        return false;
 		};
 
                 KeyType start_key;
                 memset(&start_key, 0, sizeof(KeyType));
+                CHECK(start_key.get_plain_key() == 0);
                 btree.scanForUpdate(start_key, processor);
         }
 

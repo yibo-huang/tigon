@@ -2281,7 +2281,7 @@ restart:
 	/**
 	 * Range scan items starting at `startKey` for update.
 	 * Leaves will be write-locked.
-	 * The scan ends when processor returns false or all items are traversed.
+	 * The scan ends when processor returns true or all items are traversed.
 	 */
 	void scanForUpdate(const KeyType &startKey, std::function<bool(const KeyType &, ValueType &, bool)> processor)
 	{
