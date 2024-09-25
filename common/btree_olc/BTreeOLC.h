@@ -164,9 +164,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 	  uint64_t InnerPageSize = kPageSize>
 class BPlusTree {
     public:
-	/** shorthand for the value list type */
-	using ValueList = std::list<ValueType>;
-
 	/** this is the element type of the leaf node */
 	using KeyValuePair = std::pair<KeyType, ValueType>;
 
@@ -2637,7 +2634,7 @@ restart:
 	 * find key and all its corresponding values
 	 * return true if key exists
 	 */
-	bool lookup(const KeyType &key, ValueType &result)
+	bool lookup(const KeyType &key, ValueType *&result)
 	{
 		return _lookup(key, result);
 	}
@@ -2656,7 +2653,7 @@ restart:
 	 * return true if <key, value> exists and delete successfully
 	 * NOTE: lookup only append data to result
 	 */
-	bool lookup(const KeyType &key, const ValueType &value, ValueType &result)
+	bool lookup(const KeyType &key, const ValueType &value, ValueType *&result)
 	{
 		return _lookup({ key, value }, result, false);
 	}
@@ -3165,7 +3162,7 @@ restart:
 	/**
 	 * @param flag find key and it corresponding value when flag is true
 	 */
-	bool _lookup(const KeyValuePair &element, ValueType &result, bool flag)
+	bool _lookup(const KeyValuePair &element, ValueType *&result, bool flag)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
 		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
@@ -3213,11 +3210,11 @@ restart:
 		if ((pos < leaf->getCount()) && keyComp_(leaf->keys_[pos], element.first) == 0) {
 			if (flag) {
 				success = true;
-				result = leaf->values_[pos];
+				result = &leaf->values_[pos];
 			} else {
 				if (valueComp_(element.second, leaf->values_[pos]) == 0) {
 					success = true;
-					result = leaf->values_[pos];
+					result = &leaf->values_[pos];
 				}
 			}
 		}
@@ -3237,7 +3234,7 @@ restart:
 	/**
 	 * find key and it's corresponding value
 	 */
-	bool _lookup(const KeyType &key, ValueType &result)
+	bool _lookup(const KeyType &key, ValueType *&result)
 	{
 		int restartCount = 0;
 restart:
@@ -3285,7 +3282,7 @@ restart:
 		bool success = false;
 		if ((pos < leaf->getCount()) && keyComp_(leaf->keys_[pos], key) == 0) {
 			success = true;
-			result = leaf->values_[pos];
+			result = &leaf->values_[pos];
 		}
 		if (parent) {
 			parent->readUnlockOrRestart(versionParent, needRestart);

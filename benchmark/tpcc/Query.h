@@ -292,31 +292,34 @@ class makePaymentQuery {
 			query.C_W_ID = C_W_ID;
 			query.C_D_ID = random.uniform_dist(1, 10);
 			query.granules[1][query.part_granule_count[1]++] = did_to_granule_id(query.C_D_ID, context);
+
+                        // always use C_ID for remote transactions
+                        query.C_ID = random.non_uniform_distribution(1023, 1, 3000);
 		} else {
 			// If x > 15 a customer is selected from the selected district number
 			// (C_D_ID = D_ID) and the home warehouse number (C_W_ID = W_ID).
 
 			query.C_D_ID = query.D_ID;
 			query.C_W_ID = W_ID;
-		}
 
-		int y = random.uniform_dist(1, 100);
+                        int y = random.uniform_dist(1, 100);
 
-		// The customer is randomly selected 60% of the time by last name (C_W_ID ,
-		// C_D_ID, C_LAST) and 40% of the time by number (C_W_ID , C_D_ID , C_ID).
+                        // The customer is randomly selected 60% of the time by last name (C_W_ID ,
+                        // C_D_ID, C_LAST) and 40% of the time by number (C_W_ID , C_D_ID , C_ID).
 
-		if (y <= 60) {
-			// If y <= 60 a customer last name (C_LAST) is generated according to
-			// Clause 4.3.2.3 from a non-uniform random value using the
-			// NURand(255,0,999) function.
+                        if (y <= 60) {
+                                // If y <= 60 a customer last name (C_LAST) is generated according to
+                                // Clause 4.3.2.3 from a non-uniform random value using the
+                                // NURand(255,0,999) function.
 
-			std::string last_name = random.rand_last_name(random.non_uniform_distribution(255, 0, 999));
-			query.C_LAST.assign(last_name);
-			query.C_ID = 0;
-		} else {
-			// If y > 60 a non-uniform random customer number (C_ID) is selected using
-			// the NURand(1023,1,3000) function.
-			query.C_ID = random.non_uniform_distribution(1023, 1, 3000);
+                                std::string last_name = random.rand_last_name(random.non_uniform_distribution(255, 0, 999));
+                                query.C_LAST.assign(last_name);
+                                query.C_ID = 0;
+                        } else {
+                                // If y > 60 a non-uniform random customer number (C_ID) is selected using
+                                // the NURand(1023,1,3000) function.
+                                query.C_ID = random.non_uniform_distribution(1023, 1, 3000);
+                        }
 		}
 
 		// The payment amount (H_AMOUNT) is randomly selected within [1.00 ..
