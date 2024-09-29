@@ -47,7 +47,7 @@ class Database {
 
         std::size_t get_table_num_per_partition()
         {
-                return 10;
+                return 11;
         }
 
 	ITable *find_table(std::size_t table_id, std::size_t partition_id)
@@ -302,6 +302,26 @@ class Database {
 					tbl_order_vec.push_back(std::make_unique<HStoreTable<order::key, order::value> >(orderTableID, partitionID));
 				}
 			}
+
+                        auto orderCustTableID = order_customer::tableID;
+			if (context.protocol == "Sundial") {
+				tbl_order_cust_vec.push_back(
+					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator, MetaInitFuncSundial> >(orderCustTableID, partitionID));
+                        } else if (context.protocol == "SundialPasha") {
+				tbl_order_cust_vec.push_back(
+					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator, MetaInitFuncSundialPasha> >(orderCustTableID, partitionID));
+			} else if (context.protocol != "HStore") {
+				tbl_order_cust_vec.push_back(std::make_unique<TableHashMap<997, order_customer::key, order_customer::value> >(orderCustTableID, partitionID));
+			} else {
+				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
+				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
+				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
+					tbl_order_cust_vec.push_back(std::make_unique<HStoreCOWTable<997, order_customer::key, order_customer::value> >(orderCustTableID, partitionID));
+				} else {
+					tbl_order_cust_vec.push_back(std::make_unique<HStoreTable<order_customer::key, order_customer::value> >(orderCustTableID, partitionID));
+				}
+			}
+
 			auto orderLineTableID = order_line::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_order_line_vec.push_back(
@@ -359,8 +379,8 @@ class Database {
 			}
 		}
 
-		// there are 10 tables in tpcc
-		tbl_vecs.resize(10);
+		// there are 11 tables in tpcc
+		tbl_vecs.resize(11);
 
 		auto tFunc = [](std::unique_ptr<ITable> &table) { return table.get(); };
 
@@ -371,9 +391,10 @@ class Database {
 		std::transform(tbl_history_vec.begin(), tbl_history_vec.end(), std::back_inserter(tbl_vecs[4]), tFunc);
 		std::transform(tbl_new_order_vec.begin(), tbl_new_order_vec.end(), std::back_inserter(tbl_vecs[5]), tFunc);
 		std::transform(tbl_order_vec.begin(), tbl_order_vec.end(), std::back_inserter(tbl_vecs[6]), tFunc);
-		std::transform(tbl_order_line_vec.begin(), tbl_order_line_vec.end(), std::back_inserter(tbl_vecs[7]), tFunc);
-		std::transform(tbl_item_vec.begin(), tbl_item_vec.end(), std::back_inserter(tbl_vecs[8]), tFunc);
-		std::transform(tbl_stock_vec.begin(), tbl_stock_vec.end(), std::back_inserter(tbl_vecs[9]), tFunc);
+                std::transform(tbl_order_cust_vec.begin(), tbl_order_cust_vec.end(), std::back_inserter(tbl_vecs[7]), tFunc);
+		std::transform(tbl_order_line_vec.begin(), tbl_order_line_vec.end(), std::back_inserter(tbl_vecs[8]), tFunc);
+		std::transform(tbl_item_vec.begin(), tbl_item_vec.end(), std::back_inserter(tbl_vecs[9]), tFunc);
+		std::transform(tbl_stock_vec.begin(), tbl_stock_vec.end(), std::back_inserter(tbl_vecs[10]), tFunc);
 
 		DLOG(INFO) << "hash tables created in " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - now).count()
 			   << " milliseconds.";
@@ -388,7 +409,6 @@ class Database {
 		initTables(
 			"customer_name_idx", [this](std::size_t partitionID) { customerNameIdxInit(partitionID); }, partitionNum, threadsNum,
 			partitioner.get());
-		/*
 		initTables("history",
 			   [this](std::size_t partitionID) { historyInit(partitionID); },
 			   partitionNum, threadsNum, partitioner.get());
@@ -398,10 +418,12 @@ class Database {
 		initTables("order",
 			   [this](std::size_t partitionID) { orderInit(partitionID); },
 			   partitionNum, threadsNum, partitioner.get());
+                initTables("order_cust",
+			   [this](std::size_t partitionID) { orderCustInit(partitionID); },
+			   partitionNum, threadsNum, partitioner.get());
 		initTables("order_line",
 			   [this](std::size_t partitionID) { orderLineInit(partitionID); },
 			   partitionNum, threadsNum, partitioner.get());
-		*/
 		initTables(
 			"item", [this](std::size_t partitionID) { itemInit(partitionID); }, 1, 1, nullptr);
 		initTables(
@@ -795,7 +817,7 @@ class Database {
 
 		std::vector<int> perm;
 
-		for (int i = 1; i <= ORDER_PER_DISTRICT; i++) {
+		for (int i = 1; i <= CUSTOMER_PER_DISTRICT; i++) {
 			perm.push_back(i);
 		}
 
@@ -823,6 +845,38 @@ class Database {
 				table->insert(&key, &value);
 			}
 		}
+	}
+
+        void orderCustInit(std::size_t partitionID)
+	{
+		Random random;
+		ITable *table = tbl_order_cust_vec[partitionID].get();
+
+		// For each row in the WAREHOUSE table, 10 rows in the DISTRICT table
+		// For each row in the DISTRICT table, 3,000 rows in the ORDER table
+
+                ITable *order_table = find_table(order::tableID, partitionID);
+
+                for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
+                        for (int j = 1; j <= ORDER_PER_DISTRICT; j++) {
+                                order::key order_key;
+				order_key.O_W_ID = partitionID + 1;
+				order_key.O_D_ID = i;
+				order_key.O_ID = j;
+
+                                // no concurrent write, it is ok to read without validation on
+				// MetaDataType
+				const order::value &order_value = *static_cast<order::value *>(order_table->search_value(&order_key));
+
+                                order_customer::key order_cust_key;
+                                order_cust_key.O_W_ID = order_key.O_W_ID;
+                                order_cust_key.O_D_ID = order_key.O_D_ID;
+                                order_cust_key.O_C_ID = order_value.O_C_ID;
+                                order_cust_key.O_ID = order_key.O_ID;
+
+                                table->insert(&order_cust_key, &order_value);
+                        }
+                }
 	}
 
 	void orderLineInit(std::size_t partitionID)
@@ -977,6 +1031,7 @@ class Database {
 	std::vector<std::unique_ptr<ITable> > tbl_history_vec;
 	std::vector<std::unique_ptr<ITable> > tbl_new_order_vec;
 	std::vector<std::unique_ptr<ITable> > tbl_order_vec;
+	std::vector<std::unique_ptr<ITable> > tbl_order_cust_vec;
 	std::vector<std::unique_ptr<ITable> > tbl_order_line_vec;
 	std::vector<std::unique_ptr<ITable> > tbl_item_vec;
 	std::vector<std::unique_ptr<ITable> > tbl_stock_vec;
