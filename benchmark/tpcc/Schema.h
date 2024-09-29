@@ -26,7 +26,7 @@ static constexpr std::size_t __BASE_COUNTER__ = __COUNTER__ + 1;
 #define DISTRICT_PER_WAREHOUSE 10
 #define CUSTOMER_PER_DISTRICT 3000
 #define ORDER_PER_DISTRICT 3000
-#define MAX_ORDER_ID (uint64_t(1) << 32)  // Note: hack! but it is fine to assume that we will never run systems such long
+#define MAX_ORDER_ID INT32_MAX  // Note: hack! but it is fine to assume that we will never run systems such long
 #define MIN_ORDER_LINE_PER_ORDER 5
 #define MAX_ORDER_LINE_PER_ORDER 15
 #define STOCK_PER_WAREHOUSE 100000
@@ -184,7 +184,7 @@ DO_STRUCT(order, ORDER_KEY_FIELDS, ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_G
 #define ORDER_CUST_GET_PLAIN_KEY_FUNC                                                                                                                   \
         uint64_t get_plain_key() const                                                                                                                  \
         {                                                                                                                                               \
-                return ((O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (CUSTOMER_PER_DISTRICT + 1) + O_C_ID) * ((uint64_t)MAX_ORDER_ID + 1) + O_ID;   \
+                return ((O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (CUSTOMER_PER_DISTRICT + 1) + O_C_ID) * ((uint64_t)MAX_ORDER_ID) + O_ID;   \
         }
 
 DO_STRUCT(order_customer, ORDER_CUST_KEY_FIELDS, ORDER_CUST_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_CUST_GET_PLAIN_KEY_FUNC)

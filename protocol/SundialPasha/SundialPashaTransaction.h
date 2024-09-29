@@ -259,6 +259,20 @@ class SundialPashaTransaction {
 		add_to_write_set(writeKey);
 	}
 
+        template <class KeyType, class ValueType>
+	void scan_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
+                        std::vector<ValueType> &results, std::size_t granule_id = 0)
+	{
+		SundialPashaRWKey scanKey;
+
+		scanKey.set_table_id(table_id);
+		scanKey.set_partition_id(partition_id);
+
+                scanKey.set_scan_args(&min_key, &max_key, &results);
+
+		add_to_scan_set(scanKey);
+	}
+
 	bool process_requests(std::size_t worker_id, bool last_call_in_transaction = true)
 	{
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
@@ -321,6 +335,12 @@ class SundialPashaTransaction {
 		return writeSet.size() - 1;
 	}
 
+        std::size_t add_to_scan_set(const SundialPashaRWKey &key)
+	{
+		scanSet.push_back(key);
+		return scanSet.size() - 1;
+	}
+
     public:
 	std::size_t coordinator_id, partition_id;
 	std::chrono::steady_clock::time_point startTime;
@@ -340,7 +360,7 @@ class SundialPashaTransaction {
 	Partitioner &partitioner;
 	std::size_t ith_replica;
 	Operation operation;
-	std::vector<SundialPashaRWKey> readSet, writeSet;
+	std::vector<SundialPashaRWKey> readSet, writeSet, scanSet;
 	WALLogger *logger = nullptr;
 	uint64_t txn_random_seed_start = 0;
 	uint64_t transaction_id = 0;

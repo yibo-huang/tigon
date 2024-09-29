@@ -54,7 +54,10 @@ template <class Transaction> class Workload {
 		std::string transactionType;
 		random.set_seed(random_seed);
 		if (context.workloadType == TPCCWorkloadType::MIXED) {
-			if (x <= 50) {
+                        if (x <= 4) {
+                                p = std::make_unique<OrderStatus<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+				transactionType = "TPCC OrderStatus";
+                        } else if (x <= 50) {
 				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC NewOrder";
 			} else {

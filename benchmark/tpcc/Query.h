@@ -222,6 +222,7 @@ struct PaymentQuery {
 	int num_parts = 0;
 	int32_t granules[2][10];
 	int32_t part_granule_count[2];
+
 	int32_t get_part(int i)
 	{
 		DCHECK(i < num_parts);
@@ -259,6 +260,7 @@ class makePaymentQuery {
 		query.parts[0] = W_ID - 1;
 		query.part_granule_count[0] = query.part_granule_count[1] = 0;
 		query.num_parts = 1;
+
 		// The district number (D_ID) is randomly selected within [1 ..10] from the
 		// home warehouse (D_W_ID) = W_ID).
 
@@ -267,6 +269,7 @@ class makePaymentQuery {
 		query.granules[0][query.part_granule_count[0]++] = did_to_granule_id(query.D_ID, context);
 		if (query.granules[0][query.part_granule_count[0] - 1] != wid_to_granule_id(query.W_ID, context))
 			query.granules[0][query.part_granule_count[0]++] = wid_to_granule_id(query.W_ID, context);
+
 		// the customer resident warehouse is the home warehouse 85% of the time
 		// and is a randomly selected remote warehouse 15% of the time.
 
@@ -304,7 +307,7 @@ class makePaymentQuery {
 
                         int y = random.uniform_dist(1, 100);
 
-                        // The customer is randomly selected 60% of the time by last name (C_W_ID ,
+                        // The customer is randomly selected 60% of the time by last name (C_W_ID,
                         // C_D_ID, C_LAST) and 40% of the time by number (C_W_ID , C_D_ID , C_ID).
 
                         if (y <= 60) {
@@ -329,5 +332,105 @@ class makePaymentQuery {
 		return query;
 	}
 };
+
+struct OrderStatusQuery {
+	bool isRemote()
+	{
+		return W_ID != C_W_ID;
+	}
+	int32_t W_ID;
+	int32_t D_ID;
+	int32_t C_ID;
+	FixedString<16> C_LAST;
+	int32_t C_D_ID;
+	int32_t C_W_ID;
+
+	int parts[5];
+	int num_parts = 0;
+	int32_t granules[2][10];
+	int32_t part_granule_count[2];
+
+	int32_t get_part(int i)
+	{
+		DCHECK(i < num_parts);
+		return parts[i];
+	}
+
+	int32_t get_part_granule_count(int i)
+	{
+		DCHECK(i < num_parts);
+		return part_granule_count[i];
+	}
+
+	int32_t get_part_granule(int i, int j)
+	{
+		DCHECK(i < num_parts);
+		return granules[i][j];
+	}
+
+	int number_of_parts()
+	{
+		return num_parts;
+	}
+};
+
+class makeOrderStatusQuery {
+    public:
+	OrderStatusQuery operator()(const Context &context, int32_t W_ID, Random &random) const
+	{
+		OrderStatusQuery query;
+
+		// W_ID is constant over the whole measurement interval
+
+		query.W_ID = W_ID;
+
+		query.parts[0] = W_ID - 1;
+		query.part_granule_count[0] = query.part_granule_count[1] = 0;
+		query.num_parts = 1;
+
+		// The district number (D_ID) is randomly selected within [1 ..10] from the
+		// home warehouse (D_W_ID) = W_ID).
+
+		query.D_ID = random.uniform_dist(1, 10);
+
+		query.granules[0][query.part_granule_count[0]++] = did_to_granule_id(query.D_ID, context);
+		if (query.granules[0][query.part_granule_count[0] - 1] != wid_to_granule_id(query.W_ID, context))
+			query.granules[0][query.part_granule_count[0]++] = wid_to_granule_id(query.W_ID, context);
+
+		// the customer warehouse is always the home warehouse
+
+		// If the system is configured for a single warehouse,
+		// then all customers are selected from that single home warehouse.
+
+
+                // a customer is selected from the selected district number
+                // (C_D_ID = D_ID) and the home warehouse number (C_W_ID = W_ID).
+
+                query.C_D_ID = query.D_ID;
+                query.C_W_ID = W_ID;
+
+                int y = random.uniform_dist(1, 100);
+
+                // The customer is randomly selected 60% of the time by last name (C_W_ID,
+                // C_D_ID, C_LAST) and 40% of the time by number (C_W_ID , C_D_ID , C_ID).
+
+                if (y <= 60) {
+                        // If y <= 60 a customer last name (C_LAST) is generated according to
+                        // Clause 4.3.2.3 from a non-uniform random value using the
+                        // NURand(255,0,999) function.
+
+                        std::string last_name = random.rand_last_name(random.non_uniform_distribution(255, 0, 999));
+                        query.C_LAST.assign(last_name);
+                        query.C_ID = 0;
+                } else {
+                        // If y > 60 a non-uniform random customer number (C_ID) is selected using
+                        // the NURand(1023,1,3000) function.
+                        query.C_ID = random.non_uniform_distribution(1023, 1, 3000);
+                }
+
+		return query;
+	}
+};
+
 } // namespace tpcc
 } // namespace star

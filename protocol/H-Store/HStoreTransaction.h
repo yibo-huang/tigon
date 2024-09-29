@@ -381,6 +381,13 @@ class HStoreTransaction {
 		add_to_write_set(writeKey);
 	}
 
+        template <class KeyType, class ValueType>
+	void scan_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
+                        std::vector<ValueType> &results, std::size_t granule_id = 0)
+	{
+                // CHECK(0);
+	}
+
 	bool process_requests(std::size_t worker_id, bool last_call_in_transaction = true)
 	{
 		// cannot use unsigned type in reverse iteration

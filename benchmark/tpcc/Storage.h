@@ -34,6 +34,10 @@ struct Storage {
 	order::key order_key;
 	order::value order_value;
 
+        order_customer::key min_order_customer_key;
+        order_customer::key max_order_customer_key;
+        std::vector<order_customer::value> order_customer_scan_values;
+
 	order_line::key order_line_keys[15];
 	order_line::value order_line_values[15];
 
