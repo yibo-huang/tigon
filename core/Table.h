@@ -39,6 +39,8 @@ class ITable {
 
 	virtual MetaDataType &search_metadata(const void *key) = 0;
 
+        virtual void scan(const void *min_key, const void *max_key, std::vector<std::tuple<MetaDataType *, void *> > &results) = 0;
+
 	virtual void insert(const void *key, const void *value) = 0;
 
 	virtual void update(
@@ -154,6 +156,12 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		const auto &k = *static_cast<const KeyType *>(key);
 		return map_.contains(k);
 	}
+
+        void scan(const void *min_key, const void *max_key, std::vector<std::tuple<MetaDataType *, void *> > &results) override
+        {
+                // hash table does not support scan
+                CHECK(0);
+        }
 
 	void insert(const void *key, const void *value) override
 	{
@@ -349,6 +357,29 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 return btree.lookup(k, row_ptr);
 	}
 
+        void scan(const void *min_key, const void *max_key, std::vector<std::tuple<MetaDataType *, void *> > &results) override
+        {
+                tid_check();
+
+                const auto &min_k = *static_cast<const KeyType *>(min_key);
+                const auto &max_k = *static_cast<const KeyType *>(max_key);
+                KeyComparator key_comparator;
+
+                auto processor = [&](const KeyType &key, BTreeOLCValue &row, bool) -> bool {
+                        if (key_comparator(max_k, max_k) > 0)
+                                return true;
+
+                        MetaDataType *meta_ptr = &row.meta;
+                        ValueType *data_ptr = &row.value;
+                        std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
+                        results.push_back(row_tuple);
+
+                        return false;
+		};
+
+                btree.scanForUpdate(min_k, processor);
+        }
+
 	void insert(const void *key, const void *value) override
 	{
                 tid_check();
@@ -503,6 +534,12 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		return map_.contains(k);
 	}
 
+        void scan(const void *min_key, const void *max_key, std::vector<std::tuple<MetaDataType *, void *> > &results) override
+        {
+                // hash table does not support scan
+                CHECK(0);
+        }
+
 	void insert(const void *key, const void *value) override
 	{
 		const auto &k = *static_cast<const KeyType *>(key);
@@ -618,6 +655,12 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		const auto &k = *static_cast<const KeyType *>(key);
 		return map_.contains(k);
 	}
+
+        void scan(const void *min_key, const void *max_key, std::vector<std::tuple<MetaDataType *, void *> > &results) override
+        {
+                // hash table does not support scan
+                CHECK(0);
+        }
 
 	void insert(const void *key, const void *value) override
 	{
