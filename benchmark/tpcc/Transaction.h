@@ -58,6 +58,7 @@ template <class Transaction> class NewOrder : public Transaction {
 		, query(makeNewOrderQuery()(context, partition_id + 1, random))
 	{
 		storage = get_storage();
+                storage->cleanup();
 	}
 	virtual ~NewOrder()
 	{
@@ -637,19 +638,21 @@ template <class Transaction> class OrderStatus : public Transaction {
 
                 int32_t O_W_ID = query.C_W_ID;
                 int32_t O_D_ID = query.C_D_ID;
-                int32_t O_C_ID = query.C_ID;
+                int32_t O_C_ID = C_ID;
 
                 auto orderCustTableID = order_customer::tableID;
                 storage->min_order_customer_key = order_customer::key(O_W_ID, O_D_ID, O_C_ID, 0);
                 storage->max_order_customer_key = order_customer::key(O_W_ID, O_D_ID, O_C_ID, MAX_ORDER_ID);
-                this->scan_for_read(orderCustTableID, O_W_ID - 1, storage->min_order_customer_key, storage->max_order_customer_key, 
-                                storage->order_customer_scan_values, did_to_granule_id(C_D_ID, context));
+                this->scan_for_read(orderCustTableID, O_W_ID - 1, storage->min_order_customer_key, storage->max_order_customer_key,
+                                &storage->order_customer_scan_results, did_to_granule_id(C_D_ID, context));
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
 			return TransactionResult::ABORT;
 		}
 		ScopedTimer t_local_work2([&, this](uint64_t us) { this->record_local_work_time(us); });
+
+                // get the last order
 
 		return TransactionResult::READY_TO_COMMIT;
 	}

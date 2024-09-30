@@ -183,6 +183,7 @@ class SundialPashaTransaction {
 		operation.clear();
 		readSet.clear();
 		writeSet.clear();
+                scanSet.clear();
 	}
 
 	virtual TransactionResult execute(std::size_t worker_id) = 0;
@@ -259,16 +260,16 @@ class SundialPashaTransaction {
 		add_to_write_set(writeKey);
 	}
 
-        template <class KeyType, class ValueType>
+        template <class KeyType>
 	void scan_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
-                        std::vector<ValueType> &results, std::size_t granule_id = 0)
+                        void *results, std::size_t granule_id = 0)
 	{
 		SundialPashaRWKey scanKey;
 
 		scanKey.set_table_id(table_id);
 		scanKey.set_partition_id(partition_id);
 
-                scanKey.set_scan_args(&min_key, &max_key, &results);
+                scanKey.set_scan_args(&min_key, &max_key, results);
 
 		add_to_scan_set(scanKey);
 	}
@@ -288,6 +289,13 @@ class SundialPashaTransaction {
 					   readKey.get_local_index_read_bit(), readKey.get_write_request_bit());
 			// readSet[i].clear_read_request_bit();
 			// readSet[i].clear_write_request_bit();
+		}
+
+                // cannot use unsigned type in reverse iteration
+		for (int i = int(scanSet.size()) - 1; i >= 0; i--) {
+			const SundialPashaRWKey &scanKey = scanSet[i];
+			scanRequestHandler(scanKey.get_table_id(), scanKey.get_partition_id(), i, scanKey.get_scan_min_key(), scanKey.get_scan_max_key(),
+                                        scanKey.get_scan_res_vec());
 		}
 
 		t_local_work.end();
@@ -349,8 +357,10 @@ class SundialPashaTransaction {
 	bool abort_lock, abort_read_validation, local_validated, si_in_serializable;
 	bool distributed_transaction;
 	bool execution_phase;
-	// table id, partition id, key, value, local index read?, write_lock?
+	// table id, partition id, key_offset, key, value, local index read?, write_lock?
 	std::function<void(std::size_t, std::size_t, uint32_t, const void *, void *, bool, bool)> readRequestHandler;
+        // table id, partition id, key_offset, min_key, max_key, results
+	std::function<void(std::size_t, std::size_t, uint32_t, const void *, const void *, void *)> scanRequestHandler;
 	// processed a request?
 	std::function<std::size_t(std::size_t)> remote_request_handler;
 

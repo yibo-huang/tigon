@@ -163,6 +163,27 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                         txn.remote_hosts_involved.insert(coordinatorID);
                                 }
 			}
+
+                        return;
+		};
+
+                txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
+                                                void *results) {
+			ITable *table = this->db.find_table(table_id, partition_id);
+                        auto value_size = table->value_size();
+                        bool local_read = false;
+
+			if (this->partitioner->has_master_partition(partition_id) ||
+			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
+				local_read = true;
+			}
+
+			if (local_read) {
+				table->scan(min_key, max_key, results);
+			} else {
+                                CHECK(0);      // right now we only support local scan
+			}
+
                         return;
 		};
 

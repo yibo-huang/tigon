@@ -187,6 +187,22 @@ class SundialPashaRWKey {
 		this->read_set_pos = pos;
 	}
 
+        // scan
+        const void *get_scan_min_key() const
+	{
+                return this->min_key;
+	}
+
+        const void *get_scan_max_key() const
+	{
+                return this->max_key;
+	}
+
+        void *get_scan_res_vec() const
+	{
+                return this->scan_results;
+	}
+
         void set_scan_args(const void *min_key, const void *max_key, void *results)
 	{
 		DCHECK(this->is_range_scan == false);

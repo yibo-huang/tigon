@@ -877,6 +877,17 @@ class Database {
                                 table->insert(&order_cust_key, &order_value);
                         }
                 }
+
+                // test correctness
+                for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
+                        for (int j = 1; j <= CUSTOMER_PER_DISTRICT; j++) {
+                                order_customer::key min_order_customer_key = order_customer::key(partitionID + 1, i, j, 0);
+                                order_customer::key max_order_customer_key = order_customer::key(partitionID + 1, i, j, MAX_ORDER_ID);
+                                std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_customer_scan_results;
+                                table->scan(&min_order_customer_key, &max_order_customer_key, &order_customer_scan_results);
+                                CHECK(order_customer_scan_results.size() == 1);
+                        }
+                }
 	}
 
 	void orderLineInit(std::size_t partitionID)
