@@ -937,6 +937,17 @@ class Database {
 				}
 			}
 		}
+
+                // test correctness
+                for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
+                        for (int j = 1; j <= ORDER_PER_DISTRICT; j++) {
+                                order_line::key min_order_line_key = order_line::key(partitionID + 1, i, j, 1);
+                                order_line::key max_order_line_key = order_line::key(partitionID + 1, i, j, MAX_ORDER_LINE_PER_ORDER);
+                                std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_line_scan_results;
+                                table->scan(&min_order_line_key, &max_order_line_key, &order_line_scan_results);
+                                CHECK(order_line_scan_results.size() >= MIN_ORDER_LINE_PER_ORDER && order_line_scan_results.size() <= MAX_ORDER_LINE_PER_ORDER);
+                        }
+                }
 	}
 
 	void itemInit(std::size_t partitionID)

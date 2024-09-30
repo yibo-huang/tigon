@@ -38,8 +38,11 @@ struct Storage {
         order_customer::key max_order_customer_key;
         std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_customer_scan_results;
 
-	order_line::key order_line_keys[15];
+        order_line::key order_line_keys[15];
 	order_line::value order_line_values[15];
+        order_line::key min_order_line_key;
+        order_line::key max_order_line_key;
+        std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_line_scan_results;
 
 	history::key h_key;
 	history::value h_value;
@@ -47,6 +50,7 @@ struct Storage {
         void cleanup()
         {
                 order_customer_scan_results.clear();
+                order_line_scan_results.clear();
         }
 };
 } // namespace tpcc

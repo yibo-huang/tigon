@@ -345,6 +345,7 @@ template <class Transaction> class Payment : public Transaction {
 		, query(makePaymentQuery()(context, partition_id + 1, random))
 	{
 		storage = get_storage();
+                storage->cleanup();
 	}
 	virtual ~Payment()
 	{
@@ -559,6 +560,7 @@ template <class Transaction> class OrderStatus : public Transaction {
 		, query(makeOrderStatusQuery()(context, partition_id + 1, random))
 	{
 		storage = get_storage();
+                storage->cleanup();
 	}
 	virtual ~OrderStatus()
 	{
@@ -650,9 +652,31 @@ template <class Transaction> class OrderStatus : public Transaction {
 		if (this->process_requests(worker_id)) {
 			return TransactionResult::ABORT;
 		}
-		ScopedTimer t_local_work2([&, this](uint64_t us) { this->record_local_work_time(us); });
+		t_local_work.reset();
 
-                // get the last order
+                // get the last order's ID
+                auto last_order = storage->order_customer_scan_results[storage->order_customer_scan_results.size() - 1];
+                const auto last_order_key = *static_cast<const order_customer::key *>(std::get<0>(last_order));
+                auto last_order_id = last_order_key.O_ID;
+
+                // All rows in the ORDER-LINE table with matching OL_W_ID (equals O_W_ID), OL_D_ID (equals O_D_ID), and OL_O_ID (equals O_ID) are selected
+                // and the corresponding sets of OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, and OL_DELIVERY_D are retrieved.
+
+                last_order_id = 1924;
+                auto orderLineTableID = order_line::tableID;
+                storage->min_order_line_key = order_line::key(O_W_ID, O_D_ID, last_order_id, 1);
+                storage->max_order_line_key = order_line::key(O_W_ID, O_D_ID, last_order_id, MAX_ORDER_LINE_PER_ORDER);
+                this->scan_for_read(orderLineTableID, O_W_ID - 1, storage->min_order_line_key, storage->max_order_line_key,
+                                &storage->order_line_scan_results, did_to_granule_id(C_D_ID, context));
+
+                t_local_work.end();
+                if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+                t_local_work.reset();
+
+                // Done
+                CHECK(storage->order_line_scan_results.size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results.size() <= MAX_ORDER_LINE_PER_ORDER);
 
 		return TransactionResult::READY_TO_COMMIT;
 	}
