@@ -184,7 +184,7 @@ DO_STRUCT(order, ORDER_KEY_FIELDS, ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_G
 #define ORDER_CUST_GET_PLAIN_KEY_FUNC                                                                                                                   \
         uint64_t get_plain_key() const                                                                                                                  \
         {                                                                                                                                               \
-                return ((O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (CUSTOMER_PER_DISTRICT + 1) + O_C_ID) * ((uint64_t)MAX_ORDER_ID) + O_ID;   \
+                return ((O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (CUSTOMER_PER_DISTRICT + 1) + O_C_ID) * (uint64_t)MAX_ORDER_ID + O_ID;   \
         }
 
 DO_STRUCT(order_customer, ORDER_CUST_KEY_FIELDS, ORDER_CUST_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_CUST_GET_PLAIN_KEY_FUNC)
@@ -195,7 +195,7 @@ DO_STRUCT(order_customer, ORDER_CUST_KEY_FIELDS, ORDER_CUST_VALUE_FIELDS, NAMESP
 #define ORDER_LINE_GET_PLAIN_KEY_FUNC                                                                                                                           \
         uint64_t get_plain_key() const                                                                                                                          \
         {                                                                                                                                                       \
-                return ((OL_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + OL_D_ID) * (ORDER_PER_DISTRICT + 1) + OL_O_ID) * (MAX_ORDER_LINE_PER_ORDER + 1) + OL_NUMBER;  \
+                return ((OL_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + OL_D_ID) * ((uint64_t)MAX_ORDER_ID + OL_O_ID)) * (MAX_ORDER_LINE_PER_ORDER + 1) + OL_NUMBER;  \
         }
 
 DO_STRUCT(order_line, ORDER_LINE_KEY_FIELDS, ORDER_LINE_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_LINE_GET_PLAIN_KEY_FUNC)
