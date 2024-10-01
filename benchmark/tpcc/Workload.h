@@ -31,6 +31,7 @@ template <class Transaction> class Workload {
 		, db(db)
 		, random(random)
 		, partitioner(partitioner)
+                , delivery_cur_sub_query_id(0)
 	{
 	}
 
@@ -58,8 +59,11 @@ template <class Transaction> class Workload {
                                 p = std::make_unique<OrderStatus<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC OrderStatus";
                         } else if (x <= 8) {
-                                p = std::make_unique<Delivery<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+                                p = std::make_unique<Delivery<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner, delivery_cur_sub_query_id);
 				transactionType = "TPCC Delivery";
+                                delivery_cur_sub_query_id++;
+                                if (delivery_cur_sub_query_id == DISTRICT_PER_WAREHOUSE)
+                                        delivery_cur_sub_query_id = 0;
                         } else if (x <= 50) {
 				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC NewOrder";
@@ -114,6 +118,8 @@ template <class Transaction> class Workload {
 	DatabaseType &db;
 	RandomType &random;
 	Partitioner &partitioner;
+
+        uint64_t delivery_cur_sub_query_id;
 };
 
 } // namespace tpcc

@@ -327,6 +327,8 @@ template <class Transaction> class NewOrder : public Transaction {
 	Storage *storage = nullptr;
 	std::size_t partition_id;
 	NewOrderQuery query;
+
+        uint64_t cur_sub_query_id;
 };
 
 template <class Transaction> class Payment : public Transaction {
@@ -706,15 +708,16 @@ template <class Transaction> class Delivery : public Transaction {
 	using StorageType = Storage;
 
 	Delivery(std::size_t coordinator_id, std::size_t partition_id, DatabaseType &db, const ContextType &context, RandomType &random,
-		Partitioner &partitioner, std::size_t ith_replica = 0)
+		Partitioner &partitioner, uint64_t sub_query_id, std::size_t ith_replica = 0)
 		: Transaction(coordinator_id, partition_id, partitioner, ith_replica)
 		, db(db)
 		, context(context)
 		, random(random)
 		, partition_id(partition_id)
-		, query(makeDeliveryQuery()(context, partition_id + 1, random))
+		, query(makeDeliveryQuery()(context, partition_id + 1, random, sub_query_id))
 	{
 		storage = get_storage();
+                CHECK(sub_query_id >= 0 && sub_query_id < DISTRICT_PER_WAREHOUSE);
 	}
 
 	virtual ~Delivery()
@@ -763,6 +766,7 @@ template <class Transaction> class Delivery : public Transaction {
                 storage->cleanup();
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
 		int32_t W_ID = this->partition_id + 1;
+                uint64_t cur_district_id = query.sub_query_id + 1;
 
 		// The input data (see Clause 2.5.3.2) are communicated to the SUT.
 
@@ -772,7 +776,8 @@ template <class Transaction> class Delivery : public Transaction {
                 // For a given warehouse number (W_ID), for each of the 10 districts (D_W_ID , D_ID) within that warehouse,
                 // and for a given carrier number (O_CARRIER_ID):
 
-                for (uint64_t D_ID = 1; D_ID <= DISTRICT_PER_WAREHOUSE; D_ID++) {
+                // for (uint64_t D_ID = 1; D_ID <= DISTRICT_PER_WAREHOUSE; D_ID++) {
+                for (uint64_t D_ID = cur_district_id; D_ID == cur_district_id; D_ID++) {
                         // The row in the NEW-ORDER table with matching NO_W_ID (equals W_ID) and NO_D_ID (equals D_ID)
                         // and with the lowest NO_O_ID value is selected.
                         // This is the oldest undelivered order of that district. NO_O_ID, the order number, is retrieved.
@@ -856,7 +861,7 @@ template <class Transaction> class Delivery : public Transaction {
 
 	void reset_query() override
 	{
-		query = makeDeliveryQuery()(context, partition_id, random);
+		query = makeDeliveryQuery()(context, partition_id, random, query.sub_query_id);
 	}
 
     private:

@@ -441,6 +441,8 @@ struct DeliveryQuery {
         int parts[2];
 	int num_parts = 0;
 
+        uint64_t sub_query_id;
+
 	int32_t get_part(int i)
 	{
                 DCHECK(i < num_parts);
@@ -469,7 +471,7 @@ struct DeliveryQuery {
 
 class makeDeliveryQuery {
     public:
-	DeliveryQuery operator()(const Context &context, int32_t W_ID, Random &random) const
+	DeliveryQuery operator()(const Context &context, int32_t W_ID, Random &random, uint64_t sub_query_id) const
 	{
 		DeliveryQuery query;
 
@@ -487,6 +489,8 @@ class makeDeliveryQuery {
                 // The delivery date (OL_DELIVERY_D) is generated within the SUT by using the current system date and time
 
                 query.OL_DELIVERY_D = 2024;
+
+                query.sub_query_id = sub_query_id;      // support split execution mode
 
 		return query;
 	}
