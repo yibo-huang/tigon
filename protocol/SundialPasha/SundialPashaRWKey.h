@@ -203,6 +203,16 @@ class SundialPashaRWKey {
                 return this->scan_results;
 	}
 
+        bool get_scan_processed() const
+	{
+                return this->scan_processed;
+	}
+
+        void set_scan_processed()
+	{
+                this->scan_processed = true;
+	}
+
         void set_scan_args(const void *min_key, const void *max_key, void *results)
 	{
 		DCHECK(this->is_range_scan == false);
@@ -210,6 +220,7 @@ class SundialPashaRWKey {
                 this->max_key = max_key;
                 this->scan_results = results;
                 this->is_range_scan = true;
+                this->scan_processed = false;
 	}
 
         bool get_reference_counted()
@@ -247,6 +258,7 @@ class SundialPashaRWKey {
 
         // for range scan
         bool is_range_scan = false;
+        bool scan_processed = false;
         const void *min_key = nullptr;
         const void *max_key = nullptr;
         void *scan_results = nullptr;

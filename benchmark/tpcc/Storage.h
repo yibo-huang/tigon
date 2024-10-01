@@ -20,8 +20,8 @@ struct Storage {
 	customer_name_idx::key customer_name_idx_key;
 	customer_name_idx::value customer_name_idx_value;
 
-	customer::key customer_key;
-	customer::value customer_value;
+	customer::key customer_key[DISTRICT_PER_WAREHOUSE];
+	customer::value customer_value[DISTRICT_PER_WAREHOUSE];
 
 	item::key item_keys[15];
 	item::value item_values[15];
@@ -30,19 +30,22 @@ struct Storage {
 	stock::value stock_values[15];
 
 	new_order::key new_order_key;
+        new_order::key min_new_order_key[DISTRICT_PER_WAREHOUSE];
+        new_order::key max_new_order_key[DISTRICT_PER_WAREHOUSE];
+        std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > new_order_scan_results[DISTRICT_PER_WAREHOUSE];
 
-	order::key order_key;
-	order::value order_value;
+	order::key order_key[DISTRICT_PER_WAREHOUSE];
+	order::value order_value[DISTRICT_PER_WAREHOUSE];
 
         order_customer::key min_order_customer_key;
         order_customer::key max_order_customer_key;
         std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_customer_scan_results;
 
-        order_line::key order_line_keys[15];
-	order_line::value order_line_values[15];
-        order_line::key min_order_line_key;
-        order_line::key max_order_line_key;
-        std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_line_scan_results;
+        order_line::key order_line_keys[DISTRICT_PER_WAREHOUSE][15];
+	order_line::value order_line_values[DISTRICT_PER_WAREHOUSE][15];
+        order_line::key min_order_line_key[DISTRICT_PER_WAREHOUSE];
+        order_line::key max_order_line_key[DISTRICT_PER_WAREHOUSE];
+        std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > order_line_scan_results[DISTRICT_PER_WAREHOUSE];
 
 	history::key h_key;
 	history::value h_value;
@@ -50,7 +53,10 @@ struct Storage {
         void cleanup()
         {
                 order_customer_scan_results.clear();
-                order_line_scan_results.clear();
+                for (int i = 0; i < DISTRICT_PER_WAREHOUSE; i++) {
+                        new_order_scan_results[i].clear();
+                        order_line_scan_results[i].clear();
+                }
         }
 };
 } // namespace tpcc

@@ -287,15 +287,21 @@ class SundialPashaTransaction {
 			const SundialPashaRWKey &readKey = readSet[i];
 			readRequestHandler(readKey.get_table_id(), readKey.get_partition_id(), i, readKey.get_key(), readKey.get_value(),
 					   readKey.get_local_index_read_bit(), readKey.get_write_request_bit());
-			// readSet[i].clear_read_request_bit();
-			// readSet[i].clear_write_request_bit();
+			readSet[i].clear_read_request_bit();
+			readSet[i].clear_write_request_bit();
 		}
 
                 // cannot use unsigned type in reverse iteration
 		for (int i = int(scanSet.size()) - 1; i >= 0; i--) {
+                        // early return
+			if (scanSet[i].get_scan_processed() == true) {
+				break;
+			}
+
 			const SundialPashaRWKey &scanKey = scanSet[i];
 			scanRequestHandler(scanKey.get_table_id(), scanKey.get_partition_id(), i, scanKey.get_scan_min_key(), scanKey.get_scan_max_key(),
                                         scanKey.get_scan_res_vec());
+                        scanSet[i].set_scan_processed();
 		}
 
 		t_local_work.end();

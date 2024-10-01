@@ -57,6 +57,9 @@ template <class Transaction> class Workload {
                         if (x <= 4) {
                                 p = std::make_unique<OrderStatus<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC OrderStatus";
+                        } else if (x <= 8) {
+                                p = std::make_unique<Delivery<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+				transactionType = "TPCC Delivery";
                         } else if (x <= 50) {
 				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC NewOrder";

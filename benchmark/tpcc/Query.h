@@ -210,6 +210,7 @@ struct PaymentQuery {
 	{
 		return W_ID != C_W_ID;
 	}
+
 	int32_t W_ID;
 	int32_t D_ID;
 	int32_t C_ID;
@@ -218,7 +219,7 @@ struct PaymentQuery {
 	int32_t C_W_ID;
 
 	float H_AMOUNT;
-	int parts[5];
+	int parts[2];
 	int num_parts = 0;
 	int32_t granules[2][10];
 	int32_t part_granule_count[2];
@@ -336,8 +337,9 @@ class makePaymentQuery {
 struct OrderStatusQuery {
 	bool isRemote()
 	{
-		return W_ID != C_W_ID;
+		return false;
 	}
+
 	int32_t W_ID;
 	int32_t D_ID;
 	int32_t C_ID;
@@ -345,27 +347,27 @@ struct OrderStatusQuery {
 	int32_t C_D_ID;
 	int32_t C_W_ID;
 
-	int parts[5];
+        int parts[2];
 	int num_parts = 0;
-	int32_t granules[2][10];
-	int32_t part_granule_count[2];
 
 	int32_t get_part(int i)
 	{
-		DCHECK(i < num_parts);
+                DCHECK(i < num_parts);
 		return parts[i];
 	}
 
 	int32_t get_part_granule_count(int i)
 	{
-		DCHECK(i < num_parts);
-		return part_granule_count[i];
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
 	}
 
 	int32_t get_part_granule(int i, int j)
 	{
-		DCHECK(i < num_parts);
-		return granules[i][j];
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
 	}
 
 	int number_of_parts()
@@ -384,8 +386,7 @@ class makeOrderStatusQuery {
 
 		query.W_ID = W_ID;
 
-		query.parts[0] = W_ID - 1;
-		query.part_granule_count[0] = query.part_granule_count[1] = 0;
+	        query.parts[0] = W_ID - 1;
 		query.num_parts = 1;
 
 		// The district number (D_ID) is randomly selected within [1 ..10] from the
@@ -393,15 +394,10 @@ class makeOrderStatusQuery {
 
 		query.D_ID = random.uniform_dist(1, 10);
 
-		query.granules[0][query.part_granule_count[0]++] = did_to_granule_id(query.D_ID, context);
-		if (query.granules[0][query.part_granule_count[0] - 1] != wid_to_granule_id(query.W_ID, context))
-			query.granules[0][query.part_granule_count[0]++] = wid_to_granule_id(query.W_ID, context);
-
 		// the customer warehouse is always the home warehouse
 
 		// If the system is configured for a single warehouse,
 		// then all customers are selected from that single home warehouse.
-
 
                 // a customer is selected from the selected district number
                 // (C_D_ID = D_ID) and the home warehouse number (C_W_ID = W_ID).
@@ -427,6 +423,70 @@ class makeOrderStatusQuery {
                         // the NURand(1023,1,3000) function.
                         query.C_ID = random.non_uniform_distribution(1023, 1, 3000);
                 }
+
+		return query;
+	}
+};
+
+struct DeliveryQuery {
+	bool isRemote()
+	{
+		return false;
+	}
+
+	int32_t W_ID;
+	int32_t O_CARRIER_ID;
+        uint64_t OL_DELIVERY_D;
+
+        int parts[2];
+	int num_parts = 0;
+
+	int32_t get_part(int i)
+	{
+                DCHECK(i < num_parts);
+		return parts[i];
+	}
+
+	int32_t get_part_granule_count(int i)
+	{
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
+	}
+
+	int32_t get_part_granule(int i, int j)
+	{
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
+	}
+
+	int number_of_parts()
+	{
+		return num_parts;
+	}
+};
+
+class makeDeliveryQuery {
+    public:
+	DeliveryQuery operator()(const Context &context, int32_t W_ID, Random &random) const
+	{
+		DeliveryQuery query;
+
+		// W_ID is constant over the whole measurement interval
+
+		query.W_ID = W_ID;
+
+                query.parts[0] = W_ID - 1;
+		query.num_parts = 1;
+
+                // The carrier number (O_CARRIER_ID) is randomly selected within [1 .. 10]
+
+                query.O_CARRIER_ID = random.uniform_dist(1, 10);
+
+                // The delivery date (OL_DELIVERY_D) is generated within the SUT by using the current system date and time
+
+                query.OL_DELIVERY_D = 2024;
 
 		return query;
 	}
