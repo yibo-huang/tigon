@@ -818,7 +818,6 @@ template <class Transaction> class Delivery : public Transaction {
                         storage->min_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, oldest_undelivered_order_id, 1);
                         storage->max_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, oldest_undelivered_order_id, MAX_ORDER_LINE_PER_ORDER);
 
-                        CHECK(storage->order_line_scan_results[D_ID - 1].size() == 0);
                         this->scan_for_read(orderLineTableID, W_ID - 1, storage->min_order_line_key[D_ID - 1], storage->max_order_line_key[D_ID - 1],
                                         &storage->order_line_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
 
