@@ -58,25 +58,25 @@ template <class Transaction> class Workload {
                         if (x <= 4) {
                                 p = std::make_unique<OrderStatus<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC OrderStatus";
-                        } else if (x <= 8) {
+                        } else if (x <= 4 + 4) {
                                 p = std::make_unique<Delivery<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner, delivery_cur_sub_query_id);
 				transactionType = "TPCC Delivery";
                                 delivery_cur_sub_query_id++;
                                 if (delivery_cur_sub_query_id == DISTRICT_PER_WAREHOUSE)
                                         delivery_cur_sub_query_id = 0;
-                        } else if (x <= 50) {
-				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
-				transactionType = "TPCC NewOrder";
-			} else {
+                        } else if (x <= 4 + 4 + 43) {
 				p = std::make_unique<Payment<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC Payment";
+			} else {
+				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+				transactionType = "TPCC NewOrder";
 			}
 		} else if (context.workloadType == TPCCWorkloadType::NEW_ORDER_ONLY) {
 			p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 			transactionType = "TPCC NewOrder";
 		} else {
 			p = std::make_unique<Payment<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
-			transactionType = "TPCC NewOrder";
+			transactionType = "TPCC Payment";
 		}
 		p->txn_random_seed_start = random_seed;
 		p->transaction_id = next_transaction_id(coordinator_id);
