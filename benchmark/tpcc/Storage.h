@@ -26,8 +26,8 @@ struct Storage {
 	item::key item_keys[15];
 	item::value item_values[15];
 
-	stock::key stock_keys[15];
-	stock::value stock_values[15];
+	stock::key stock_keys[MAX_ORDER_LINE_PER_ORDER * 20];
+	stock::value stock_values[MAX_ORDER_LINE_PER_ORDER * 20];
 
 	new_order::key new_order_key;
         new_order::key min_new_order_key[DISTRICT_PER_WAREHOUSE];

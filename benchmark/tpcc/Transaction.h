@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <unordered_set>
+
 #include "glog/logging.h"
 
 #include "benchmark/tpcc/Database.h"
@@ -870,6 +872,148 @@ template <class Transaction> class Delivery : public Transaction {
 	Storage *storage;
 	std::size_t partition_id;
 	DeliveryQuery query;
+};
+
+template <class Transaction> class StockLevel : public Transaction {
+    public:
+	using DatabaseType = Database;
+	using ContextType = typename DatabaseType::ContextType;
+	using RandomType = typename DatabaseType::RandomType;
+	using StorageType = Storage;
+
+	StockLevel(std::size_t coordinator_id, std::size_t partition_id, DatabaseType &db, const ContextType &context, RandomType &random,
+		Partitioner &partitioner, std::size_t ith_replica = 0)
+		: Transaction(coordinator_id, partition_id, partitioner, ith_replica)
+		, db(db)
+		, context(context)
+		, random(random)
+		, partition_id(partition_id)
+		, query(makeStockLevelQuery()(context, partition_id + 1, random))
+	{
+		storage = get_storage();
+	}
+
+	virtual ~StockLevel()
+	{
+		put_storage(storage);
+		storage = nullptr;
+	}
+
+	virtual int32_t get_partition_count() override
+	{
+		return query.number_of_parts();
+	}
+
+	virtual int32_t get_partition(int i) override
+	{
+		return query.get_part(i);
+	}
+
+	virtual int32_t get_partition_granule_count(int i) override
+	{
+		return query.get_part_granule_count(i);
+	}
+
+	virtual int32_t get_granule(int partition_id, int j) override
+	{
+		return query.get_part_granule(partition_id, j);
+	}
+
+	virtual bool is_single_partition() override
+	{
+		return query.number_of_parts() == 1;
+	}
+
+	virtual const std::string serialize(std::size_t ith_replica = 0) override
+	{
+		std::string res;
+		uint32_t txn_type = 1;
+		Encoder encoder(res);
+		encoder << this->transaction_id << txn_type << this->straggler_wait_time << ith_replica << this->txn_random_seed_start << partition_id;
+		Transaction::serialize_lock_status(encoder);
+		return res;
+	}
+
+	TransactionResult execute(std::size_t worker_id) override
+	{
+                storage->cleanup();
+		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
+		int32_t W_ID = this->partition_id + 1;
+                int32_t D_ID = query.D_ID;
+
+                // The row in the DISTRICT table with matching D_W_ID and D_ID is selected and D_NEXT_O_ID is retrieved.
+                auto districtTableID = district::tableID;
+		storage->district_key = district::key(W_ID, D_ID);
+		this->search_for_read(districtTableID, W_ID - 1, storage->district_key, storage->district_value, did_to_granule_id(D_ID, context));
+
+                t_local_work.end();
+                if (this->process_requests(worker_id)) {
+                        return TransactionResult::ABORT;
+                }
+                t_local_work.reset();
+
+                auto D_NEXT_O_ID = storage->district_value.D_NEXT_O_ID;
+
+                // All rows in the ORDER-LINE table with matching OL_W_ID (equals W_ID), OL_D_ID (equals D_ID),
+                // and OL_O_ID (lower than D_NEXT_O_ID and greater than or equal to D_NEXT_O_ID minus 20) are selected.
+                // They are the items for 20 recent orders of the district.
+
+                auto orderLineTableID = order_line::tableID;
+                storage->min_order_line_key[0] = order_line::key(W_ID, D_ID, D_NEXT_O_ID - 20, 1);
+                storage->max_order_line_key[0] = order_line::key(W_ID, D_ID, D_NEXT_O_ID, MAX_ORDER_LINE_PER_ORDER);
+                this->scan_for_read(orderLineTableID, W_ID - 1, storage->min_order_line_key[0], storage->max_order_line_key[0],
+                                &storage->order_line_scan_results[0], did_to_granule_id(D_ID, context));
+
+                t_local_work.end();
+                if (this->process_requests(worker_id)) {
+                        return TransactionResult::ABORT;
+                }
+                t_local_work.reset();
+
+                // All rows in the STOCK table with matching S_I_ID (equals OL_I_ID) and S_W_ID (equals W_ID) from the
+                // list of distinct item numbers and with S_QUANTITY lower than threshold are counted (giving low_stock).
+
+                // get distinct item numbers
+                std::unordered_set<int32_t> item_id_set;
+                for (int i = 0; i < storage->order_line_scan_results[0].size(); i++) {
+                        auto order_line = storage->order_line_scan_results[0][i];
+                        const auto order_line_value = *static_cast<const order_line::value *>(std::get<2>(order_line));
+                        auto S_I_ID = order_line_value.OL_I_ID;
+                        item_id_set.insert(S_I_ID);
+                        const auto order_line_key = *static_cast<const order_line::key *>(std::get<0>(order_line));
+                }
+
+                int i = 0;
+                for (auto item_id : item_id_set) {
+                        auto stockTableID = stock::tableID;
+                        auto S_W_ID = W_ID;
+                        auto S_I_ID = item_id;
+                        storage->stock_keys[i] = stock::key(S_W_ID, S_I_ID);
+                        this->search_for_read(stockTableID, W_ID - 1, storage->stock_keys[i], storage->stock_values[i], did_to_granule_id(D_ID, context));
+                        i++;
+                }
+
+                t_local_work.end();
+                if (this->process_requests(worker_id)) {
+                        return TransactionResult::ABORT;
+                }
+                t_local_work.reset();
+
+		return TransactionResult::READY_TO_COMMIT;
+	}
+
+	void reset_query() override
+	{
+		query = makeStockLevelQuery()(context, partition_id, random);
+	}
+
+    private:
+	DatabaseType &db;
+	const ContextType &context;
+	RandomType random;
+	Storage *storage;
+	std::size_t partition_id;
+	StockLevelQuery query;
 };
 
 } // namespace tpcc

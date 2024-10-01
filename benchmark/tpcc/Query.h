@@ -496,5 +496,68 @@ class makeDeliveryQuery {
 	}
 };
 
+struct StockLevelQuery {
+	bool isRemote()
+	{
+		return false;
+	}
+
+	int32_t W_ID;
+	int32_t D_ID;
+        uint64_t threshold;
+
+        int parts[2];
+	int num_parts = 0;
+
+	int32_t get_part(int i)
+	{
+                DCHECK(i < num_parts);
+		return parts[i];
+	}
+
+	int32_t get_part_granule_count(int i)
+	{
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
+	}
+
+	int32_t get_part_granule(int i, int j)
+	{
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
+	}
+
+	int number_of_parts()
+	{
+		return num_parts;
+	}
+};
+
+class makeStockLevelQuery {
+    public:
+	StockLevelQuery operator()(const Context &context, int32_t W_ID, Random &random) const
+	{
+		StockLevelQuery query;
+
+		// Each terminal must use a unique value of (W_ID, D_ID) that is constant over the whole measurement,
+                // i.e., D_IDs cannot be re-used within a warehouse.
+
+		query.W_ID = W_ID;
+
+                query.parts[0] = W_ID - 1;
+		query.num_parts = 1;
+
+                query.D_ID = random.uniform_dist(1, 10);
+
+                // The threshold of minimum quantity in stock (threshold) is selected at random within [10 .. 20].
+
+                query.threshold = random.uniform_dist(10, 20);
+
+		return query;
+	}
+};
+
 } // namespace tpcc
 } // namespace star

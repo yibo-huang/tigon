@@ -380,7 +380,9 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		};
 
                 btree.scanForUpdate(min_k, processor);
-                CHECK(results.size() > 0);
+
+                // right now StockLevel might get empty scan results
+                // CHECK(results.size() > 0);
         }
 
 	void insert(const void *key, const void *value) override

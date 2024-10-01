@@ -64,7 +64,10 @@ template <class Transaction> class Workload {
                                 delivery_cur_sub_query_id++;
                                 if (delivery_cur_sub_query_id == DISTRICT_PER_WAREHOUSE)
                                         delivery_cur_sub_query_id = 0;
-                        } else if (x <= 4 + 4 + 43) {
+                        } else if (x <= 4 + 4 + 4) {
+				p = std::make_unique<StockLevel<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+				transactionType = "TPCC StockLevel";
+                        } else if (x <= 4 + 4 + 4 + 43) {
 				p = std::make_unique<Payment<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC Payment";
 			} else {
