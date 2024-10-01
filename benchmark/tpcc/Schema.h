@@ -195,7 +195,7 @@ DO_STRUCT(order_customer, ORDER_CUST_KEY_FIELDS, ORDER_CUST_VALUE_FIELDS, NAMESP
 #define ORDER_LINE_GET_PLAIN_KEY_FUNC                                                                                                                           \
         uint64_t get_plain_key() const                                                                                                                          \
         {                                                                                                                                                       \
-                return ((OL_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + OL_D_ID) * ((uint64_t)MAX_ORDER_ID + OL_O_ID)) * (MAX_ORDER_LINE_PER_ORDER + 1) + OL_NUMBER;  \
+                return ((OL_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + OL_D_ID) * (uint64_t)MAX_ORDER_ID + OL_O_ID) * (MAX_ORDER_LINE_PER_ORDER + 1) + OL_NUMBER;  \
         }
 
 DO_STRUCT(order_line, ORDER_LINE_KEY_FIELDS, ORDER_LINE_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_LINE_GET_PLAIN_KEY_FUNC)
