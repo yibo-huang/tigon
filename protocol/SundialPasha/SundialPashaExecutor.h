@@ -171,14 +171,14 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                                 void *results) {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         auto value_size = table->value_size();
-                        bool local_read = false;
+                        bool local_scan = false;
 
 			if (this->partitioner->has_master_partition(partition_id) ||
 			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
-				local_read = true;
+				local_scan = true;
 			}
 
-			if (local_read) {
+			if (local_scan) {
 				table->scan(min_key, max_key, results);
 			} else {
                                 CHECK(0);      // right now we only support local scan
