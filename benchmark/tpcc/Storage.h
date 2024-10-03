@@ -30,6 +30,7 @@ struct Storage {
 	stock::value stock_values[MAX_ORDER_LINE_PER_ORDER * 20];
 
 	new_order::key new_order_key;
+        new_order::value new_order_value;
         new_order::key min_new_order_key[DISTRICT_PER_WAREHOUSE];
         new_order::key max_new_order_key[DISTRICT_PER_WAREHOUSE];
         std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > new_order_scan_results[DISTRICT_PER_WAREHOUSE];

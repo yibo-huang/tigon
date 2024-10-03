@@ -189,8 +189,8 @@ template <class Transaction> class NewOrder : public Transaction {
 		if (this->process_requests(worker_id)) {
 			return TransactionResult::ABORT;
 		}
-
 		t_local_work.reset();
+
 		float W_TAX = storage->warehouse_value.W_TAX;
 
 		float D_TAX = storage->district_value.D_TAX;

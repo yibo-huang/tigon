@@ -164,17 +164,17 @@ DO_STRUCT(history, HISTORY_KEY_FIELDS, HISTORY_VALUE_FIELDS, NAMESPACE_FIELDS, H
 #define NEW_ORDER_GET_PLAIN_KEY_FUNC                                                                                    \
         uint64_t get_plain_key() const                                                                                  \
         {                                                                                                               \
-                return (NO_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + NO_D_ID) * (ORDER_PER_DISTRICT + 1) + NO_O_ID;         \
+                return (NO_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + NO_D_ID) * ((uint64_t)MAX_ORDER_ID + 1) + NO_O_ID;     \
         }
 
 DO_STRUCT(new_order, NEW_ORDER_KEY_FIELDS, NEW_ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, NEW_ORDER_GET_PLAIN_KEY_FUNC)
 
 #define ORDER_KEY_FIELDS(x, y) x(int32_t, O_W_ID) y(int32_t, O_D_ID) y(int32_t, O_ID)
 #define ORDER_VALUE_FIELDS(x, y) x(float, O_C_ID) y(uint64_t, O_ENTRY_D) y(int32_t, O_CARRIER_ID) y(int8_t, O_OL_CNT) y(bool, O_ALL_LOCAL)
-#define ORDER_GET_PLAIN_KEY_FUNC                                                                                \
-        uint64_t get_plain_key() const                                                                          \
-        {                                                                                                       \
-                return (O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (ORDER_PER_DISTRICT + 1) + O_ID;      \
+#define ORDER_GET_PLAIN_KEY_FUNC                                                                                        \
+        uint64_t get_plain_key() const                                                                                  \
+        {                                                                                                               \
+                return (O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * ((uint64_t)MAX_ORDER_ID + 1) + O_ID;          \
         }
 
 DO_STRUCT(order, ORDER_KEY_FIELDS, ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_GET_PLAIN_KEY_FUNC)
