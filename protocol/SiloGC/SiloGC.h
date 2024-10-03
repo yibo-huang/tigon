@@ -60,7 +60,7 @@ template <class Database> class SiloGC {
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 				SiloHelper::unlock(tid);
 			} else {
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -109,7 +109,7 @@ template <class Database> class SiloGC {
 			// lock local records
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 				bool success;
 				uint64_t latestTid = SiloHelper::lock(tid, success);
 
@@ -174,7 +174,7 @@ template <class Database> class SiloGC {
 
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = readKey.get_key();
-				uint64_t tid = table->search_metadata(key).load();
+				uint64_t tid = table->search_metadata(key)->load();
 				if (SiloHelper::remove_lock_bit(tid) != readKey.get_tid()) {
 					txn.abort_read_validation = true;
 					break;
@@ -255,7 +255,7 @@ template <class Database> class SiloGC {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 				table->update(key, value);
 				SiloHelper::unlock(tid, commit_tid);
 			} else {
@@ -285,7 +285,7 @@ template <class Database> class SiloGC {
 				if (k == txn.coordinator_id) {
 					auto key = writeKey.get_key();
 					auto value = writeKey.get_value();
-					std::atomic<uint64_t> &tid = table->search_metadata(key);
+					std::atomic<uint64_t> &tid = *table->search_metadata(key);
 
 					uint64_t last_tid = SiloHelper::lock(tid);
 

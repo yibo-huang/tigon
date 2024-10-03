@@ -55,7 +55,7 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 			if (this->partitioner->has_master_partition(partition_id)) {
 				remote = false;
 
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 
 				if (write_lock) {
 					TwoPLHelper::write_lock(tid, success);

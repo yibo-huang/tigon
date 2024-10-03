@@ -127,7 +127,7 @@ template <class Database> class StarMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		std::atomic<uint64_t> &tid = table.search_metadata(key);
+		std::atomic<uint64_t> &tid = *table.search_metadata(key);
 
 		uint64_t last_tid = SiloHelper::lock(tid);
 
@@ -171,7 +171,7 @@ template <class Database> class StarMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		std::atomic<uint64_t> &tid = table.search_metadata(key);
+		std::atomic<uint64_t> &tid = *table.search_metadata(key);
 
 		uint64_t last_tid = SiloHelper::lock(tid);
 		DCHECK(last_tid < commit_tid);

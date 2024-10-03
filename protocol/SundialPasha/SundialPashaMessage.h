@@ -247,7 +247,7 @@ class SundialPashaMessageHandler {
 		// auto row = table.search(key);
 		// SundialPashaHelper::replica_update(row, valueStringPiece.data(), field_size, commit_ts);
 
-		// std::atomic<uint64_t> &tid = table.search_metadata(key);
+		// std::atomic<uint64_t> &tid = *table.search_metadata(key);
 
 		// uint64_t last_tid = SundialPashaHelper::lock(tid);
 		// DCHECK(last_tid < commit_tid);

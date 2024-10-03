@@ -59,7 +59,7 @@ template <class Database> class Star {
 			auto partitionId = writeKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
 			auto key = writeKey.get_key();
-			std::atomic<uint64_t> &tid = table->search_metadata(key);
+			std::atomic<uint64_t> &tid = *table->search_metadata(key);
 			SiloHelper::unlock(tid);
 		}
 	}
@@ -99,7 +99,7 @@ template <class Database> class Star {
 			auto table = db.find_table(tableId, partitionId);
 
 			auto key = writeKey.get_key();
-			std::atomic<uint64_t> &tid = table->search_metadata(key);
+			std::atomic<uint64_t> &tid = *table->search_metadata(key);
 
 			bool success;
 			uint64_t latestTid = SiloHelper::lock(tid, success);
@@ -149,7 +149,7 @@ template <class Database> class Star {
 			auto partitionId = readKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
 			auto key = readKey.get_key();
-			uint64_t tid = table->search_metadata(key).load();
+			uint64_t tid = table->search_metadata(key)->load();
 
 			if (SiloHelper::remove_lock_bit(tid) != readKey.get_tid()) {
 				txn.abort_read_validation = true;
@@ -222,7 +222,7 @@ template <class Database> class Star {
 			auto key = writeKey.get_key();
 			auto value = writeKey.get_value();
 
-			std::atomic<uint64_t> &tid = table->search_metadata(key);
+			std::atomic<uint64_t> &tid = *table->search_metadata(key);
 			tids.push_back(&tid);
 			table->update(key, value);
 		}

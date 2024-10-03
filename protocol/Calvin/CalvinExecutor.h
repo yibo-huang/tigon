@@ -593,7 +593,7 @@ template <class Workload> class CalvinExecutor : public Worker {
 				auto partition_id = key.get_partition_id();
 				auto table_id = key.get_table_id();
 				auto table = db.find_table(table_id, partition_id);
-				const std::atomic<uint64_t> &meta = table->search_metadata(key.get_key());
+				const std::atomic<uint64_t> &meta = *table->search_metadata(key.get_key());
 				if (key.get_read_lock_bit()) {
 					if (CalvinHelper::is_write_locked(meta.load())) {
 						can_obtain_all_the_locks = false;
@@ -612,7 +612,7 @@ template <class Workload> class CalvinExecutor : public Worker {
 					auto partition_id = key.get_partition_id();
 					auto table_id = key.get_table_id();
 					auto table = db.find_table(table_id, partition_id);
-					std::atomic<uint64_t> &meta = table->search_metadata(key.get_key());
+					std::atomic<uint64_t> &meta = *table->search_metadata(key.get_key());
 
 					if (key.get_read_lock_bit()) {
 						DCHECK(CalvinHelper::is_write_locked(meta.load()) == false);
@@ -645,7 +645,7 @@ template <class Workload> class CalvinExecutor : public Worker {
 					auto partition_id = key.get_partition_id();
 					auto table_id = key.get_table_id();
 					auto table = db.find_table(table_id, partition_id);
-					std::atomic<uint64_t> &meta = table->search_metadata(key.get_key());
+					std::atomic<uint64_t> &meta = *table->search_metadata(key.get_key());
 
 					if (key.get_read_lock_bit()) {
 						DCHECK(CalvinHelper::is_write_locked(meta.load()) == false);

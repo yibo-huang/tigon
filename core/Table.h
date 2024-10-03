@@ -37,11 +37,11 @@ class ITable {
 
 	virtual void *search_value(const void *key) = 0;
 
-	virtual MetaDataType &search_metadata(const void *key) = 0;
+	virtual MetaDataType *search_metadata(const void *key) = 0;
 
         virtual void scan(const void *min_key, const void *max_key, void *results) = 0;
 
-	virtual void insert(const void *key, const void *value) = 0;
+	virtual bool insert(const void *key, const void *value) = 0;
 
 	virtual void update(
 		const void *key, const void *value, std::function<void(const void *, const void *)> on_update = [](const void *, const void *) {}) = 0;
@@ -144,11 +144,11 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		return &std::get<1>(map_[k]);
 	}
 
-	MetaDataType &search_metadata(const void *key) override
+	MetaDataType *search_metadata(const void *key) override
 	{
 		tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
-		return std::get<0>(map_[k]);
+		return &std::get<0>(map_[k]);
 	}
 
 	bool contains(const void *key) override
@@ -163,8 +163,9 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
                 CHECK(0);
         }
 
-	void insert(const void *key, const void *value) override
+        bool insert(const void *key, const void *value) override
 	{
+                // hash table does not handle concurrent inserts, so it will always succeed
 		tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
@@ -173,6 +174,8 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		auto &row = map_[k];
 		std::get<0>(row).store(MetaInitFunc()());
 		std::get<1>(row) = v;
+
+                return true;
 	}
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
@@ -293,6 +296,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 
                 MetaDataType meta;
                 ValueType value;
+                bool is_valid = true;
         };
 
         using BTree = btreeolc::BPlusTree<KeyType, BTreeOLCValue, KeyComparator, TupleValueComparator, update_threshold, leaf_page_size, inner_page_size>;
@@ -321,8 +325,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-                MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&row_ptr->meta);
-		return std::make_tuple(meta_ptr, &row_ptr->value);
+                if (row_ptr->is_valid == true) {
+                        MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&row_ptr->meta);
+                        return std::make_tuple(meta_ptr, &row_ptr->value);
+                } else {
+                        return std::make_tuple(nullptr, nullptr);
+                }
 	}
 
 	void *search_value(const void *key) override
@@ -334,10 +342,14 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-		return &row_ptr->value;
+                if (row_ptr->is_valid == true) {
+                        return &row_ptr->value;
+                } else {
+                        return nullptr;
+                }
 	}
 
-	MetaDataType &search_metadata(const void *key) override
+	MetaDataType *search_metadata(const void *key) override
 	{
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
@@ -345,7 +357,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-		return row_ptr->meta;
+                if (row_ptr->is_valid == true) {
+                        return &row_ptr->meta;
+                } else {
+                        return nullptr;
+                }
 	}
 
 	bool contains(const void *key) override
@@ -385,7 +401,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 // CHECK(results.size() > 0);
         }
 
-	void insert(const void *key, const void *value) override
+	bool insert(const void *key, const void *value) override
 	{
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
@@ -396,7 +412,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 row.value = v;
 
 		bool success = btree.insert(k, row);
-		CHECK(success == true);
+		return success;
 	}
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
@@ -527,10 +543,10 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		return &map_[k];
 	}
 
-	MetaDataType &search_metadata(const void *key) override
+	MetaDataType *search_metadata(const void *key) override
 	{
 		static MetaDataType v;
-		return v;
+		return &v;
 	}
 
 	bool contains(const void *key) override
@@ -545,7 +561,7 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
                 CHECK(0);
         }
 
-	void insert(const void *key, const void *value) override
+	bool insert(const void *key, const void *value) override
 	{
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
@@ -553,6 +569,8 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		DCHECK(ok == false);
 		auto &row = map_[k];
 		row = v;
+
+                return true;
 	}
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
@@ -649,10 +667,10 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		return &map_[k];
 	}
 
-	MetaDataType &search_metadata(const void *key) override
+	MetaDataType *search_metadata(const void *key) override
 	{
 		static MetaDataType v;
-		return v;
+		return &v;
 	}
 
 	bool contains(const void *key) override
@@ -667,7 +685,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
                 CHECK(0);
         }
 
-	void insert(const void *key, const void *value) override
+	bool insert(const void *key, const void *value) override
 	{
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
@@ -675,6 +693,8 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		DCHECK(ok == false);
 		auto &row = map_[k];
 		std::get<1>(row) = v;
+
+                return true;
 	}
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override

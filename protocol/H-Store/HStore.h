@@ -68,7 +68,7 @@ template <class Database> class HStore {
 					if (partitioner.has_master_partition(partitionId)) {
 						auto key = readKey.get_key();
 						auto value = readKey.get_value();
-						std::atomic<uint64_t> &tid = table->search_metadata(key);
+						std::atomic<uint64_t> &tid = *table->search_metadata(key);
 						TwoPLHelper::read_lock_release(tid);
 					} else {
 						auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -81,7 +81,7 @@ template <class Database> class HStore {
 					if (partitioner.has_master_partition(partitionId)) {
 						auto key = readKey.get_key();
 						auto value = readKey.get_value();
-						std::atomic<uint64_t> &tid = table->search_metadata(key);
+						std::atomic<uint64_t> &tid = *table->search_metadata(key);
 						TwoPLHelper::write_lock_release(tid);
 					} else {
 						auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -193,7 +193,7 @@ template <class Database> class HStore {
 					if (partitioner.has_master_partition(partitionId)) {
 						auto key = readKey.get_key();
 						auto value = readKey.get_value();
-						std::atomic<uint64_t> &tid = table->search_metadata(key);
+						std::atomic<uint64_t> &tid = *table->search_metadata(key);
 						TwoPLHelper::read_lock_release(tid);
 					} else {
 						txn.pendingResponses++;
@@ -215,7 +215,7 @@ template <class Database> class HStore {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = writeKey.get_key();
 					auto value = writeKey.get_value();
-					std::atomic<uint64_t> &tid = table->search_metadata(key);
+					std::atomic<uint64_t> &tid = *table->search_metadata(key);
 					table->update(key, value);
 					TwoPLHelper::write_lock_release(tid, commit_tid);
 				} else {

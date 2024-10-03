@@ -629,7 +629,8 @@ class Database {
 		value.W_TAX = static_cast<float>(random.uniform_dist(0, 2000)) / 10000;
 		value.W_YTD = 30000;
 
-		table->insert(&key, &value);
+		bool success = table->insert(&key, &value);
+                CHECK(success == true);
 	}
 
 	void districtInit(std::size_t partitionID)
@@ -655,7 +656,8 @@ class Database {
 			value.D_YTD = 30000;
 			value.D_NEXT_O_ID = 3001;
 
-			table->insert(&key, &value);
+			bool success = table->insert(&key, &value);
+                        CHECK(success == true);
 		}
 	}
 
@@ -712,7 +714,8 @@ class Database {
 					value.C_CREDIT.assign("GC");
 				}
 
-				table->insert(&key, &value);
+				bool success = table->insert(&key, &value);
+                                CHECK(success == true);
 			}
 		}
 	}
@@ -749,7 +752,8 @@ class Database {
 				// insert ceiling(n/2) to customer_last_name_idx, n starts from 1
 				customer_name_idx::key cni_key(partitionID + 1, i, it->first);
 				customer_name_idx::value cni_value(v[(v.size() - 1) / 2].second);
-				table->insert(&cni_key, &cni_value);
+				bool success = table->insert(&cni_key, &cni_value);
+                                CHECK(success == true);
 			}
 		}
 	}
@@ -778,7 +782,8 @@ class Database {
 				value.H_AMOUNT = 10;
 				value.H_DATA.assign(random.a_string(12, 24));
 
-				table->insert(&key, &value);
+				bool success = table->insert(&key, &value);
+                                CHECK(success == true);
 			}
 		}
 	}
@@ -802,7 +807,8 @@ class Database {
 
 				new_order::value value;
 
-				table->insert(&key, &value);
+				bool success = table->insert(&key, &value);
+                                CHECK(success == true);
 			}
 		}
 	}
@@ -842,7 +848,8 @@ class Database {
 					value.O_CARRIER_ID = 0;
 				}
 
-				table->insert(&key, &value);
+				bool success = table->insert(&key, &value);
+                                CHECK(success == true);
 			}
 		}
 	}
@@ -874,7 +881,8 @@ class Database {
                                 order_cust_key.O_C_ID = order_value.O_C_ID;
                                 order_cust_key.O_ID = order_key.O_ID;
 
-                                table->insert(&order_cust_key, &order_value);
+                                bool success = table->insert(&order_cust_key, &order_value);
+                                CHECK(success == true);
                         }
                 }
 
@@ -933,7 +941,8 @@ class Database {
 						value.OL_DELIVERY_D = 0;
 						value.OL_AMOUNT = static_cast<float>(random.uniform_dist(1, 999999)) / 100;
 					}
-					table->insert(&key, &value);
+					bool success = table->insert(&key, &value);
+                                        CHECK(success == true);
 				}
 			}
 		}
@@ -985,7 +994,8 @@ class Database {
 
 			value.I_DATA.assign(i_data);
 
-			table->insert(&key, &value);
+			bool success = table->insert(&key, &value);
+                        CHECK(success == true);
 		}
 	}
 
@@ -1037,7 +1047,8 @@ class Database {
 
 			value.S_DATA.assign(s_data);
 
-			table->insert(&key, &value);
+			bool success = table->insert(&key, &value);
+                        CHECK(success == true);
 		}
 	}
 

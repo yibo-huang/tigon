@@ -61,7 +61,7 @@ template <class Database> class Silo {
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 				SiloHelper::unlock(tid);
 			} else {
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -146,7 +146,7 @@ template <class Database> class Silo {
 			// lock local records
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 				bool success;
 				uint64_t latestTid = SiloHelper::lock(tid, success);
 
@@ -216,7 +216,7 @@ template <class Database> class Silo {
 
 				DCHECK(partitioner.has_master_partition(partitionId));
 
-				uint64_t latest_tid = table->search_metadata(key).load();
+				uint64_t latest_tid = table->search_metadata(key)->load();
 				if (SiloHelper::remove_lock_bit(latest_tid) != tid) {
 					txn.abort_read_validation = true;
 					break;
@@ -291,7 +291,7 @@ template <class Database> class Silo {
 						auto key = readKey.get_key();
 						auto tid = readKey.get_tid();
 
-						uint64_t latest_tid = table->search_metadata(key).load();
+						uint64_t latest_tid = table->search_metadata(key)->load();
 						if (SiloHelper::remove_lock_bit(latest_tid) != tid) {
 							txn.abort_read_validation = true;
 							break;
@@ -374,7 +374,7 @@ template <class Database> class Silo {
 			auto tid = readKey.get_tid();
 
 			if (partitioner.has_master_partition(partitionId)) {
-				uint64_t latest_tid = table->search_metadata(key).load();
+				uint64_t latest_tid = table->search_metadata(key)->load();
 				if (SiloHelper::remove_lock_bit(latest_tid) != tid) {
 					txn.abort_read_validation = true;
 					break;
@@ -529,7 +529,7 @@ template <class Database> class Silo {
 				if (k == txn.coordinator_id) {
 					auto key = writeKey.get_key();
 					auto value = writeKey.get_value();
-					std::atomic<uint64_t> &tid = table->search_metadata(key);
+					std::atomic<uint64_t> &tid = *table->search_metadata(key);
 
 					uint64_t last_tid = SiloHelper::lock(tid);
 					DCHECK(last_tid < commit_tid);
@@ -566,7 +566,7 @@ template <class Database> class Silo {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
-				std::atomic<uint64_t> &tid = table->search_metadata(key);
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
 				table->update(key, value);
 				SiloHelper::unlock(tid, commit_tid);
 			} else {

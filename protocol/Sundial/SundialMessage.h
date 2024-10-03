@@ -473,7 +473,7 @@ class SundialMessageHandler {
 		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + sizeof(key_offset));
 
 		const void *key = stringPiece.data();
-		std::atomic<uint64_t> &tid = table.search_metadata(key);
+		std::atomic<uint64_t> &tid = *table.search_metadata(key);
 
 		bool success;
 		uint64_t latest_tid = SundialHelper::lock(tid, success);
@@ -663,7 +663,7 @@ class SundialMessageHandler {
 
 		auto stringPiece = inputPiece.toStringPiece();
 		const void *key = stringPiece.data();
-		auto latest_tid = table.search_metadata(key).load();
+		auto latest_tid = table.search_metadata(key)->load();
 		stringPiece.remove_prefix(key_size);
 
 		uint32_t key_offset;
@@ -765,7 +765,7 @@ class SundialMessageHandler {
 
 		auto stringPiece = inputPiece.toStringPiece();
 		const void *key = stringPiece.data();
-		std::atomic<uint64_t> &tid = table.search_metadata(key);
+		std::atomic<uint64_t> &tid = *table.search_metadata(key);
 
 		// unlock the key
 		SundialHelper::unlock(tid);
@@ -873,7 +873,7 @@ class SundialMessageHandler {
 		// auto row = table.search(key);
 		// SundialHelper::replica_update(row, valueStringPiece.data(), field_size, commit_ts);
 
-		// std::atomic<uint64_t> &tid = table.search_metadata(key);
+		// std::atomic<uint64_t> &tid = *table.search_metadata(key);
 
 		// uint64_t last_tid = SundialHelper::lock(tid);
 		// DCHECK(last_tid < commit_tid);
@@ -946,7 +946,7 @@ class SundialMessageHandler {
 		dec >> commit_tid;
 		DCHECK(dec.size() == 0);
 
-		std::atomic<uint64_t> &tid = table.search_metadata(key);
+		std::atomic<uint64_t> &tid = *table.search_metadata(key);
 		SundialHelper::unlock(tid, commit_tid);
 	}
 

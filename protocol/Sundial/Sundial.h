@@ -406,7 +406,7 @@ template <class Database> class Sundial {
 			auto tid = readKey.get_tid();
 
 			if (partitioner.has_master_partition(partitionId)) {
-				uint64_t latest_tid = table->search_metadata(key).load();
+				uint64_t latest_tid = table->search_metadata(key)->load();
 				if (SiloHelper::remove_lock_bit(latest_tid) != tid) {
 					txn.abort_read_validation = true;
 					break;

@@ -37,7 +37,7 @@ class AriaHelper {
 	{
 		auto tid = key.get_tid();
 		if (!tid) {
-			tid = &table->search_metadata(key.get_key());
+			tid = table->search_metadata(key.get_key());
 		}
 		return *tid;
 	}

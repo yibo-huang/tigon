@@ -230,7 +230,8 @@ class Database {
 				value.Y_F09.assign(random.a_string(YCSB_FIELD_SIZE, YCSB_FIELD_SIZE));
 				value.Y_F10.assign(random.a_string(YCSB_FIELD_SIZE, YCSB_FIELD_SIZE));
 
-				table->insert(&key, &value);
+				bool success = table->insert(&key, &value);
+                                CHECK(success == true);
 			}
 
 		} else {
@@ -252,7 +253,8 @@ class Database {
 				value.Y_F09.assign(random.a_string(YCSB_FIELD_SIZE, YCSB_FIELD_SIZE));
 				value.Y_F10.assign(random.a_string(YCSB_FIELD_SIZE, YCSB_FIELD_SIZE));
 
-				table->insert(&key, &value);
+				bool success = table->insert(&key, &value);
+                                CHECK(success == true);
 			}
 		}
 	}

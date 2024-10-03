@@ -220,7 +220,7 @@ class AriaMessageHandler {
 
 		// get metadata, tid, epoch and is_write
 		const void *key = stringPiece.data();
-		std::atomic<uint64_t> &metadata = table.search_metadata(key);
+		std::atomic<uint64_t> &metadata = *table.search_metadata(key);
 
 		stringPiece.remove_prefix(key_size);
 		star::Decoder dec(stringPiece);
@@ -260,7 +260,7 @@ class AriaMessageHandler {
 
 		// get row, tid and offset
 		const void *key = stringPiece.data();
-		uint64_t metadata = table.search_metadata(key).load();
+		uint64_t metadata = table.search_metadata(key)->load();
 
 		stringPiece.remove_prefix(key_size);
 		star::Decoder dec(stringPiece);
