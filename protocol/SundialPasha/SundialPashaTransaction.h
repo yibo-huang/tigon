@@ -274,6 +274,33 @@ class SundialPashaTransaction {
 		add_to_scan_set(scanKey);
 	}
 
+        template <class KeyType, class ValueType>
+	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
+	{
+		SundialPashaRWKey insertKey;
+
+		insertKey.set_table_id(table_id);
+		insertKey.set_partition_id(partition_id);
+
+                insertKey.set_key(&key);
+                insertKey.set_value(&value);
+
+		add_to_insert_set(insertKey);
+	}
+
+        template <class KeyType>
+	void delete_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, std::size_t granule_id = 0)
+	{
+		SundialPashaRWKey deleteKey;
+
+		deleteKey.set_table_id(table_id);
+		deleteKey.set_partition_id(partition_id);
+
+                deleteKey.set_key(&key);
+
+		add_to_delete_set(deleteKey);
+	}
+
 	bool process_requests(std::size_t worker_id, bool last_call_in_transaction = true)
 	{
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
@@ -352,6 +379,18 @@ class SundialPashaTransaction {
 	{
 		scanSet.push_back(key);
 		return scanSet.size() - 1;
+	}
+
+        std::size_t add_to_insert_set(const SundialPashaRWKey &key)
+	{
+		insertSet.push_back(key);
+		return insertSet.size() - 1;
+	}
+
+        std::size_t add_to_delete_set(const SundialPashaRWKey &key)
+	{
+		deleteSet.push_back(key);
+		return deleteSet.size() - 1;
 	}
 
     public:

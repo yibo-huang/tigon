@@ -259,6 +259,18 @@ class SiloTransaction {
                 CHECK(0);
 	}
 
+        template <class KeyType, class ValueType>
+	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, const ValueType &value, std::size_t granule_id = 0)
+	{
+		CHECK(0);
+	}
+
+        template <class KeyType>
+	void delete_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, std::size_t granule_id = 0)
+	{
+		CHECK(0);
+	}
+
 	bool process_requests(std::size_t worker_id, bool last_call_in_transaction = true)
 	{
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });

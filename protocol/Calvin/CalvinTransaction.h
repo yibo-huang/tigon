@@ -308,6 +308,18 @@ class CalvinTransaction {
                 CHECK(0);
 	}
 
+        template <class KeyType, class ValueType>
+	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, const ValueType &value, std::size_t granule_id = 0)
+	{
+		CHECK(0);
+	}
+
+        template <class KeyType>
+	void delete_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, std::size_t granule_id = 0)
+	{
+		CHECK(0);
+	}
+
 	std::size_t add_to_read_set(const CalvinRWKey &key)
 	{
 		readSet.push_back(key);
