@@ -210,6 +210,7 @@ class SundialPashaRWKey {
                 this->scan_results = results;
 	}
 
+        // processed or not
         bool get_processed() const
 	{
                 return this->processed;
@@ -220,6 +221,7 @@ class SundialPashaRWKey {
                 this->processed = true;
 	}
 
+        // reference counting
         bool get_reference_counted()
 	{
 		return reference_counted;

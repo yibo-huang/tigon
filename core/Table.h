@@ -41,7 +41,11 @@ class ITable {
 
         virtual void scan(const void *min_key, const void *max_key, void *results) = 0;
 
-	virtual bool insert(const void *key, const void *value) = 0;
+	virtual bool insert(const void *key, const void *value, bool is_placeholder = false) = 0;
+
+        virtual void make_placeholder_valid(const void *key) = 0;
+
+        virtual bool remove(const void *key) = 0;
 
 	virtual void update(
 		const void *key, const void *value, std::function<void(const void *, const void *)> on_update = [](const void *, const void *) {}) = 0;
@@ -130,6 +134,7 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
                 CHECK(map_.contains(k) == true);
@@ -139,6 +144,7 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 
 	void *search_value(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 		return &std::get<1>(map_[k]);
@@ -146,6 +152,7 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 
 	MetaDataType *search_metadata(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 		return &std::get<0>(map_[k]);
@@ -163,7 +170,7 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
                 CHECK(0);
         }
 
-        bool insert(const void *key, const void *value) override
+        bool insert(const void *key, const void *value, bool is_placeholder = false) override
 	{
                 // hash table does not handle concurrent inserts, so it will always succeed
 		tid_check();
@@ -177,6 +184,16 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 
                 return true;
 	}
+
+        void make_placeholder_valid(const void *key) override
+        {
+                CHECK(0);
+        }
+
+        bool remove(const void *key) override
+        {
+                CHECK(0);
+        }
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
 	{
@@ -269,13 +286,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
         static constexpr uint64_t leaf_page_size = 4096;
         static constexpr uint64_t inner_page_size = 4096;
 
-        struct TupleValueComparator {
-                int operator()(const std::tuple<MetaDataType, ValueType> &a, const std::tuple<MetaDataType, ValueType> &b) const
-                {
-                        return ValueComparator(std::get<0>(a), std::get<0>(b));
-                }
-        };
-
         // std::atomic has implicitly deleted copy-constructor
         // so we need to define a ValueType that supports it
         struct BTreeOLCValue {
@@ -285,21 +295,30 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 {
                         this->meta.store(row.meta.load());
                         this->value = row.value;
+                        this->is_valid.store(row.is_valid.load());
                 }
 
                 BTreeOLCValue &operator=(const BTreeOLCValue &row)
                 {
                         this->meta.store(row.meta.load());
                         this->value = row.value;
+                        this->is_valid.store(row.is_valid.load());
                         return *this;
                 }
 
                 MetaDataType meta;
                 ValueType value;
-                bool is_valid = true;
+                std::atomic<bool> is_valid{ false };
         };
 
-        using BTree = btreeolc::BPlusTree<KeyType, BTreeOLCValue, KeyComparator, TupleValueComparator, update_threshold, leaf_page_size, inner_page_size>;
+        struct BTreeOLCValueComparator {
+                int operator()(const BTreeOLCValue &a, const BTreeOLCValue &b) const
+                {
+                        return ValueComparator(a.value, b.value);
+                }
+        };
+
+        using BTree = btreeolc::BPlusTree<KeyType, BTreeOLCValue, KeyComparator, BTreeOLCValueComparator, update_threshold, leaf_page_size, inner_page_size>;
 
 	virtual ~TableBTreeOLC() override = default;
 
@@ -325,7 +344,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-                if (row_ptr->is_valid == true) {
+                if (row_ptr->is_valid.load() == true) {
                         MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&row_ptr->meta);
                         return std::make_tuple(meta_ptr, &row_ptr->value);
                 } else {
@@ -342,7 +361,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-                if (row_ptr->is_valid == true) {
+                if (row_ptr->is_valid.load() == true) {
                         return &row_ptr->value;
                 } else {
                         return nullptr;
@@ -357,7 +376,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-                if (row_ptr->is_valid == true) {
+                if (row_ptr->is_valid.load() == true) {
                         return &row_ptr->meta;
                 } else {
                         return nullptr;
@@ -370,27 +389,38 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		const auto &k = *static_cast<const KeyType *>(key);
 
                 BTreeOLCValue *row_ptr;
-                return btree.lookup(k, row_ptr);
+                bool success = btree.lookup(k, row_ptr);
+
+                if (success) {
+                        if (row_ptr->is_valid.load() == true) {
+                                return true;
+                        } else {
+                                return false;
+                        }
+                } else {
+                        return false;
+                }
 	}
 
         void scan(const void *min_key, const void *max_key, void *results_ptr) override
         {
                 tid_check();
-
                 const auto &min_k = *static_cast<const KeyType *>(min_key);
                 const auto &max_k = *static_cast<const KeyType *>(max_key);
-                std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > &results = 
-                        *static_cast<std::vector<std::tuple<const void *, std::atomic<uint64_t> *, void *> > *>(results_ptr);
-                KeyComparator key_comparator;
+                auto &results = *static_cast<std::vector<std::tuple<KeyType, std::atomic<uint64_t> *, void *> > *>(results_ptr);
 
                 auto processor = [&](const KeyType &key, BTreeOLCValue &row, bool) -> bool {
-                        if (key_comparator(key, max_k) > 0)
+                        if (KeyComparator()(key, max_k) > 0)
                                 return true;
 
-                        MetaDataType *meta_ptr = &row.meta;
-                        ValueType *data_ptr = &row.value;
-                        std::tuple<const void *, MetaDataType *, void *> row_tuple(&key, meta_ptr, data_ptr);
-                        results.push_back(row_tuple);
+                        if (row.is_valid.load() == true) {
+                                CHECK(KeyComparator()(key, min_k) >= 0);
+                                CHECK(key.get_plain_key() >= min_k.get_plain_key());
+                                MetaDataType *meta_ptr = &row.meta;
+                                ValueType *data_ptr = &row.value;
+                                std::tuple<KeyType, MetaDataType *, void *> row_tuple(key, meta_ptr, data_ptr);
+                                results.push_back(row_tuple);
+                        }
 
                         return false;
 		};
@@ -401,7 +431,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 // CHECK(results.size() > 0);
         }
 
-	bool insert(const void *key, const void *value) override
+	bool insert(const void *key, const void *value, bool is_placeholder = false) override
 	{
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
@@ -410,10 +440,37 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 BTreeOLCValue row;
                 row.meta = MetaInitFunc()();
                 row.value = v;
+                if (is_placeholder == true)
+                        row.is_valid.store(false);
+                else
+                        row.is_valid.store(true);
 
 		bool success = btree.insert(k, row);
 		return success;
 	}
+
+        void make_placeholder_valid(const void *key) override
+        {
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+
+                BTreeOLCValue *row_ptr;
+                bool success = btree.lookup(k, row_ptr);
+                CHECK(success == true);
+                CHECK(row_ptr->is_valid.load() == false);
+                row_ptr->is_valid.store(true);
+        }
+
+        bool remove(const void *key) override
+        {
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+
+                bool success = btree.remove(k);
+                CHECK(success == true);
+
+                return success;
+        }
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
 	{
@@ -532,6 +589,7 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		const auto &k = *static_cast<const KeyType *>(key);
 		auto &v = map_[k];
 		return std::make_tuple(nullptr, &(v));
@@ -539,6 +597,7 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 
 	void *search_value(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		const auto &k = *static_cast<const KeyType *>(key);
 		return &map_[k];
 	}
@@ -561,7 +620,7 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
                 CHECK(0);
         }
 
-	bool insert(const void *key, const void *value) override
+	bool insert(const void *key, const void *value, bool is_placeholder = false) override
 	{
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
@@ -572,6 +631,16 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 
                 return true;
 	}
+
+        void make_placeholder_valid(const void *key) override
+        {
+                CHECK(0);
+        }
+
+        bool remove(const void *key) override
+        {
+                CHECK(0);
+        }
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
 	{
@@ -656,6 +725,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		const auto &k = *static_cast<const KeyType *>(key);
 		auto &v = map_[k];
 		return std::make_tuple(nullptr, &(v));
@@ -663,6 +733,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 
 	void *search_value(const void *key) override
 	{
+                CHECK(contains(key) == true);
 		const auto &k = *static_cast<const KeyType *>(key);
 		return &map_[k];
 	}
@@ -685,7 +756,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
                 CHECK(0);
         }
 
-	bool insert(const void *key, const void *value) override
+	bool insert(const void *key, const void *value, bool is_placeholder = false) override
 	{
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
@@ -696,6 +767,16 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 
                 return true;
 	}
+
+        void make_placeholder_valid(const void *key) override
+        {
+                CHECK(0);
+        }
+
+        bool remove(const void *key) override
+        {
+                CHECK(0);
+        }
 
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
 	{

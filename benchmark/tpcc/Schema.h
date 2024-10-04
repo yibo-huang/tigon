@@ -164,7 +164,7 @@ DO_STRUCT(history, HISTORY_KEY_FIELDS, HISTORY_VALUE_FIELDS, NAMESPACE_FIELDS, H
 #define NEW_ORDER_GET_PLAIN_KEY_FUNC                                                                                    \
         uint64_t get_plain_key() const                                                                                  \
         {                                                                                                               \
-                return (NO_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + NO_D_ID) * ((uint64_t)MAX_ORDER_ID + 1) + NO_O_ID;     \
+                return (NO_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + NO_D_ID) * (uint64_t)MAX_ORDER_ID + NO_O_ID;     \
         }
 
 DO_STRUCT(new_order, NEW_ORDER_KEY_FIELDS, NEW_ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, NEW_ORDER_GET_PLAIN_KEY_FUNC)
@@ -174,7 +174,7 @@ DO_STRUCT(new_order, NEW_ORDER_KEY_FIELDS, NEW_ORDER_VALUE_FIELDS, NAMESPACE_FIE
 #define ORDER_GET_PLAIN_KEY_FUNC                                                                                        \
         uint64_t get_plain_key() const                                                                                  \
         {                                                                                                               \
-                return (O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * ((uint64_t)MAX_ORDER_ID + 1) + O_ID;          \
+                return (O_W_ID * (DISTRICT_PER_WAREHOUSE + 1) + O_D_ID) * (uint64_t)MAX_ORDER_ID + O_ID;          \
         }
 
 DO_STRUCT(order, ORDER_KEY_FIELDS, ORDER_VALUE_FIELDS, NAMESPACE_FIELDS, ORDER_GET_PLAIN_KEY_FUNC)

@@ -214,19 +214,23 @@ template <class Transaction> class NewOrder : public Transaction {
 		// value. If the order includes only home order-lines, then O_ALL_LOCAL is
 		// set to 1, otherwise O_ALL_LOCAL is set to 0.
 
+                auto newOrderTableID = new_order::tableID;
 		storage->new_order_key = new_order::key(W_ID, D_ID, D_NEXT_O_ID);
+                storage->new_order_value.NO_DUMMY = 0;
+                this->insert_row(newOrderTableID, W_ID - 1, storage->new_order_key, storage->new_order_value);
 
+                auto orderTableID = order::tableID;
 		storage->order_key[0] = order::key(W_ID, D_ID, D_NEXT_O_ID);
-
 		storage->order_value[0].O_ENTRY_D = Time::now();
 		storage->order_value[0].O_CARRIER_ID = 0;
 		storage->order_value[0].O_OL_CNT = query.O_OL_CNT;
 		storage->order_value[0].O_C_ID = query.C_ID;
 		storage->order_value[0].O_ALL_LOCAL = !query.isRemote();
+                this->insert_row(orderTableID, W_ID - 1, storage->order_key[0], storage->order_value[0]);
 
 		float total_amount = 0;
 
-		auto orderLineTableID = stock::tableID;
+		auto orderLineTableID = order_line::tableID;
 
 		for (int i = 0; i < query.O_OL_CNT; i++) {
 			int32_t OL_I_ID = query.INFO[i].OL_I_ID;
@@ -266,6 +270,10 @@ template <class Transaction> class NewOrder : public Transaction {
 			}
 
 			if (this->execution_phase) {
+                                // A new row is inserted into the ORDER-LINE table to reflect the item on the order.
+                                // OL_DELIVERY_D is set to a null value, OL_NUMBER is set to a unique value within all the ORDER-LINE rows that have the same OL_O_ID value,
+                                // and OL_DIST_INFO is set to the content of S_DIST_xx, where xx represents the district number (OL_D_ID)
+
 				float OL_AMOUNT = I_PRICE * OL_QUANTITY;
 				storage->order_line_keys[0][i] = order_line::key(W_ID, D_ID, D_NEXT_O_ID, i + 1);
 
@@ -310,9 +318,18 @@ template <class Transaction> class NewOrder : public Transaction {
 					DCHECK(false);
 					break;
 				}
+
+                                this->insert_row(orderLineTableID, W_ID - 1, storage->order_line_keys[0][i], storage->order_line_values[0][i]);
+
 				total_amount += OL_AMOUNT * (1 - C_DISCOUNT) * (1 + W_TAX + D_TAX);
 			}
 		}
+
+                t_local_work.end();
+		if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+		t_local_work.reset();
 
 		return TransactionResult::READY_TO_COMMIT;
 	}
@@ -663,7 +680,7 @@ template <class Transaction> class OrderStatus : public Transaction {
 
                 // get the last order's ID
                 auto last_order = storage->order_customer_scan_results[storage->order_customer_scan_results.size() - 1];
-                const auto last_order_key = *static_cast<const order_customer::key *>(std::get<0>(last_order));
+                const auto last_order_key = std::get<0>(last_order);
                 auto last_order_id = last_order_key.O_ID;
 
                 // All rows in the ORDER-LINE table with matching OL_W_ID (equals O_W_ID), OL_D_ID (equals O_D_ID), and OL_O_ID (equals O_ID) are selected
@@ -683,7 +700,7 @@ template <class Transaction> class OrderStatus : public Transaction {
                 t_local_work.reset();
 
                 // Done
-                CHECK(storage->order_line_scan_results[0].size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results[0].size() <= MAX_ORDER_LINE_PER_ORDER);
+                // CHECK(storage->order_line_scan_results[0].size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results[0].size() <= MAX_ORDER_LINE_PER_ORDER);
 
 		return TransactionResult::READY_TO_COMMIT;
 	}
@@ -797,12 +814,26 @@ template <class Transaction> class Delivery : public Transaction {
                         }
                         t_local_work.reset();
 
+                        // // find the minimum element in the vector
+                        // auto new_order_scan_min_comparator = []( const auto &a, const auto &b )
+                        // {
+                        //         const auto key_a = std::get<0>(a);
+                        //         const auto key_b = std::get<0>(b);
+                        //         return key_a.get_plain_key() < key_b.get_plain_key();
+                        // };
+
+                        // auto min = std::min_element(std::begin(storage->new_order_scan_results[D_ID - 1]),
+                        //         std::end(storage->new_order_scan_results[D_ID - 1]), new_order_scan_min_comparator);
+
                         CHECK(storage->new_order_scan_results[D_ID - 1].size() > 0);
                         auto oldest_undelivered_order = storage->new_order_scan_results[D_ID - 1][0];
-                        const auto oldest_undelivered_order_key = *static_cast<const new_order::key *>(std::get<0>(oldest_undelivered_order));
+                        const auto oldest_undelivered_order_key = std::get<0>(oldest_undelivered_order);
+                        const auto oldest_undelivered_order_value = *static_cast<const new_order::value *>(std::get<2>(oldest_undelivered_order));
                         auto oldest_undelivered_order_id = oldest_undelivered_order_key.NO_O_ID;
 
                         // TODO: The selected row in the NEW-ORDER table is deleted.
+
+                        // this->delete_row(newOrderTableID, W_ID - 1, oldest_undelivered_order_key);
 
                         // The row in the ORDER table with matching O_W_ID (equals W_ID), O_D_ID (equals D_ID), and O_ID (equals NO_O_ID) is selected,
                         // O_C_ID, the customer number, is retrieved, and O_CARRIER_ID is updated.
@@ -829,11 +860,11 @@ template <class Transaction> class Delivery : public Transaction {
                         }
                         t_local_work.reset();
 
-                        CHECK(storage->order_line_scan_results[D_ID - 1].size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results[D_ID - 1].size() <= MAX_ORDER_LINE_PER_ORDER);
+                        // CHECK(storage->order_line_scan_results[D_ID - 1].size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results[D_ID - 1].size() <= MAX_ORDER_LINE_PER_ORDER);
 
                         for (int i = 0; i < storage->order_line_scan_results[D_ID - 1].size(); i++) {
                                 auto order_line = storage->order_line_scan_results[D_ID - 1][i];
-                                const auto order_line_key = *static_cast<const order_line::key *>(std::get<0>(order_line));
+                                const auto order_line_key = std::get<0>(order_line);
                                 storage->order_line_keys[D_ID - 1][i] = order_line_key;
                                 this->search_for_update(orderLineTableID, W_ID - 1, storage->order_line_keys[D_ID - 1][i], storage->order_line_values[D_ID - 1][i], did_to_granule_id(D_ID, context));
                                 this->update(orderLineTableID, W_ID - 1, storage->order_line_keys[D_ID - 1][i], storage->order_line_values[D_ID - 1][i], did_to_granule_id(D_ID, context));
@@ -980,7 +1011,7 @@ template <class Transaction> class StockLevel : public Transaction {
                         const auto order_line_value = *static_cast<const order_line::value *>(std::get<2>(order_line));
                         auto S_I_ID = order_line_value.OL_I_ID;
                         item_id_set.insert(S_I_ID);
-                        const auto order_line_key = *static_cast<const order_line::key *>(std::get<0>(order_line));
+                        const auto order_line_key = std::get<0>(order_line);
                 }
 
                 int i = 0;

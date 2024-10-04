@@ -79,10 +79,11 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 		override
 	{
 		txn.readRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value,
-						      bool local_index_read, bool write_lock) {
+						      bool local_index_read, bool write_lock) -> bool  {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         auto value_size = table->value_size();
                         bool local_read = false;
+                        bool ret = true;
 
 			if (this->partitioner->has_master_partition(partition_id) ||
 			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
@@ -95,6 +96,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 
                                 // I am the owner of the data
 				auto row = table->search(key);
+                                CHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
 				bool success = true;
 
 				std::pair<uint64_t, uint64_t> rwts;
@@ -112,6 +114,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 						txn.readSet[key_offset].set_write_lock_bit();
 					} else {
 						txn.abort_lock = true;
+                                                ret = false;
 					}
 				}
 			} else {
@@ -139,6 +142,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                                         txn.readSet[key_offset].set_write_lock_bit();
                                                 } else {
                                                         txn.abort_lock = true;
+                                                        ret = false;
                                                 }
                                         }
                                         // mark it as reference counted so that we know if we need to release it upon commit/abort
@@ -164,14 +168,15 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                 }
 			}
 
-                        return;
+                        return ret;
 		};
 
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
-                                                void *results) {
+                                                void *results) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         auto value_size = table->value_size();
                         bool local_scan = false;
+                        bool ret = false;
 
 			if (this->partitioner->has_master_partition(partition_id) ||
 			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
@@ -180,11 +185,55 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 
 			if (local_scan) {
 				table->scan(min_key, max_key, results);
+                                ret = true;
 			} else {
                                 CHECK(0);      // right now we only support local scan
 			}
 
-                        return;
+                        return ret;
+		};
+
+                txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value) -> bool {
+			ITable *table = this->db.find_table(table_id, partition_id);
+                        auto value_size = table->value_size();
+                        bool local_insert = false;
+                        bool ret = true;
+
+			if (this->partitioner->has_master_partition(partition_id) ||
+			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
+				local_insert = true;
+			}
+
+			if (local_insert) {
+				bool success = table->insert(key, value, true);
+                                if (success == false) {
+                                        txn.abort_insert = true;
+                                        ret = false;
+                                }
+			} else {
+                                CHECK(0);      // right now we only support local insert
+			}
+
+                        return ret;
+		};
+
+                txn.deleteRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key) -> bool {
+			ITable *table = this->db.find_table(table_id, partition_id);
+                        auto value_size = table->value_size();
+                        bool local_delete = false;
+
+			if (this->partitioner->has_master_partition(partition_id) ||
+			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
+				local_delete = true;
+			}
+
+			if (local_delete) {
+				// CHECK(0);
+			} else {
+                                CHECK(0);      // right now we only support local delete
+			}
+
+                        return true;
 		};
 
 		txn.remote_request_handler = [this](std::size_t) { return this->process_request(); };
