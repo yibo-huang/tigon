@@ -814,6 +814,7 @@ template <class Transaction> class Delivery : public Transaction {
                         }
                         t_local_work.reset();
 
+                        // the vector is already sorted
                         // // find the minimum element in the vector
                         // auto new_order_scan_min_comparator = []( const auto &a, const auto &b )
                         // {
@@ -827,13 +828,12 @@ template <class Transaction> class Delivery : public Transaction {
 
                         CHECK(storage->new_order_scan_results[D_ID - 1].size() > 0);
                         auto oldest_undelivered_order = storage->new_order_scan_results[D_ID - 1][0];
-                        const auto oldest_undelivered_order_key = std::get<0>(oldest_undelivered_order);
-                        const auto oldest_undelivered_order_value = *static_cast<const new_order::value *>(std::get<2>(oldest_undelivered_order));
-                        auto oldest_undelivered_order_id = oldest_undelivered_order_key.NO_O_ID;
+                        storage->oldest_undelivered_order_key = std::get<0>(oldest_undelivered_order);
+                        auto oldest_undelivered_order_id = storage->oldest_undelivered_order_key.NO_O_ID;
 
-                        // TODO: The selected row in the NEW-ORDER table is deleted.
+                        // The selected row in the NEW-ORDER table is deleted.
 
-                        // this->delete_row(newOrderTableID, W_ID - 1, oldest_undelivered_order_key);
+                        this->delete_row(newOrderTableID, W_ID - 1, storage->oldest_undelivered_order_key);
 
                         // The row in the ORDER table with matching O_W_ID (equals W_ID), O_D_ID (equals D_ID), and O_ID (equals NO_O_ID) is selected,
                         // O_C_ID, the customer number, is retrieved, and O_CARRIER_ID is updated.

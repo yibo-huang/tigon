@@ -29,6 +29,8 @@ struct Storage {
 	stock::key stock_keys[MAX_ORDER_LINE_PER_ORDER * 20];
 	stock::value stock_values[MAX_ORDER_LINE_PER_ORDER * 20];
 
+        new_order::key oldest_undelivered_order_key;
+        new_order::value oldest_undelivered_order_value;        // never used though
 	new_order::key new_order_key;
         new_order::value new_order_value;
         new_order::key min_new_order_key[DISTRICT_PER_WAREHOUSE];

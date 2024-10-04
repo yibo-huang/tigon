@@ -342,7 +342,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 
                 BTreeOLCValue *row_ptr;
                 bool success = btree.lookup(k, row_ptr);
-                CHECK(success == true);
 
                 if (row_ptr->is_valid.load() == true) {
                         MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&row_ptr->meta);

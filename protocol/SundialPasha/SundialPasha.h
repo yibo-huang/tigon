@@ -87,7 +87,25 @@ template <class Database> class SundialPasha {
 			}
 		}
 
-                // TODO: rollback deletes
+                // rollback deletes - just release the write locks
+                for (auto i = 0u; i < deleteSet.size(); i++) {
+			auto &deleteKey = deleteSet[i];
+
+			if (deleteKey.get_processed() == false)
+				continue;
+
+			auto tableId = deleteKey.get_table_id();
+			auto partitionId = deleteKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = deleteKey.get_key();
+                                auto row = table->search(key);
+                                SundialPashaHelper::unlock(row, txn.transaction_id);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
 
 		// unlock locked records
 		for (auto i = 0u; i < writeSet.size(); i++) {
@@ -179,7 +197,24 @@ template <class Database> class SundialPasha {
 			}
 		}
 
-                // TODO: commit deletes
+                // commit deletes
+                auto &deleteSet = txn.deleteSet;
+                for (auto i = 0u; i < deleteSet.size(); i++) {
+			auto &deleteKey = deleteSet[i];
+			CHECK(deleteKey.get_processed() == true);
+
+			auto tableId = deleteKey.get_table_id();
+			auto partitionId = deleteKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = deleteKey.get_key();
+                                bool success = table->remove(key);
+                                CHECK(success == true);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
 
 		// write and replicate
 		{

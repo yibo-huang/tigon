@@ -228,7 +228,21 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 			}
 
 			if (local_delete) {
-				// CHECK(0);
+				auto row = table->search(key);
+                                if (std::get<0>(row) == nullptr && std::get<1>(row) == nullptr) {
+                                        // someone else has deleted the row, so we abort
+                                        txn.abort_delete = true;
+                                        return false;
+                                }
+
+                                std::pair<uint64_t, uint64_t> rwts;
+                                bool success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
+                                if (success) {
+                                        // do nothing
+                                } else {
+                                        txn.abort_delete = true;
+                                        return false;
+                                }
 			} else {
                                 CHECK(0);      // right now we only support local delete
 			}
