@@ -194,12 +194,9 @@ template <class Transaction> class NewOrder : public Transaction {
 		float W_TAX = storage->warehouse_value.W_TAX;
 
 		float D_TAX = storage->district_value.D_TAX;
+
 		int32_t D_NEXT_O_ID = storage->district_value.D_NEXT_O_ID;
-
 		storage->district_value.D_NEXT_O_ID += 1;
-
-		// this->update(districtTableID, W_ID - 1, storage->district_key,
-		//              storage->district_value, D_ID % granules_per_partition);
 
 		if (context.operation_replication) {
 			Encoder encoder(this->operation.data);
@@ -208,6 +205,8 @@ template <class Transaction> class NewOrder : public Transaction {
 		}
 
 		float C_DISCOUNT = storage->customer_value[0].C_DISCOUNT;
+                auto C_LAST = storage->customer_value[0].C_LAST;
+                auto C_CREDIT = storage->customer_value[0].C_CREDIT;
 
 		// A new row is inserted into both the NEW-ORDER table and the ORDER table
 		// to reflect the creation of the new order. O_CARRIER_ID is set to a null
@@ -238,6 +237,8 @@ template <class Transaction> class NewOrder : public Transaction {
 			int32_t OL_SUPPLY_W_ID = query.INFO[i].OL_SUPPLY_W_ID;
 
 			float I_PRICE = storage->item_values[i].I_PRICE;
+                        auto I_NAME = storage->item_values[i].I_NAME;
+                        auto I_DATA = storage->item_values[i].I_DATA;
 
 			// S_QUANTITY, the quantity in stock, S_DIST_xx, where xx represents the
 			// district number, and S_DATA are retrieved. If the retrieved value for
@@ -260,9 +261,6 @@ template <class Transaction> class NewOrder : public Transaction {
 				storage->stock_values[i].S_REMOTE_CNT++;
 			}
 
-			// this->update(stockTableID, OL_SUPPLY_W_ID - 1, storage->stock_keys[i],
-			//              storage->stock_values[i], OL_I_ID % granules_per_partition);
-
 			if (context.operation_replication) {
 				Encoder encoder(this->operation.data);
 				encoder << storage->stock_keys[i].S_W_ID << storage->stock_keys[i].S_I_ID << storage->stock_values[i].S_QUANTITY
@@ -270,11 +268,19 @@ template <class Transaction> class NewOrder : public Transaction {
 			}
 
 			if (this->execution_phase) {
+                                // The amount for the item in the order (OL_AMOUNT) is computed as: OL_QUANTITY * I_PRICE
+
+				float OL_AMOUNT = I_PRICE * OL_QUANTITY;
+
+                                // The strings in I_DATA and S_DATA are examined.
+                                // If they both include the string "ORIGINAL", the brandgeneric field for that item is set to "B",
+                                // otherwise, the brand-generic field is set to "G".
+                                // What do you mean???
+
                                 // A new row is inserted into the ORDER-LINE table to reflect the item on the order.
                                 // OL_DELIVERY_D is set to a null value, OL_NUMBER is set to a unique value within all the ORDER-LINE rows that have the same OL_O_ID value,
                                 // and OL_DIST_INFO is set to the content of S_DIST_xx, where xx represents the district number (OL_D_ID)
 
-				float OL_AMOUNT = I_PRICE * OL_QUANTITY;
 				storage->order_line_keys[0][i] = order_line::key(W_ID, D_ID, D_NEXT_O_ID, i + 1);
 
 				storage->order_line_values[0][i].OL_I_ID = OL_I_ID;
