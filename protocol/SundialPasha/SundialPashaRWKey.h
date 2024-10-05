@@ -198,15 +198,21 @@ class SundialPashaRWKey {
                 return this->max_key;
 	}
 
+        uint64_t get_scan_limit() const
+	{
+                return this->limit;
+	}
+
         void *get_scan_res_vec() const
 	{
                 return this->scan_results;
 	}
 
-        void set_scan_args(const void *min_key, const void *max_key, void *results)
+        void set_scan_args(const void *min_key, const void *max_key, uint64_t limit, void *results)
 	{
 		this->min_key = min_key;
                 this->max_key = max_key;
+                this->limit = limit;
                 this->scan_results = results;
 	}
 
@@ -257,6 +263,7 @@ class SundialPashaRWKey {
         // for range scan
         const void *min_key = nullptr;
         const void *max_key = nullptr;
+        uint64_t limit = 0;
         void *scan_results = nullptr;
 
         // for move in & out

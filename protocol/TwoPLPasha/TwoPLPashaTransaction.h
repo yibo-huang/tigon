@@ -260,7 +260,7 @@ class TwoPLPashaTransaction {
 
         template <class KeyType>
 	void scan_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
-                        void *results, std::size_t granule_id = 0)
+                        uint64_t limit, void *results, std::size_t granule_id = 0)
 	{
                 CHECK(0);
 	}

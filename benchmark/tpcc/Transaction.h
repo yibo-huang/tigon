@@ -670,7 +670,7 @@ template <class Transaction> class OrderStatus : public Transaction {
                 storage->min_order_customer_key = order_customer::key(O_W_ID, O_D_ID, O_C_ID, 0);
                 storage->max_order_customer_key = order_customer::key(O_W_ID, O_D_ID, O_C_ID, MAX_ORDER_ID);
                 this->scan_for_read(orderCustTableID, O_W_ID - 1, storage->min_order_customer_key, storage->max_order_customer_key,
-                                &storage->order_customer_scan_results, did_to_granule_id(C_D_ID, context));
+                                0, &storage->order_customer_scan_results, did_to_granule_id(C_D_ID, context));
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
@@ -691,7 +691,7 @@ template <class Transaction> class OrderStatus : public Transaction {
                 storage->min_order_line_key[0] = order_line::key(O_W_ID, O_D_ID, last_order_id, 1);
                 storage->max_order_line_key[0] = order_line::key(O_W_ID, O_D_ID, last_order_id, MAX_ORDER_LINE_PER_ORDER);
                 this->scan_for_read(orderLineTableID, O_W_ID - 1, storage->min_order_line_key[0], storage->max_order_line_key[0],
-                                &storage->order_line_scan_results[0], did_to_granule_id(C_D_ID, context));
+                                0, &storage->order_line_scan_results[0], did_to_granule_id(C_D_ID, context));
 
                 t_local_work.end();
                 if (this->process_requests(worker_id)) {
@@ -806,7 +806,7 @@ template <class Transaction> class Delivery : public Transaction {
                         storage->min_new_order_key[D_ID - 1] = new_order::key(W_ID, D_ID, 0);
                         storage->max_new_order_key[D_ID - 1] = new_order::key(W_ID, D_ID, MAX_ORDER_ID);
                         this->scan_for_read(newOrderTableID, W_ID - 1, storage->min_new_order_key[D_ID - 1], storage->max_new_order_key[D_ID - 1],
-                                &storage->new_order_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
+                                1, &storage->new_order_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
 
                         t_local_work.end();
                         if (this->process_requests(worker_id)) {
@@ -852,7 +852,7 @@ template <class Transaction> class Delivery : public Transaction {
                         storage->max_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, oldest_undelivered_order_id, MAX_ORDER_LINE_PER_ORDER);
 
                         this->scan_for_read(orderLineTableID, W_ID - 1, storage->min_order_line_key[D_ID - 1], storage->max_order_line_key[D_ID - 1],
-                                        &storage->order_line_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
+                                        0, &storage->order_line_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
 
                         t_local_work.end();
                         if (this->process_requests(worker_id)) {
@@ -993,7 +993,7 @@ template <class Transaction> class StockLevel : public Transaction {
                 storage->min_order_line_key[0] = order_line::key(W_ID, D_ID, D_NEXT_O_ID - 20, 1);
                 storage->max_order_line_key[0] = order_line::key(W_ID, D_ID, D_NEXT_O_ID, MAX_ORDER_LINE_PER_ORDER);
                 this->scan_for_read(orderLineTableID, W_ID - 1, storage->min_order_line_key[0], storage->max_order_line_key[0],
-                                &storage->order_line_scan_results[0], did_to_granule_id(D_ID, context));
+                                0, &storage->order_line_scan_results[0], did_to_granule_id(D_ID, context));
 
                 t_local_work.end();
                 if (this->process_requests(worker_id)) {

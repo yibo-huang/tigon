@@ -172,11 +172,10 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 		};
 
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
-                                                void *results) -> bool {
+                                                uint64_t limit, void *results) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         auto value_size = table->value_size();
                         bool local_scan = false;
-                        bool ret = false;
 
 			if (this->partitioner->has_master_partition(partition_id) ||
 			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
@@ -184,13 +183,12 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 			}
 
 			if (local_scan) {
-				table->scan(min_key, max_key, results);
-                                ret = true;
+				table->scan(min_key, max_key, limit, results);
 			} else {
                                 CHECK(0);      // right now we only support local scan
 			}
 
-                        return ret;
+                        return true;
 		};
 
                 txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value) -> bool {

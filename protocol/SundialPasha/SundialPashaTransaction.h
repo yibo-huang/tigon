@@ -266,14 +266,14 @@ class SundialPashaTransaction {
 
         template <class KeyType>
 	void scan_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
-                        void *results, std::size_t granule_id = 0)
+                        uint64_t limit, void *results, std::size_t granule_id = 0)
 	{
 		SundialPashaRWKey scanKey;
 
 		scanKey.set_table_id(table_id);
 		scanKey.set_partition_id(partition_id);
 
-                scanKey.set_scan_args(&min_key, &max_key, results);
+                scanKey.set_scan_args(&min_key, &max_key, limit, results);
 
 		add_to_scan_set(scanKey);
 	}
@@ -336,7 +336,7 @@ class SundialPashaTransaction {
 
 			const SundialPashaRWKey &scanKey = scanSet[i];
 			bool success = scanRequestHandler(scanKey.get_table_id(), scanKey.get_partition_id(), i, scanKey.get_scan_min_key(), scanKey.get_scan_max_key(),
-                                        scanKey.get_scan_res_vec());
+                                        scanKey.get_scan_limit(), scanKey.get_scan_res_vec());
                         if (success == false) {
                                 ret = true;
                                 goto process_net_req_and_ret;
@@ -451,7 +451,7 @@ process_net_req_and_ret:
 	// table id, partition id, key_offset, key, value, local index read?, write_lock?
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, void *, bool, bool)> readRequestHandler;
         // table id, partition id, key_offset, min_key, max_key, results
-	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, void *)> scanRequestHandler;
+	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, void *)> scanRequestHandler;
         // table id, partition id, key_offset, key, value
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, void *)> insertRequestHandler;
         // table id, partition id, key_offset, key
