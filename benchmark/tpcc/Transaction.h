@@ -695,6 +695,7 @@ template <class Transaction> class OrderStatus : public Transaction {
 		t_local_work.reset();
 
                 // get the last order's ID
+                CHECK(storage->order_customer_scan_results.size() > 0);
                 auto last_order = storage->order_customer_scan_results[storage->order_customer_scan_results.size() - 1];
                 const auto last_order_key = std::get<0>(last_order);
                 auto last_order_id = last_order_key.O_ID;
