@@ -205,8 +205,6 @@ template <class Transaction> class NewOrder : public Transaction {
 		}
 
 		float C_DISCOUNT = storage->customer_value[0].C_DISCOUNT;
-                auto C_LAST = storage->customer_value[0].C_LAST;
-                auto C_CREDIT = storage->customer_value[0].C_CREDIT;
 
 		// A new row is inserted into both the NEW-ORDER table and the ORDER table
 		// to reflect the creation of the new order. O_CARRIER_ID is set to a null
@@ -237,8 +235,6 @@ template <class Transaction> class NewOrder : public Transaction {
 			int32_t OL_SUPPLY_W_ID = query.INFO[i].OL_SUPPLY_W_ID;
 
 			float I_PRICE = storage->item_values[i].I_PRICE;
-                        auto I_NAME = storage->item_values[i].I_NAME;
-                        auto I_DATA = storage->item_values[i].I_DATA;
 
 			// S_QUANTITY, the quantity in stock, S_DIST_xx, where xx represents the
 			// district number, and S_DATA are retrieved. If the retrieved value for
@@ -476,10 +472,8 @@ template <class Transaction> class Payment : public Transaction {
 		}
 		ScopedTimer t_local_work2([&, this](uint64_t us) { this->record_local_work_time(us); });
 
-		// the warehouse's year-to-date balance, is increased by H_ AMOUNT.
+		// the warehouse's year-to-date balance, is increased by H_AMOUNT.
 		storage->warehouse_value.W_YTD += H_AMOUNT;
-		// this->update(warehouseTableID, W_ID - 1, storage->warehouse_key,
-		//              storage->warehouse_value, ALL_GRANULES);
 
 		if (context.operation_replication) {
 			this->operation.partition_id = this->partition_id;
@@ -489,13 +483,17 @@ template <class Transaction> class Payment : public Transaction {
 
 		// the district's year-to-date balance, is increased by H_AMOUNT.
 		storage->district_value.D_YTD += H_AMOUNT;
-		// this->update(districtTableID, W_ID - 1, storage->district_key,
-		//              storage->district_value, D_ID % context.granules_per_partition);
 
 		if (context.operation_replication) {
 			Encoder encoder(this->operation.data);
 			encoder << storage->district_key.D_W_ID << storage->district_key.D_ID << storage->district_value.D_YTD;
 		}
+
+                // If the value of C_CREDIT is equal to "BC", then C_DATA is also retrieved from the selected customer and the following history information:
+                // C_ID, C_D_ID, C_W_ID, D_ID, W_ID, and H_AMOUNT, are inserted at the left of the C_DATA field by shifting the existing content of C_DATA
+                // to the right by an equal number of bytes and by discarding the bytes that are shifted out of the right side of the C_DATA field.
+                // The content of the C_DATA field never exceeds 500 characters. The selected customer is updated with the new C_DATA field.
+                // If C_DATA is implemented as two fields (see Clause 1.4.9), they must be treated and operated on as one single field.
 
 		char C_DATA[501];
 		int total_written = 0;
@@ -534,9 +532,6 @@ template <class Transaction> class Payment : public Transaction {
 			storage->customer_value[0].C_PAYMENT_CNT += 1;
 		}
 
-		// this->update(customerTableID, C_W_ID - 1, storage->customer_key[0],
-		//              storage->customer_value[0], C_D_ID % context.granules_per_partition);
-
 		if (context.operation_replication) {
 			Encoder encoder(this->operation.data);
 			encoder << storage->customer_key[0].C_W_ID << storage->customer_key[0].C_D_ID << storage->customer_key[0].C_ID;
@@ -548,13 +543,28 @@ template <class Transaction> class Payment : public Transaction {
 		char H_DATA[25];
 		int written;
 		if (this->execution_phase) {
+                        // H_DATA is built by concatenating W_NAME and D_NAME separated by 4 spaces.
+
 			written = std::sprintf(H_DATA, "%s    %s", storage->warehouse_value.W_NAME.c_str(), storage->district_value.D_NAME.c_str());
 			H_DATA[written] = 0;
 
-			storage->h_key = history::key(W_ID, D_ID, C_W_ID, C_D_ID, C_ID, Time::now());
-			storage->h_value.H_AMOUNT = H_AMOUNT;
-			storage->h_value.H_DATA.assign(H_DATA, written);
+                        // A new row is inserted into the HISTORY table with
+                        // H_C_ID = C_ID, H_C_D_ID = C_D_ID, H_C_W_ID = C_W_ID, H_D_ID = D_ID, and H_W_ID = W_ID.
+
+                        auto historyTableID = history::tableID;
+			storage->history_key = history::key(W_ID, D_ID, C_W_ID, C_D_ID, C_ID, Time::now());
+			storage->history_value.H_AMOUNT = H_AMOUNT;
+			storage->history_value.H_DATA.assign(H_DATA, written);
+
+                        this->insert_row(historyTableID, W_ID - 1, storage->history_key, storage->history_value);
 		}
+
+                t_local_work.end();
+		if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+		t_local_work.reset();
+
 		return TransactionResult::READY_TO_COMMIT;
 	}
 

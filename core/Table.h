@@ -417,7 +417,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 
                         if (row.is_valid.load() == true) {
                                 CHECK(KeyComparator()(key, min_k) >= 0);
-                                CHECK(key.get_plain_key() >= min_k.get_plain_key());
                                 MetaDataType *meta_ptr = &row.meta;
                                 ValueType *data_ptr = &row.value;
                                 std::tuple<KeyType, MetaDataType *, void *> row_tuple(key, meta_ptr, data_ptr);

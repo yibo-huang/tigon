@@ -50,8 +50,8 @@ struct Storage {
         order_line::key max_order_line_key[DISTRICT_PER_WAREHOUSE];
         std::vector<std::tuple<order_line::key, std::atomic<uint64_t> *, void *> > order_line_scan_results[DISTRICT_PER_WAREHOUSE];
 
-	history::key h_key;
-	history::value h_value;
+	history::key history_key;
+	history::value history_value;
 
         void cleanup()
         {

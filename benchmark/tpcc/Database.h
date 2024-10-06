@@ -246,10 +246,10 @@ class Database {
 			auto historyTableID = history::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_history_vec.push_back(
-					std::make_unique<TableHashMap<997, history::key, history::value, MetaInitFuncSundial> >(historyTableID, partitionID));
+					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator, MetaInitFuncSundial> >(historyTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_history_vec.push_back(
-					std::make_unique<TableHashMap<997, history::key, history::value, MetaInitFuncSundialPasha> >(historyTableID, partitionID));
+					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator, MetaInitFuncSundialPasha> >(historyTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_history_vec.push_back(std::make_unique<TableHashMap<997, history::key, history::value> >(historyTableID, partitionID));
 			} else {
