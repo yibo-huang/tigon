@@ -150,14 +150,57 @@ DO_STRUCT(customer_name_idx, CUSTOMER_NAME_IDX_KEY_FIELDS, CUSTOMER_NAME_IDX_VAL
 
 #define HISTORY_KEY_FIELDS(x, y) x(int32_t, H_W_ID) y(int32_t, H_D_ID) y(int32_t, H_C_W_ID) y(int32_t, H_C_D_ID) y(int32_t, H_C_ID) y(uint64_t, H_DATE)
 #define HISTORY_VALUE_FIELDS(x, y) x(float, H_AMOUNT) y(FixedString<24>, H_DATA)
-#define HOSTORY_GET_PLAIN_KEY_FUNC              \
+#define HISTORY_GET_PLAIN_KEY_FUNC              \
         uint64_t get_plain_key() const          \
         {                                       \
                 DCHECK(0);                      \
                 return 0;                       \
         }
+#define HISTORY_KEY_COMPARATOR                                                                     \
+        struct KeyComparator {                                                                     \
+                int operator()(const key &a, const key &b) const                                   \
+                {                                                                                  \
+                        if (a.H_W_ID > b.H_W_ID) {                                                 \
+                                return 1;                                                          \
+                        } else if (a.H_W_ID < b.H_W_ID) {                                          \
+                                return -1;                                                         \
+                        } else {                                                                   \
+                                if (a.H_D_ID > b.H_D_ID) {                                         \
+                                        return 1;                                                  \
+                                } else if (a.H_D_ID < b.H_D_ID) {                                  \
+                                        return -1;                                                 \
+                                } else {                                                           \
+                                        if (a.H_C_W_ID > b.H_C_W_ID) {                             \
+                                                return 1;                                          \
+                                        } else if (a.H_C_W_ID < b.H_C_W_ID) {                      \
+                                                return -1;                                         \
+                                        } else {                                                   \
+                                                if (a.H_C_D_ID > b.H_C_D_ID) {                     \
+                                                        return 1;                                  \
+                                                } else if (a.H_C_D_ID < b.H_C_D_ID) {              \
+                                                        return -1;                                 \
+                                                } else {                                           \
+                                                        if (a.H_C_ID > b.H_C_ID) {                 \
+                                                                return 1;                          \
+                                                        } else if (a.H_C_ID < b.H_C_ID) {          \
+                                                                return -1;                         \
+                                                        } else {                                   \
+                                                                if (a.H_DATE > b.H_DATE) {         \
+                                                                        return 1;                  \
+                                                                } else if (a.H_DATE < b.H_DATE) {  \
+                                                                        return -1;                 \
+                                                                } else {                           \
+                                                                        return 0;                  \
+                                                                }                                  \
+                                                        }                                          \
+                                                }                                                  \
+                                        }                                                          \
+                                }                                                                  \
+                        }                                                                          \
+                }                                                                                  \
+        };
 
-DO_STRUCT(history, HISTORY_KEY_FIELDS, HISTORY_VALUE_FIELDS, NAMESPACE_FIELDS, HOSTORY_GET_PLAIN_KEY_FUNC)
+DO_STRUCT_WITH_CUSTOME_KEY_COMPARATOR(history, HISTORY_KEY_FIELDS, HISTORY_VALUE_FIELDS, NAMESPACE_FIELDS, HISTORY_GET_PLAIN_KEY_FUNC, HISTORY_KEY_COMPARATOR)
 
 #define NEW_ORDER_KEY_FIELDS(x, y) x(int32_t, NO_W_ID) y(int32_t, NO_D_ID) y(int32_t, NO_O_ID)
 #define NEW_ORDER_VALUE_FIELDS(x, y) x(int32_t, NO_DUMMY)
