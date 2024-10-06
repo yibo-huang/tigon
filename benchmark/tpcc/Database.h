@@ -251,7 +251,8 @@ class Database {
 				tbl_history_vec.push_back(
 					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator, MetaInitFuncSundialPasha> >(historyTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_history_vec.push_back(std::make_unique<TableHashMap<997, history::key, history::value> >(historyTableID, partitionID));
+				tbl_history_vec.push_back(
+					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator> >(historyTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
@@ -271,7 +272,8 @@ class Database {
 				tbl_new_order_vec.push_back(
 					std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator, MetaInitFuncSundialPasha> >(newOrderTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_new_order_vec.push_back(std::make_unique<TableHashMap<997, new_order::key, new_order::value> >(newOrderTableID, partitionID));
+				tbl_new_order_vec.push_back(
+					std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator> >(newOrderTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
@@ -292,7 +294,8 @@ class Database {
 				tbl_order_vec.push_back(
 					std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator, MetaInitFuncSundialPasha> >(orderTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_order_vec.push_back(std::make_unique<TableHashMap<997, order::key, order::value> >(orderTableID, partitionID));
+				tbl_order_vec.push_back(
+					std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator> >(orderTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
@@ -311,7 +314,8 @@ class Database {
 				tbl_order_cust_vec.push_back(
 					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator, MetaInitFuncSundialPasha> >(orderCustTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_order_cust_vec.push_back(std::make_unique<TableHashMap<997, order_customer::key, order_customer::value> >(orderCustTableID, partitionID));
+				tbl_order_cust_vec.push_back(
+					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator> >(orderCustTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
@@ -330,7 +334,8 @@ class Database {
 				tbl_order_line_vec.push_back(
 					std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator, MetaInitFuncSundialPasha> >(orderLineTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_order_line_vec.push_back(std::make_unique<TableHashMap<997, order_line::key, order_line::value> >(orderLineTableID, partitionID));
+				tbl_order_line_vec.push_back(
+					std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator> >(orderLineTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
