@@ -49,6 +49,9 @@ template <class Database> class Sundial {
 	{
 		auto &writeSet = txn.writeSet;
 		auto &readSet = txn.readSet;
+                auto &insertSet = txn.insertSet;
+                auto &deleteSet = txn.deleteSet;
+
 		auto isKeyInWriteSet = [](const std::vector<SundialRWKey> &writeSet, const void *key) {
 			for (auto &writeKey : writeSet) {
 				if (writeKey.get_key() == key) {
@@ -63,8 +66,48 @@ template <class Database> class Sundial {
 				DCHECK(isKeyInWriteSet(writeSet, readKey.get_key()));
 			}
 		}
-		// unlock locked records
 
+                // rollback inserts
+                for (auto i = 0u; i < insertSet.size(); i++) {
+			auto &insertKey = insertSet[i];
+
+			if (insertKey.get_processed() == false)
+				continue;
+
+			auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = insertKey.get_key();
+                                bool success = table->remove(key);
+                                CHECK(success == true);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
+
+                // rollback deletes - just release the write locks
+                for (auto i = 0u; i < deleteSet.size(); i++) {
+			auto &deleteKey = deleteSet[i];
+
+			if (deleteKey.get_processed() == false)
+				continue;
+
+			auto tableId = deleteKey.get_table_id();
+			auto partitionId = deleteKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = deleteKey.get_key();
+                                auto row = table->search(key);
+                                SundialHelper::unlock(row, txn.transaction_id);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
+
+		// unlock locked records
 		for (auto i = 0u; i < writeSet.size(); i++) {
 			auto &writeKey = writeSet[i];
 			// only unlock locked records
@@ -130,6 +173,43 @@ template <class Database> class Sundial {
 				ss << commit_tid << true;
 				auto output = ss.str();
 				auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
+			}
+		}
+
+                // commit inserts
+                auto &insertSet = txn.insertSet;
+                for (auto i = 0u; i < insertSet.size(); i++) {
+			auto &insertKey = insertSet[i];
+			CHECK(insertKey.get_processed() == true);
+
+			auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = insertKey.get_key();
+                                table->make_placeholder_valid(key);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
+
+                // commit deletes
+                auto &deleteSet = txn.deleteSet;
+                for (auto i = 0u; i < deleteSet.size(); i++) {
+			auto &deleteKey = deleteSet[i];
+			CHECK(deleteKey.get_processed() == true);
+
+			auto tableId = deleteKey.get_table_id();
+			auto partitionId = deleteKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = deleteKey.get_key();
+                                bool success = table->remove(key);
+                                CHECK(success == true);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
 			}
 		}
 
