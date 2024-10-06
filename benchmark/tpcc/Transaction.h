@@ -826,22 +826,15 @@ template <class Transaction> class Delivery : public Transaction {
                         }
                         t_local_work.reset();
 
-                        // the vector is already sorted
-                        // // find the minimum element in the vector
-                        // auto new_order_scan_min_comparator = []( const auto &a, const auto &b )
-                        // {
-                        //         const auto key_a = std::get<0>(a);
-                        //         const auto key_b = std::get<0>(b);
-                        //         return key_a.get_plain_key() < key_b.get_plain_key();
-                        // };
+                        if (storage->new_order_scan_results[D_ID - 1].size() == 0) {
+                                // We are not supposed to abort here, since this case is allowed by the spec.
+                                // But there is probably something wrong, so I just abort.
+                                CHECK(0);
+                                return TransactionResult::READY_TO_COMMIT;
+                        }
 
-                        // auto min = std::min_element(std::begin(storage->new_order_scan_results[D_ID - 1]),
-                        //         std::end(storage->new_order_scan_results[D_ID - 1]), new_order_scan_min_comparator);
-
-                        CHECK(storage->new_order_scan_results[D_ID - 1].size() > 0);
                         auto oldest_undelivered_order = storage->new_order_scan_results[D_ID - 1][0];
                         storage->oldest_undelivered_order_key = std::get<0>(oldest_undelivered_order);
-                        auto oldest_undelivered_order_id = storage->oldest_undelivered_order_key.NO_O_ID;
 
                         // The selected row in the NEW-ORDER table is deleted.
 
@@ -851,7 +844,7 @@ template <class Transaction> class Delivery : public Transaction {
                         // O_C_ID, the customer number, is retrieved, and O_CARRIER_ID is updated.
 
                         auto orderTableID = order::tableID;
-		        storage->order_key[D_ID - 1] = order::key(W_ID, D_ID, oldest_undelivered_order_id);
+		        storage->order_key[D_ID - 1] = order::key(W_ID, D_ID, storage->oldest_undelivered_order_key.NO_O_ID);
 		        this->search_for_update(orderTableID, W_ID - 1, storage->order_key[D_ID - 1], storage->order_value[D_ID - 1], did_to_granule_id(D_ID, context));
                         this->update(orderTableID, W_ID - 1, storage->order_key[D_ID - 1], storage->order_value[D_ID - 1], did_to_granule_id(D_ID, context));
 
@@ -860,8 +853,8 @@ template <class Transaction> class Delivery : public Transaction {
                         // and the sum of all OL_AMOUNT is retrieved.
 
                         auto orderLineTableID = order_line::tableID;
-                        storage->min_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, oldest_undelivered_order_id, 1);
-                        storage->max_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, oldest_undelivered_order_id, MAX_ORDER_LINE_PER_ORDER);
+                        storage->min_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, storage->oldest_undelivered_order_key.NO_O_ID, 1);
+                        storage->max_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, storage->oldest_undelivered_order_key.NO_O_ID, MAX_ORDER_LINE_PER_ORDER);
 
                         this->scan_for_read(orderLineTableID, W_ID - 1, storage->min_order_line_key[D_ID - 1], storage->max_order_line_key[D_ID - 1],
                                         0, &storage->order_line_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
@@ -872,7 +865,7 @@ template <class Transaction> class Delivery : public Transaction {
                         }
                         t_local_work.reset();
 
-                        // CHECK(storage->order_line_scan_results[D_ID - 1].size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results[D_ID - 1].size() <= MAX_ORDER_LINE_PER_ORDER);
+                        storage->order_value[D_ID - 1].O_CARRIER_ID = query.O_CARRIER_ID;
 
                         for (int i = 0; i < storage->order_line_scan_results[D_ID - 1].size(); i++) {
                                 auto order_line = storage->order_line_scan_results[D_ID - 1][i];
@@ -897,7 +890,14 @@ template <class Transaction> class Delivery : public Transaction {
                         }
                         t_local_work.reset();
 
-                        // TODO: do the remaining work
+                        uint64_t sum_ol_amount = 0;
+                        for (int i = 0; i < storage->order_line_scan_results[D_ID - 1].size(); i++) {
+                                storage->order_line_values[D_ID - 1][i].OL_DELIVERY_D = Time::now();
+                                sum_ol_amount += storage->order_line_values[D_ID - 1][i].OL_AMOUNT;
+                        }
+
+                        storage->customer_value[D_ID - 1].C_BALANCE += sum_ol_amount;
+                        storage->customer_value[D_ID - 1].C_DELIVERY_CNT++;
                 }
 
 		return TransactionResult::READY_TO_COMMIT;
