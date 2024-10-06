@@ -50,8 +50,8 @@ endif()
 add_executable(bench_tpcc bench_tpcc.cpp)
 target_link_libraries(bench_tpcc misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
 
-# add_executable(bench_ycsb bench_ycsb.cpp)
-# target_link_libraries(bench_ycsb misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
+add_executable(bench_ycsb bench_ycsb.cpp)
+target_link_libraries(bench_ycsb misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
 
-# add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
-# target_link_libraries(btreeolc_test gtest)
+add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
+target_link_libraries(btreeolc_test gtest)
