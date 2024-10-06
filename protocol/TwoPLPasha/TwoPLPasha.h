@@ -74,6 +74,50 @@ template <class Database> class TwoPLPasha {
 
 	void abort(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
 	{
+                // rollback inserts
+                auto &insertSet = txn.insertSet;
+
+                for (auto i = 0u; i < insertSet.size(); i++) {
+			auto &insertKey = insertSet[i];
+
+			if (insertKey.get_processed() == false)
+				continue;
+
+			auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = insertKey.get_key();
+                                bool success = table->remove(key);
+                                CHECK(success == true);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
+
+                // rollback deletes - just release the write locks
+                auto &deleteSet = txn.deleteSet;
+
+                for (auto i = 0u; i < deleteSet.size(); i++) {
+			auto &deleteKey = deleteSet[i];
+
+			if (deleteKey.get_processed() == false)
+				continue;
+
+			auto tableId = deleteKey.get_table_id();
+			auto partitionId = deleteKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+                                auto key = deleteKey.get_key();
+				std::atomic<uint64_t> &tid = *table->search_metadata(key);
+				TwoPLPashaHelper::write_lock_release(tid);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
+
 		// assume all writes are updates
 		auto &readSet = txn.readSet;
 
@@ -144,6 +188,43 @@ template <class Database> class TwoPLPasha {
 				auto output = ss.str();
 				auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
 				// txn.get_logger()->sync(lsn, [&](){ txn.remote_request_handler(); });
+			}
+		}
+
+                // commit inserts
+                auto &insertSet = txn.insertSet;
+                for (auto i = 0u; i < insertSet.size(); i++) {
+			auto &insertKey = insertSet[i];
+			CHECK(insertKey.get_processed() == true);
+
+			auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = insertKey.get_key();
+                                table->make_placeholder_valid(key);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
+			}
+		}
+
+                // commit deletes
+                auto &deleteSet = txn.deleteSet;
+                for (auto i = 0u; i < deleteSet.size(); i++) {
+			auto &deleteKey = deleteSet[i];
+			CHECK(deleteKey.get_processed() == true);
+
+			auto tableId = deleteKey.get_table_id();
+			auto partitionId = deleteKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+			if (partitioner.has_master_partition(partitionId)) {
+				auto key = deleteKey.get_key();
+                                bool success = table->remove(key);
+                                CHECK(success == true);
+			} else {
+                                // does not support remote insert & delete
+                                CHECK(0);
 			}
 		}
 

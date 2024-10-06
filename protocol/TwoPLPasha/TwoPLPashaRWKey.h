@@ -203,6 +203,46 @@ class TwoPLPashaRWKey {
 		return lock_index;
 	}
 
+        // scan
+        const void *get_scan_min_key() const
+	{
+                return this->min_key;
+	}
+
+        const void *get_scan_max_key() const
+	{
+                return this->max_key;
+	}
+
+        uint64_t get_scan_limit() const
+	{
+                return this->limit;
+	}
+
+        void *get_scan_res_vec() const
+	{
+                return this->scan_results;
+	}
+
+        void set_scan_args(const void *min_key, const void *max_key, uint64_t limit, void *results)
+	{
+		this->min_key = min_key;
+                this->max_key = max_key;
+                this->limit = limit;
+                this->scan_results = results;
+	}
+
+        // processed or not
+        bool get_processed() const
+	{
+                return this->processed;
+	}
+
+        void set_processed()
+	{
+                this->processed = true;
+	}
+
     private:
 	/*
 	 * A bitvec is a 64-bit word.
@@ -224,6 +264,14 @@ class TwoPLPashaRWKey {
 	uint64_t bitvec = 0;
 	uint64_t tid = 0;
 	int32_t lock_index = -1;
+
+        // for range scan
+        const void *min_key = nullptr;
+        const void *max_key = nullptr;
+        uint64_t limit = 0;
+        void *scan_results = nullptr;
+
+        bool processed = false;
 
     public:
 	static constexpr uint64_t TABLE_ID_MASK = 0x1f;
