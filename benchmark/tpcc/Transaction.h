@@ -985,6 +985,7 @@ template <class Transaction> class StockLevel : public Transaction {
                 int32_t D_ID = query.D_ID;
 
                 // The row in the DISTRICT table with matching D_W_ID and D_ID is selected and D_NEXT_O_ID is retrieved.
+
                 auto districtTableID = district::tableID;
 		storage->district_key = district::key(W_ID, D_ID);
 		this->search_for_read(districtTableID, W_ID - 1, storage->district_key, storage->district_value, did_to_granule_id(D_ID, context));
@@ -1016,20 +1017,22 @@ template <class Transaction> class StockLevel : public Transaction {
                 // All rows in the STOCK table with matching S_I_ID (equals OL_I_ID) and S_W_ID (equals W_ID) from the
                 // list of distinct item numbers and with S_QUANTITY lower than threshold are counted (giving low_stock).
 
-                // get distinct item numbers
+                // Stocks must be counted only for distinct items.
+                // Thus, items that have been ordered more than once in the 20 selected orders 
+                // must be aggregated into a single summary count for that item.
+
                 std::unordered_set<int32_t> item_id_set;
                 for (int i = 0; i < storage->order_line_scan_results[0].size(); i++) {
                         auto order_line = storage->order_line_scan_results[0][i];
                         const auto order_line_value = *static_cast<const order_line::value *>(std::get<2>(order_line));
-                        auto S_I_ID = order_line_value.OL_I_ID;
-                        item_id_set.insert(S_I_ID);
-                        const auto order_line_key = std::get<0>(order_line);
+                        item_id_set.insert(order_line_value.OL_I_ID);
                 }
+
+                auto stockTableID = stock::tableID;
+                auto S_W_ID = W_ID;
 
                 int i = 0;
                 for (auto item_id : item_id_set) {
-                        auto stockTableID = stock::tableID;
-                        auto S_W_ID = W_ID;
                         auto S_I_ID = item_id;
                         storage->stock_keys[i] = stock::key(S_W_ID, S_I_ID);
                         this->search_for_read(stockTableID, W_ID - 1, storage->stock_keys[i], storage->stock_values[i], did_to_granule_id(D_ID, context));
