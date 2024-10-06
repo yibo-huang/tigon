@@ -211,10 +211,6 @@ class TwoPLTransaction {
 	template <class KeyType, class ValueType>
 	void search_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
 	{
-		if (!partitioner.has_master_partition(partition_id)) {
-			pendingResponses++;
-		}
-
 		TwoPLRWKey readKey;
 
 		readKey.set_table_id(table_id);
@@ -231,10 +227,6 @@ class TwoPLTransaction {
 	template <class KeyType, class ValueType>
 	void search_for_update(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
 	{
-		if (!partitioner.has_master_partition(partition_id)) {
-			pendingResponses++;
-		}
-
 		TwoPLRWKey readKey;
 
 		readKey.set_table_id(table_id);
@@ -267,19 +259,41 @@ class TwoPLTransaction {
 	void scan_for_read(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
                         uint64_t limit, void *results, std::size_t granule_id = 0)
 	{
-                CHECK(0);
+		TwoPLRWKey scanKey;
+
+		scanKey.set_table_id(table_id);
+		scanKey.set_partition_id(partition_id);
+
+                scanKey.set_scan_args(&min_key, &max_key, limit, results);
+
+		add_to_scan_set(scanKey);
 	}
 
         template <class KeyType, class ValueType>
-	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, const ValueType &value, std::size_t granule_id = 0)
+	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
 	{
-		CHECK(0);
+		TwoPLRWKey insertKey;
+
+		insertKey.set_table_id(table_id);
+		insertKey.set_partition_id(partition_id);
+
+                insertKey.set_key(&key);
+                insertKey.set_value(&value);
+
+		add_to_insert_set(insertKey);
 	}
 
         template <class KeyType>
 	void delete_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, std::size_t granule_id = 0)
 	{
-		CHECK(0);
+		TwoPLRWKey deleteKey;
+
+		deleteKey.set_table_id(table_id);
+		deleteKey.set_partition_id(partition_id);
+
+                deleteKey.set_key(&key);
+
+		add_to_delete_set(deleteKey);
 	}
 
 	bool process_requests(std::size_t worker_id, bool last_call_in_transaction = true)
@@ -376,7 +390,7 @@ process_net_req_and_ret:
 				remote_request_handler(0);
 			}
 		}
-		return false;
+		return ret;
 	}
 
 	TwoPLRWKey *get_read_key(const void *key)

@@ -70,6 +70,7 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 
 				auto coordinatorID = this->partitioner->master_coordinator(partition_id);
 
+                                txn.pendingResponses++;
 				if (write_lock) {
 					txn.network_size +=
 						MessageFactoryType::new_write_lock_message(*(this->messages[coordinatorID]), *table, key, key_offset);
