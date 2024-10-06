@@ -699,10 +699,9 @@ template <class Transaction> class OrderStatus : public Transaction {
                 const auto last_order_key = std::get<0>(last_order);
                 auto last_order_id = last_order_key.O_ID;
 
-                // All rows in the ORDER-LINE table with matching OL_W_ID (equals O_W_ID), OL_D_ID (equals O_D_ID), and OL_O_ID (equals O_ID) are selected
-                // and the corresponding sets of OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, and OL_DELIVERY_D are retrieved.
+                // All rows in the ORDER-LINE table with matching OL_W_ID (equals O_W_ID), OL_D_ID (equals O_D_ID), and OL_O_ID (equals O_ID) are
+                // selected and the corresponding sets of OL_I_ID, OL_SUPPLY_W_ID, OL_QUANTITY, OL_AMOUNT, and OL_DELIVERY_D are retrieved.
 
-                last_order_id = 1924;
                 auto orderLineTableID = order_line::tableID;
                 storage->min_order_line_key[0] = order_line::key(O_W_ID, O_D_ID, last_order_id, 1);
                 storage->max_order_line_key[0] = order_line::key(O_W_ID, O_D_ID, last_order_id, MAX_ORDER_LINE_PER_ORDER);
@@ -714,9 +713,6 @@ template <class Transaction> class OrderStatus : public Transaction {
 			return TransactionResult::ABORT;
 		}
                 t_local_work.reset();
-
-                // Done
-                // CHECK(storage->order_line_scan_results[0].size() >= MIN_ORDER_LINE_PER_ORDER && storage->order_line_scan_results[0].size() <= MAX_ORDER_LINE_PER_ORDER);
 
 		return TransactionResult::READY_TO_COMMIT;
 	}
