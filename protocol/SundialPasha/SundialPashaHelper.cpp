@@ -12,6 +12,6 @@ uint64_t SundialPashaMetadataSharedInit()
 	return reinterpret_cast<uint64_t>(new SundialPashaMetadataShared());
 }
 
-SundialPashaHelper global_helper;
+SundialPashaHelper sundial_pasha_global_helper;
 
 }

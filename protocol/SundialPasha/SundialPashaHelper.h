@@ -639,6 +639,6 @@ retry:
         std::atomic<uint64_t> init_finished;
 };
 
-extern SundialPashaHelper global_helper;
+extern SundialPashaHelper sundial_pasha_global_helper;
 
 } // namespace star

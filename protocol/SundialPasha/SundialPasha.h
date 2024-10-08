@@ -123,7 +123,7 @@ template <class Database> class SundialPasha {
 				SundialPashaHelper::unlock(row, txn.transaction_id);
 			} else {
                                 auto key = writeKey.get_key();
-				char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+				char *migrated_row = sundial_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
                                 CHECK(migrated_row != nullptr);
 				SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
 			}
@@ -424,9 +424,9 @@ template <class Database> class SundialPasha {
 						auto wts = readKey.get_wts();
 						auto commit_ts = txn.commit_ts;
 
-						char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+						char *migrated_row = sundial_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
                                                 CHECK(migrated_row != nullptr);
-						bool success = global_helper.remote_renew_lease(migrated_row, wts, commit_ts);
+						bool success = sundial_pasha_global_helper.remote_renew_lease(migrated_row, wts, commit_ts);
 
 						if (success == false) { // renew_lease failed
 							txn.abort_read_validation = true;
@@ -571,15 +571,15 @@ template <class Database> class SundialPasha {
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
 				auto row = table->search(key);
-				global_helper.update(row, value, value_size, txn.commit_ts, txn.transaction_id);
+				sundial_pasha_global_helper.update(row, value, value_size, txn.commit_ts, txn.transaction_id);
 			} else {
                                 // I am not the owner of the data
                                 auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				auto value_size = table->value_size();
-                                char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                char *migrated_row = sundial_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
                                 CHECK(migrated_row != nullptr);
-                                global_helper.remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
+                                sundial_pasha_global_helper.remote_update(migrated_row, value, value_size, txn.commit_ts, txn.transaction_id);
 			}
 
 			// value replicate
@@ -658,7 +658,7 @@ template <class Database> class SundialPasha {
                                 // I am not the owner of the data
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
-                                char *migrated_row = global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                char *migrated_row = sundial_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
                                 CHECK(migrated_row != nullptr);
                                 SundialPashaHelper::remote_unlock(migrated_row, txn.transaction_id);
 			}
@@ -680,7 +680,7 @@ template <class Database> class SundialPasha {
                                 DCHECK(partitioner.has_master_partition(partitionId) == false);
                                 DCHECK(readKey.get_local_index_read_bit() == 0);
                                 auto key = readKey.get_key();
-                                global_helper.release_migrated_row(tableId, partitionId, table->get_plain_key(key));
+                                sundial_pasha_global_helper.release_migrated_row(tableId, partitionId, table->get_plain_key(key));
                         }
 		}
         }
