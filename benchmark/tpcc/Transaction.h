@@ -1063,5 +1063,110 @@ template <class Transaction> class StockLevel : public Transaction {
 	StockLevelQuery query;
 };
 
+template <class Transaction> class Test : public Transaction {
+    public:
+	using DatabaseType = Database;
+	using ContextType = typename DatabaseType::ContextType;
+	using RandomType = typename DatabaseType::RandomType;
+	using StorageType = Storage;
+
+	Test(std::size_t coordinator_id, std::size_t partition_id, DatabaseType &db, const ContextType &context, RandomType &random,
+		Partitioner &partitioner, std::size_t ith_replica = 0)
+		: Transaction(coordinator_id, partition_id, partitioner, ith_replica)
+		, db(db)
+		, context(context)
+		, random(random)
+		, partition_id(partition_id)
+		, query(makeTestQuery()(context, partition_id + 1, random))
+	{
+		storage = get_storage();
+	}
+
+	virtual ~Test()
+	{
+		put_storage(storage);
+		storage = nullptr;
+	}
+
+	virtual int32_t get_partition_count() override
+	{
+		return query.number_of_parts();
+	}
+
+	virtual int32_t get_partition(int i) override
+	{
+		return query.get_part(i);
+	}
+
+	virtual int32_t get_partition_granule_count(int i) override
+	{
+		return query.get_part_granule_count(i);
+	}
+
+	virtual int32_t get_granule(int partition_id, int j) override
+	{
+		return query.get_part_granule(partition_id, j);
+	}
+
+	virtual bool is_single_partition() override
+	{
+		return query.number_of_parts() == 1;
+	}
+
+	virtual const std::string serialize(std::size_t ith_replica = 0) override
+	{
+		std::string res;
+		uint32_t txn_type = 1;
+		Encoder encoder(res);
+		encoder << this->transaction_id << txn_type << this->straggler_wait_time << ith_replica << this->txn_random_seed_start << partition_id;
+		Transaction::serialize_lock_status(encoder);
+		return res;
+	}
+
+	TransactionResult execute(std::size_t worker_id) override
+	{
+                storage->cleanup();
+		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
+		int32_t W_ID = query.W_ID;
+                int32_t D_ID = query.D_ID;
+                int32_t C_ID = query.C_ID;
+
+                CHECK(W_ID > 0);
+                CHECK(D_ID == 1);
+                CHECK(C_ID == 1);
+
+                // The row in the CUSTOMER table with matching C_W_ID, C_D_ID, and C_ID is selected
+
+		auto customerTableID = customer::tableID;
+		storage->customer_key[0] = customer::key(W_ID, D_ID, C_ID);
+		this->search_for_update(customerTableID, W_ID - 1, storage->customer_key[0], storage->customer_value[0], did_to_granule_id(D_ID, context));
+		this->update(customerTableID, W_ID - 1, storage->customer_key[0], storage->customer_value[0], did_to_granule_id(D_ID, context));
+
+                t_local_work.end();
+                if (this->process_requests(worker_id)) {
+                        return TransactionResult::ABORT;
+                }
+                t_local_work.reset();
+
+                // increment C_PAYMENT_CNT, whose inital value is 1
+                storage->customer_value[0].C_PAYMENT_CNT++;
+
+		return TransactionResult::READY_TO_COMMIT;
+	}
+
+	void reset_query() override
+	{
+		query = makeTestQuery()(context, partition_id, random);
+	}
+
+    private:
+	DatabaseType &db;
+	const ContextType &context;
+	RandomType random;
+	Storage *storage;
+	std::size_t partition_id;
+	TestQuery query;
+};
+
 } // namespace tpcc
 } // namespace star

@@ -559,5 +559,62 @@ class makeStockLevelQuery {
 	}
 };
 
+struct TestQuery {
+	bool isRemote()
+	{
+		return false;
+	}
+
+	int32_t W_ID;
+	int32_t D_ID;
+        int32_t C_ID;
+
+        int parts[2];
+	int num_parts = 0;
+
+	int32_t get_part(int i)
+	{
+                DCHECK(i < num_parts);
+		return parts[i];
+	}
+
+	int32_t get_part_granule_count(int i)
+	{
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
+	}
+
+	int32_t get_part_granule(int i, int j)
+	{
+		// does not support HStore for now
+		CHECK(0);
+                return -1;
+	}
+
+	int number_of_parts()
+	{
+		return num_parts;
+	}
+};
+
+class makeTestQuery {
+    public:
+	TestQuery operator()(const Context &context, int32_t W_ID, Random &random) const
+	{
+		TestQuery query;
+
+		query.W_ID = W_ID;
+
+                query.parts[0] = W_ID - 1;
+		query.num_parts = 1;
+
+                query.D_ID = 1;
+                query.C_ID = 1;
+
+		return query;
+	}
+};
+
 } // namespace tpcc
 } // namespace star

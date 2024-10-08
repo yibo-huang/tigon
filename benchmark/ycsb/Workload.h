@@ -112,6 +112,11 @@ template <class Transaction> class Workload {
 		return p;
 	}
 
+        // this function is co-designed with the TEST workload
+        void perform_correctness_test(ContextType &context)
+        {
+        }
+
     private:
 	std::size_t coordinator_id;
 	DatabaseType &db;

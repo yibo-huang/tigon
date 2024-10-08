@@ -11,7 +11,7 @@ namespace star
 namespace tpcc
 {
 
-enum class TPCCWorkloadType { NEW_ORDER_ONLY, PAYMENT_ONLY, MIXED };
+enum class TPCCWorkloadType { TEST, NEW_ORDER_ONLY, PAYMENT_ONLY, MIXED };
 
 class Context : public star::Context {
     public:

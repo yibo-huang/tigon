@@ -10,7 +10,7 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI/COLLECT_OUTPUTS] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP GATHER_OUTPUTS"
+        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP GATHER_OUTPUTS"
         echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE: None"
@@ -71,19 +71,20 @@ function run_exp_tpcc {
         typeset PROTOCOL=$1
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
-        typeset REMOTE_NEWORDER_PERC=$4
-        typeset REMOTE_PAYMENT_PERC=$5
-        typeset USE_CXL_TRANS=$6
-        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$7
-        typeset CXL_TRANS_ENTRY_NUM=$8
-        typeset MIGRATION_POLICY=$9
-        typeset WHEN_TO_MOVE_OUT=${10}
-        typeset MAX_MIGRATED_ROWS_SIZE=${11}
-        typeset SCC_MECH=${12}
-        typeset PRE_MIGRATE=${13}
-        typeset TIME_TO_RUN=${14}
-        typeset TIME_TO_WARMUP=${15}
-        typeset GATHER_OUTPUTS=${16}
+        typeset QUERY_TYPE=$4
+        typeset REMOTE_NEWORDER_PERC=$5
+        typeset REMOTE_PAYMENT_PERC=$6
+        typeset USE_CXL_TRANS=$7
+        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$8
+        typeset CXL_TRANS_ENTRY_NUM=$9
+        typeset MIGRATION_POLICY=${10}
+        typeset WHEN_TO_MOVE_OUT=${11}
+        typeset MAX_MIGRATED_ROWS_SIZE=${12}
+        typeset SCC_MECH=${13}
+        typeset PRE_MIGRATE=${14}
+        typeset TIME_TO_RUN=${15}
+        typeset TIME_TO_WARMUP=${16}
+        typeset GATHER_OUTPUTS=${17}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -105,7 +106,7 @@ function run_exp_tpcc {
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
-                                --protocol=SundialPasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                                --protocol=SundialPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -118,7 +119,7 @@ function run_exp_tpcc {
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
-                        --protocol=SundialPasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+                        --protocol=SundialPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
@@ -130,7 +131,7 @@ function run_exp_tpcc {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                                --protocol=Sundial --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -140,7 +141,7 @@ function run_exp_tpcc {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=Sundial --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+                        --protocol=Sundial --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "TwoPLPasha" ]; then
                 # launch 1-$HOST_NUM processes
@@ -155,7 +156,7 @@ function run_exp_tpcc {
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
-                                --protocol=TwoPLPasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                                --protocol=TwoPLPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -168,7 +169,7 @@ function run_exp_tpcc {
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
-                        --protocol=TwoPLPasha --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+                        --protocol=TwoPLPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
                 # launch 1-$HOST_NUM processes
@@ -180,7 +181,7 @@ function run_exp_tpcc {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=TwoPL --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                                --protocol=TwoPL --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -190,7 +191,7 @@ function run_exp_tpcc {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=TwoPL --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+                        --protocol=TwoPL --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "Lotus" ]; then
                 # launch 1-$HOST_NUM processes
@@ -202,7 +203,7 @@ function run_exp_tpcc {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=HStore --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                                --protocol=HStore --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -212,7 +213,7 @@ function run_exp_tpcc {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=HStore --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+                        --protocol=HStore --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "Calvin" ]; then
                 # launch 1-$HOST_NUM processes
@@ -224,7 +225,7 @@ function run_exp_tpcc {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=20 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=Calvin --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
+                                --protocol=Calvin --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -234,7 +235,7 @@ function run_exp_tpcc {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=$HOST_NUM --lock_manager=1 --batch_flush=1 --lotus_async_repl=false --batch_size=20 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=Calvin --query=mixed --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
+                        --protocol=Calvin --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         else
                 echo "Protocol not supported!"
@@ -447,7 +448,7 @@ typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=8192
 typeset BASELINE_CXL_TRANS_ENTRY_NUM=4096
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 15 ]; then
+        if [ $# != 16 ]; then
                 print_usage
                 exit -1
         fi
@@ -455,17 +456,18 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset PROTOCOL=$2
         typeset HOST_NUM=$3
         typeset WORKER_NUM=$4
-        typeset REMOTE_NEWORDER_PERC=$5
-        typeset REMOTE_PAYMENT_PERC=$6
-        typeset USE_CXL_TRANS=$7
-        typeset MIGRATION_POLICY=$8
-        typeset WHEN_TO_MOVE_OUT=$9
-        typeset MAX_MIGRATED_ROWS=${10}
-        typeset SCC_MECH=${11}
-        typeset PRE_MIGRATE=${12}
-        typeset TIME_TO_RUN=${13}
-        typeset TIME_TO_WARMUP=${14}
-        typeset GATHER_OUTPUT=${15}
+        typeset QUERY_TYPE=$5
+        typeset REMOTE_NEWORDER_PERC=$6
+        typeset REMOTE_PAYMENT_PERC=$7
+        typeset USE_CXL_TRANS=$8
+        typeset MIGRATION_POLICY=$9
+        typeset WHEN_TO_MOVE_OUT=${10}
+        typeset MAX_MIGRATED_ROWS=${11}
+        typeset SCC_MECH=${12}
+        typeset PRE_MIGRATE=${13}
+        typeset TIME_TO_RUN=${14}
+        typeset TIME_TO_WARMUP=${15}
+        typeset GATHER_OUTPUT=${16}
 
         # if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
         #         typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -483,7 +485,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
                 typeset CXL_TRANS_ENTRY_NUM=$BASELINE_CXL_TRANS_ENTRY_NUM
         fi
 
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $GATHER_OUTPUT
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
         if [ $# != 17 ]; then

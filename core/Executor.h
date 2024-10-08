@@ -139,6 +139,9 @@ template <class Workload, class Protocol> class Executor : public Worker {
 					commit_latency.add(ltc);
 					n_network_size.fetch_add(transaction->network_size);
 					if (commit) {
+                                                // for correctness test
+                                                db.global_total_commit.fetch_add(1);
+
 						n_commit.fetch_add(1);
 						if (transaction->si_in_serializable) {
 							n_si_in_serializable.fetch_add(1);
@@ -244,6 +247,9 @@ template <class Workload, class Protocol> class Executor : public Worker {
 				LOG(INFO) << "message stats, type: " << i << " count: " << message_stats[i] << " total size: " << message_sizes[i];
 			}
 			percentile.save_cdf(context.cdf_path);
+
+                        // do a correctness test for the current workload
+                        workload.perform_correctness_test(context);
 		}
 	}
 

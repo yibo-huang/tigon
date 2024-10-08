@@ -74,6 +74,9 @@ template <class Transaction> class Workload {
 				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC NewOrder";
 			}
+                } else if (context.workloadType == TPCCWorkloadType::TEST) {
+			p = std::make_unique<Test<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+			transactionType = "TPCC Test";
 		} else if (context.workloadType == TPCCWorkloadType::NEW_ORDER_ONLY) {
 			p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 			transactionType = "TPCC NewOrder";
@@ -115,6 +118,32 @@ template <class Transaction> class Workload {
 			return p;
 		}
 	}
+
+        // this function is co-designed with the TEST workload
+        void perform_correctness_test(ContextType &context)
+        {
+                if (context.workloadType == TPCCWorkloadType::TEST) {
+                        uint64_t total_c_payment_cnt = 0;
+                        for (int i = 0; i < context.partition_num; i++) {
+                                int32_t W_ID = i + 1;
+                                int32_t D_ID = 1;
+                                int32_t C_ID = 1;
+
+                                // The row in the CUSTOMER table with matching C_W_ID, C_D_ID, and C_ID is selected
+
+                                auto customerTableID = customer::tableID;
+                                auto table = db.find_table(customerTableID, W_ID - 1);
+
+                                auto customer_key = customer::key(W_ID, D_ID, C_ID);
+                                customer::value &customer_value = *static_cast<customer::value *>(table->search_value(&customer_key));
+                                LOG(INFO) << "WH = " << W_ID << "C_PAYMENT_CNT = " << customer_value.C_PAYMENT_CNT;
+                                total_c_payment_cnt += customer_value.C_PAYMENT_CNT;
+                        }
+
+                        LOG(INFO) << "total_c_payment_cnt = " << total_c_payment_cnt << " , global_total_commit = " << db.global_total_commit;
+                        CHECK(total_c_payment_cnt - context.partition_num == db.global_total_commit);
+                }
+        }
 
     private:
 	std::size_t coordinator_id;

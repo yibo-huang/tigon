@@ -1071,6 +1071,10 @@ class Database {
 		}
 	}
 
+    public:
+        // for correctness test
+        std::atomic<uint64_t> global_total_commit{ 0 };
+
     private:
 	std::vector<ThreadPool *> threadpools;
 	WALLogger *checkpoint_file_writer = nullptr;

@@ -5,7 +5,7 @@
 
 
 DEFINE_bool(operation_replication, false, "use operation replication");
-DEFINE_string(query, "neworder", "tpcc query, mixed, neworder, payment");
+DEFINE_string(query, "neworder", "tpcc query, mixed, neworder, payment, test");
 DEFINE_int32(neworder_dist, 10, "new order distributed.");
 DEFINE_int32(payment_dist, 15, "payment distributed.");
 
@@ -39,6 +39,8 @@ int main(int argc, char *argv[])
 		context.workloadType = star::tpcc::TPCCWorkloadType::NEW_ORDER_ONLY;
 	} else if (FLAGS_query == "payment") {
 		context.workloadType = star::tpcc::TPCCWorkloadType::PAYMENT_ONLY;
+        } else if (FLAGS_query == "test") {
+		context.workloadType = star::tpcc::TPCCWorkloadType::TEST;
 	} else {
 		CHECK(false);
 	}
