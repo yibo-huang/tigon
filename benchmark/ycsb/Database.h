@@ -99,6 +99,8 @@ class Database {
 				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncSundial> >(ycsbTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
                                 tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncSundialPasha> >(ycsbTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
+                                tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncTwoPLPasha> >(ycsbTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
 			} else {
