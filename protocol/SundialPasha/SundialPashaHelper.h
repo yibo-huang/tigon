@@ -88,7 +88,6 @@ retry:
 };
 
 uint64_t SundialPashaMetadataLocalInit();
-uint64_t SundialPashaMetadataSharedInit();
 
 /* 
  * lmeta means local metadata stored in local DRAM

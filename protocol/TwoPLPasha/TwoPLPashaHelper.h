@@ -8,9 +8,55 @@
 #include <cstring>
 #include <glog/logging.h>
 #include <tuple>
+#include <pthread.h>
 
 namespace star
 {
+
+struct TwoPLPashaMetadataLocal {
+        pthread_spinlock_t latch;
+        void lock()
+	{
+                pthread_spin_lock(&latch);
+	}
+
+	void unlock()
+	{
+		pthread_spin_unlock(&latch);
+	}
+
+	uint64_t tid{ 0 };
+
+        bool is_migrated{ false };
+        char *migrated_row{ nullptr };
+};
+
+struct TwoPLPashaMetadataShared {
+        pthread_spinlock_t latch;
+        void lock()
+	{
+                pthread_spin_lock(&latch);
+	}
+
+	void unlock()
+	{
+		pthread_spin_unlock(&latch);
+	}
+
+	uint64_t tid{ 0 };
+
+        // multi-host transaction accessing a cxl row would increase its reference count by 1
+        // a migrated row can only be moved out if its ref_cnt == 0
+        uint64_t ref_cnt{ 0 };
+
+        // a migrated tuple can be invalid if it is deleted or migrated out
+        bool is_valid{ false };
+
+        // software cache-coherence metadata
+        uint64_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
+};
+
+uint64_t TwoPLPashaMetadataLocalInit();
 
 class TwoPLPashaHelper {
     public:
@@ -18,10 +64,20 @@ class TwoPLPashaHelper {
 
 	static uint64_t read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
-		MetaDataType &tid = *std::get<0>(row);
-		void *src = std::get<1>(row);
-		std::memcpy(dest, src, size);
-		uint64_t tid_ = tid.load();
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t tid_ = 0;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+		        void *src = std::get<1>(row);
+		        std::memcpy(dest, src, size);
+                        tid_ = lmeta->tid;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
+
 		return remove_lock_bit(tid_);
 	}
 
@@ -50,80 +106,130 @@ class TwoPLPashaHelper {
 		return READ_LOCK_BIT_MASK;
 	}
 
-	static uint64_t read_lock(std::atomic<uint64_t> &a, bool &success)
+	static uint64_t read_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
-		uint64_t old_value, new_value;
-		do {
-			old_value = a.load();
-			if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
-				success = false;
-				return remove_lock_bit(old_value);
-			}
-			new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
-		} while (!a.compare_exchange_weak(old_value, new_value));
-		success = true;
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        old_value = lmeta->tid;
+
+                        // can we get the lock?
+                        if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                                success = false;
+                                lmeta->unlock();
+                                return remove_lock_bit(old_value);
+                        }
+
+                        // OK, we can get the lock
+                        new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                        lmeta->tid = new_value;
+                        success = true;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
+
 		return remove_lock_bit(old_value);
 	}
 
-	static uint64_t write_lock(std::atomic<uint64_t> &a, bool &success)
+	static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
-		uint64_t old_value = a.load();
-		if (is_read_locked(old_value) || is_write_locked(old_value)) {
-			success = false;
-			return remove_lock_bit(old_value);
-		}
-		uint64_t new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-		success = a.compare_exchange_strong(old_value, new_value);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        old_value = lmeta->tid;
+
+                        // can we get the lock?
+                        if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                                success = false;
+                                lmeta->unlock();
+                                return remove_lock_bit(old_value);
+                        }
+
+                        // OK, we can get the lock
+                        new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                        lmeta->tid = new_value;
+                        success = true;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
+
 		return remove_lock_bit(old_value);
 	}
 
-	static uint64_t write_lock(std::atomic<uint64_t> &a)
+	static uint64_t write_lock(std::atomic<uint64_t> &meta)
 	{
-		uint64_t old_value, new_value;
+                uint64_t old_value = 0;
+                bool success = false;
 
-		do {
-			do {
-				old_value = a.load();
-			} while (is_read_locked(old_value) || is_write_locked(old_value));
+                while (true) {
+                        old_value = write_lock(meta, success);
+                        if (success == true) {
+                                break;
+                        }
+                }
 
-			new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-
-		} while (!a.compare_exchange_weak(old_value, new_value));
 		return remove_lock_bit(old_value);
 	}
 
-	static void read_lock_release(std::atomic<uint64_t> &a)
+	static void read_lock_release(std::atomic<uint64_t> &meta)
 	{
-		uint64_t old_value, new_value;
-		do {
-			old_value = a.load();
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        old_value = lmeta->tid;
 			DCHECK(is_read_locked(old_value));
 			DCHECK(!is_write_locked(old_value));
 			new_value = old_value - (1ull << READ_LOCK_BIT_OFFSET);
-		} while (!a.compare_exchange_weak(old_value, new_value));
+                        lmeta->tid = new_value;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
 	}
 
-	static void write_lock_release(std::atomic<uint64_t> &a)
+	static void write_lock_release(std::atomic<uint64_t> &meta)
 	{
-		uint64_t old_value, new_value;
-		old_value = a.load();
-		DCHECK(!is_read_locked(old_value));
-		DCHECK(is_write_locked(old_value));
-		new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
-		bool ok = a.compare_exchange_strong(old_value, new_value);
-		DCHECK(ok);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        old_value = lmeta->tid;
+                        DCHECK(!is_read_locked(old_value));
+                        DCHECK(is_write_locked(old_value));
+                        new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
+                        lmeta->tid = new_value;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
 	}
 
-	static void write_lock_release(std::atomic<uint64_t> &a, uint64_t new_value)
+	static void write_lock_release(std::atomic<uint64_t> &meta, uint64_t new_value)
 	{
-		uint64_t old_value;
-		old_value = a.load();
-		DCHECK(!is_read_locked(old_value));
-		DCHECK(is_write_locked(old_value));
-		DCHECK(!is_read_locked(new_value));
-		DCHECK(!is_write_locked(new_value));
-		bool ok = a.compare_exchange_weak(old_value, new_value);
-		DCHECK(ok);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        old_value = lmeta->tid;
+                        DCHECK(!is_read_locked(old_value));
+                        DCHECK(is_write_locked(old_value));
+                        DCHECK(!is_read_locked(new_value));
+                        DCHECK(!is_write_locked(new_value));
+                        lmeta->tid = new_value;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
 	}
 
 	static uint64_t remove_lock_bit(uint64_t value)

@@ -113,6 +113,15 @@ class MetaInitFuncSundialPasha {
 	}
 };
 
+extern uint64_t TwoPLPashaMetadataLocalInit();
+class MetaInitFuncTwoPLPasha {
+    public:
+	uint64_t operator()()
+	{
+		return TwoPLPashaMetadataLocalInit();
+	}
+};
+
 template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = MetaInitFuncNothing> class TableHashMap : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
