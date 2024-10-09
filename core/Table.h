@@ -369,8 +369,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, row_ptr);
                 CHECK(success == true);
 
-                if (row_ptr->is_valid.load() == true) {
-                        return &row_ptr->value;
+                if (success == true) {
+                        if (row_ptr->is_valid.load() == true) {
+                                return &row_ptr->value;
+                        } else {
+                                return nullptr;
+                        }
                 } else {
                         return nullptr;
                 }
@@ -382,10 +386,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		const auto &k = *static_cast<const KeyType *>(key);
                 BTreeOLCValue *row_ptr;
                 bool success = btree.lookup(k, row_ptr);
-                CHECK(success == true);
 
-                if (row_ptr->is_valid.load() == true) {
-                        return &row_ptr->meta;
+                if (success == true) {
+                        if (row_ptr->is_valid.load() == true) {
+                                return &row_ptr->meta;
+                        } else {
+                                return nullptr;
+                        }
                 } else {
                         return nullptr;
                 }
