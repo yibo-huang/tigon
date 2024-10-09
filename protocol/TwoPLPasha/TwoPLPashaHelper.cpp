@@ -9,4 +9,6 @@ uint64_t TwoPLPashaMetadataLocalInit()
 	return reinterpret_cast<uint64_t>(lmeta);
 }
 
+TwoPLPashaHelper twopl_pasha_global_helper;
+
 }

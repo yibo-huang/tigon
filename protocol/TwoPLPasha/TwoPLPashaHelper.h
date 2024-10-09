@@ -5,10 +5,19 @@
 #pragma once
 
 #include <atomic>
-#include <cstring>
-#include <glog/logging.h>
+#include <list>
 #include <tuple>
-#include <pthread.h>
+#include <memory>
+
+#include "common/CCSet.h"
+#include "common/CCHashTable.h"
+#include "core/Table.h"
+#include "glog/logging.h"
+
+#include "protocol/Pasha/MigrationManager.h"
+#include "protocol/Pasha/SCCManager.h"
+
+#include <boost/interprocess/offset_ptr.hpp>
 
 namespace star
 {
@@ -61,6 +70,23 @@ uint64_t TwoPLPashaMetadataLocalInit();
 class TwoPLPashaHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
+
+        TwoPLPashaHelper()
+                : coordinator_id(0)
+                , coordinator_num(0)
+                , table_num_per_partition(0)
+                , partition_num_per_host(0)
+        {
+        }
+
+        TwoPLPashaHelper(std::size_t coordinator_id, std::size_t coordinator_num, 
+                std::size_t table_num_per_partition, std::size_t partition_num_per_host)
+                : coordinator_id(coordinator_id)
+                , coordinator_num(coordinator_num)
+                , table_num_per_partition(table_num_per_partition)
+                , partition_num_per_host(partition_num_per_host)
+        {
+        }
 
 	static uint64_t read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
@@ -247,6 +273,54 @@ class TwoPLPashaHelper {
 		return value & ~(WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
 	}
 
+        void init_pasha_metadata()
+        {
+                uint64_t total_partition_num = partition_num_per_host * coordinator_num;
+                uint64_t total_table_num = table_num_per_partition * total_partition_num;
+
+                cxl_tbl_vecs.resize(table_num_per_partition);
+
+                // init CXL hash tables
+                if (coordinator_id == 0) {
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num,
+                                CXLMemory::INDEX_ALLOCATION));
+                        for (int i = 0; i < table_num_per_partition; i++) {
+                                cxl_tbl_vecs[i].resize(total_partition_num);
+                                for (int j = 0; j < total_partition_num; j++) {
+                                        CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
+                                        new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
+                                        cxl_tbl_vecs[i][j] = cxl_table;
+                                }
+                        }
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
+                        LOG(INFO) << "TwoPLPasha Helper initializes data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                } else {
+                        void *tmp = NULL;
+                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+                        for (int i = 0; i < table_num_per_partition; i++) {
+                                cxl_tbl_vecs[i].resize(total_partition_num);
+                                for (int j = 0; j < total_partition_num; j++) {
+                                        CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
+                                        cxl_tbl_vecs[i][j] = cxl_table;
+                                }
+                        }
+                        LOG(INFO) << "TwoPLPasha Helper retrieves data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                }
+        }
+
+        void commit_pasha_metadata_init()
+        {
+                init_finished.store(1, std::memory_order_release);
+        }
+
+        void wait_for_pasha_metadata_init()
+        {
+                while (init_finished.load(std::memory_order_acquire) == 0);
+        }
+
     public:
 	static constexpr int LOCK_BIT_OFFSET = 54;
 	static constexpr uint64_t LOCK_BIT_MASK = 0x3ffull;
@@ -256,5 +330,21 @@ class TwoPLPashaHelper {
 
 	static constexpr int WRITE_LOCK_BIT_OFFSET = 63;
 	static constexpr uint64_t WRITE_LOCK_BIT_MASK = 0x1ull;
+
+    private:
+        static constexpr uint64_t cxl_hashtable_bkt_cnt = 50000;
+
+        std::size_t coordinator_id;
+        std::size_t coordinator_num;
+        std::size_t table_num_per_partition;
+        std::size_t partition_num_per_host;
+
+        CCHashTable *cxl_hashtables;
+        std::vector<std::vector<CCHashTable *> > cxl_tbl_vecs;
+
+        std::atomic<uint64_t> init_finished;
 };
+
+extern TwoPLPashaHelper twopl_pasha_global_helper;
+
 } // namespace star

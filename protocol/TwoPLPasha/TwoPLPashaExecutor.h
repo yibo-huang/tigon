@@ -4,8 +4,15 @@
 
 #pragma once
 
+#include "common/CCSet.h"
+#include "common/CCHashTable.h"
 #include "core/Executor.h"
 #include "protocol/TwoPLPasha/TwoPLPasha.h"
+#include "protocol/TwoPLPasha/TwoPLPashaHelper.h"
+#include "protocol/Pasha/MigrationManager.h"
+#include "protocol/Pasha/MigrationManagerFactory.h"
+#include "protocol/Pasha/SCCManager.h"
+#include "protocol/Pasha/SCCManagerFacrtory.h"
 
 namespace star
 {
@@ -32,6 +39,37 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 		      std::atomic<uint32_t> &n_complete_workers, std::atomic<uint32_t> &n_started_workers)
 		: base_type(coordinator_id, id, db, context, worker_status, n_complete_workers, n_started_workers)
 	{
+                if (id == 0) {
+                        // init helper
+                        new(&twopl_pasha_global_helper) TwoPLPashaHelper(coordinator_id, context.coordinator_num,
+                                db.get_table_num_per_partition(), context.partition_num / context.coordinator_num);
+
+                        // // init migration manager
+                        // migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
+                        //         context.when_to_move_out, context.max_migrated_rows_size);
+
+                        // // init software cache-coherence manager
+                        // scc_manager = SCCManagerFactory::create_scc_manager(context.protocol, context.scc_mechanism);
+
+                        // init CXL hash tables
+                        twopl_pasha_global_helper.init_pasha_metadata();
+
+                        // // handle pre-migration
+                        // if (context.pre_migrate == "None") {
+                        //         // do nothing
+                        // } else if (context.pre_migrate == "All") {
+                        //         db.move_all_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                        // } else if (context.pre_migrate == "NonPart") {
+                        //         db.move_non_part_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                        // } else {
+                        //         CHECK(0);
+                        // }
+
+                        // commit metadata init
+                        twopl_pasha_global_helper.commit_pasha_metadata_init();
+                } else {
+                        twopl_pasha_global_helper.wait_for_pasha_metadata_init();
+                }
 	}
 
 	~TwoPLPashaExecutor() = default;

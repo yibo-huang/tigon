@@ -406,7 +406,7 @@ retry:
 
                 // init CXL hash tables
                 if (coordinator_id == 0) {
-                        cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num, 
+                        cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num,
                                 CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < table_num_per_partition; i++) {
                                 cxl_tbl_vecs[i].resize(total_partition_num);
