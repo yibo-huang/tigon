@@ -479,12 +479,13 @@ class TwoPLMessageHandler {
 		Decoder dec(stringPiece);
 		dec >> write_lock;
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
+		std::atomic<uint64_t> *tid = table.search_metadata(key);
+                CHECK(tid != nullptr);
 
 		if (write_lock) {
-			TwoPLHelper::write_lock_release(tid);
+			TwoPLHelper::write_lock_release(*tid);
 		} else {
-			TwoPLHelper::read_lock_release(tid);
+			TwoPLHelper::read_lock_release(*tid);
 		}
 	}
 
@@ -711,12 +712,13 @@ class TwoPLMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
+		std::atomic<uint64_t> *tid = table.search_metadata(key);
+                CHECK(tid != nullptr);
 
-		uint64_t last_tid = TwoPLHelper::write_lock(tid);
+		uint64_t last_tid = TwoPLHelper::write_lock(*tid);
 		DCHECK(last_tid < commit_tid);
 		table.deserialize_value(key, valueStringPiece);
-		TwoPLHelper::write_lock_release(tid, commit_tid);
+		TwoPLHelper::write_lock_release(*tid, commit_tid);
 
 		// uint64_t lsn = 0;
 		//  if (txn->get_logger()) {
@@ -792,9 +794,10 @@ class TwoPLMessageHandler {
 		const void *key = stringPiece.data();
 		stringPiece.remove_prefix(key_size);
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
+		std::atomic<uint64_t> *tid = table.search_metadata(key);
+                CHECK(tid != nullptr);
 
-		TwoPLHelper::read_lock_release(tid);
+		TwoPLHelper::read_lock_release(*tid);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size();
@@ -848,8 +851,9 @@ class TwoPLMessageHandler {
 		Decoder dec(stringPiece);
 		dec >> commit_tid;
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
-		TwoPLHelper::write_lock_release(tid, commit_tid);
+		std::atomic<uint64_t> *tid = table.search_metadata(key);
+                CHECK(tid != nullptr);
+		TwoPLHelper::write_lock_release(*tid, commit_tid);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size();
