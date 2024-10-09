@@ -624,6 +624,7 @@ retry:
     public:
 	static constexpr int LOCK_BIT_OFFSET = 63;
 	static constexpr uint64_t LOCK_BIT_MASK = 0x1ull;
+
     private:
         static constexpr uint64_t cxl_hashtable_bkt_cnt = 50000;
 
