@@ -496,28 +496,28 @@ retry:
                         std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
                         char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size, CXLMemory::DATA_ALLOCATION));
                         char *migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataShared);
-                        SundialPashaMetadataShared *migrated_row_meta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
-                        new(migrated_row_meta) SundialPashaMetadataShared();
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
+                        new(smeta) SundialPashaMetadataShared();
 
                         // init software cache-coherence metadata
-                        scc_manager->init_scc_metadata(&migrated_row_meta->scc_meta, coordinator_id);
+                        scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
 
                         // take the CXL latch
-                        migrated_row_meta->lock();
+                        smeta->lock();
 
                         // copy metadata
-                        migrated_row_meta->wts = lmeta->wts;
-                        migrated_row_meta->rts = lmeta->rts;
-                        migrated_row_meta->owner = lmeta->owner;
+                        smeta->wts = lmeta->wts;
+                        smeta->rts = lmeta->rts;
+                        smeta->owner = lmeta->owner;
 
                         // copy data
                         std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
 
                         // set the migrated row as valid
-                        migrated_row_meta->is_valid = true;
+                        smeta->is_valid = true;
 
                         // increase the reference count for the requesting host
-                        migrated_row_meta->ref_cnt++;
+                        smeta->ref_cnt++;
 
                         // insert into CXL hash tables
                         CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
@@ -529,7 +529,7 @@ retry:
                         lmeta->is_migrated = true;
 
                         // release the CXL latch
-                        migrated_row_meta->unlock();
+                        smeta->unlock();
 
                         // LOG(INFO) << "moved in a row with key " << plain_key << " from table " << table->tableID();
 
@@ -548,6 +548,7 @@ retry:
                         ret = false;
                 }
 		lmeta->unlock();
+
 		return ret;
 	}
 
