@@ -154,8 +154,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                         // data is not in the shared region
                                         // ask the remote host to do the data migration
                                         auto coordinatorID = this->partitioner->master_coordinator(partition_id);
-                                        txn.network_size += MessageFactoryType::new_data_migration_message(*(this->messages[coordinatorID]), *table, key, txn.transaction_id,
-                                                                                                write_lock, key_offset);
+                                        txn.network_size += MessageFactoryType::new_data_migration_message(*(this->messages[coordinatorID]), *table, key, txn.transaction_id, key_offset);
                                         txn.pendingResponses++;
                                 }
                                 // multi-host transaction

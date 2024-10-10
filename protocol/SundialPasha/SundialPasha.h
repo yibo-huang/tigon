@@ -678,7 +678,6 @@ template <class Database> class SundialPasha {
 
 			if (readKey.get_reference_counted() == true) {
                                 DCHECK(partitioner.has_master_partition(partitionId) == false);
-                                DCHECK(readKey.get_local_index_read_bit() == 0);
                                 auto key = readKey.get_key();
                                 sundial_pasha_global_helper.release_migrated_row(tableId, partitionId, table->get_plain_key(key));
                         }

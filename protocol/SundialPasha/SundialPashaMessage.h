@@ -30,10 +30,10 @@ enum class SundialPashaMessage {
 
 class SundialPashaMessageFactory {
     public:
-	static std::size_t new_data_migration_message(Message &message, ITable &table, const void *key, uint64_t transaction_id, bool write_lock, uint32_t key_offset)
+	static std::size_t new_data_migration_message(Message &message, ITable &table, const void *key, uint64_t transaction_id, uint32_t key_offset)
 	{
 		/*
-		 * The structure of a read request: (primary key, write_lock, read key offset)
+		 * The structure of a read request: (primary key, read key offset)
 		 */
 
 		auto key_size = table.key_size();
