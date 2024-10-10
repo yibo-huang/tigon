@@ -302,7 +302,7 @@ class TwoPLPashaMessageHandler {
 			responseMessage.data.append(value_size, 0);
 			void *dest = &responseMessage.data[0] + responseMessage.data.size() - value_size;
 			// read to message buffer
-			TwoPLPashaHelper::read(row, dest, value_size);
+			twopl_pasha_global_helper.read(row, dest, value_size);
 			encoder << latest_tid;
 		}
 
@@ -405,7 +405,7 @@ class TwoPLPashaMessageHandler {
 			responseMessage.data.append(value_size, 0);
 			void *dest = &responseMessage.data[0] + responseMessage.data.size() - value_size;
 			// read to message buffer
-			TwoPLPashaHelper::read(row, dest, value_size);
+			twopl_pasha_global_helper.read(row, dest, value_size);
 			encoder << latest_tid;
 		}
 		responseMessage.set_gen_time(Time::now());

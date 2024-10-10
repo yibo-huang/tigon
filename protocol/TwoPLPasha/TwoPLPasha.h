@@ -41,7 +41,7 @@ template <class Database> class TwoPLPasha {
 		ITable *table = db.find_table(table_id, partition_id);
 		auto value_bytes = table->value_size();
 		auto row = table->search(key);
-		return TwoPLPashaHelper::read(row, value, value_bytes);
+		return twopl_pasha_global_helper.read(row, value, value_bytes);
 	}
 
 	uint64_t generate_tid(TransactionType &txn)
@@ -110,8 +110,9 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
                                 auto key = deleteKey.get_key();
-				std::atomic<uint64_t> &tid = *table->search_metadata(key);
-				TwoPLPashaHelper::write_lock_release(tid);
+				std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                CHECK(meta != 0);
+				TwoPLPashaHelper::write_lock_release(*meta);
 			} else {
                                 // does not support remote insert & delete
                                 CHECK(0);
@@ -130,8 +131,9 @@ template <class Database> class TwoPLPasha {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
 					auto value = readKey.get_value();
-					std::atomic<uint64_t> &tid = *table->search_metadata(key);
-					TwoPLPashaHelper::read_lock_release(tid);
+					std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+					TwoPLPashaHelper::read_lock_release(*meta);
 				} else {
 					auto coordinatorID = partitioner.master_coordinator(partitionId);
 					txn.network_size += MessageFactoryType::new_abort_message(*messages[coordinatorID], *table, readKey.get_key(), false);
@@ -142,8 +144,9 @@ template <class Database> class TwoPLPasha {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
 					auto value = readKey.get_value();
-					std::atomic<uint64_t> &tid = *table->search_metadata(key);
-					TwoPLPashaHelper::write_lock_release(tid);
+					std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+					TwoPLPashaHelper::write_lock_release(*meta);
 				} else {
 					auto coordinatorID = partitioner.master_coordinator(partitionId);
 					txn.network_size += MessageFactoryType::new_abort_message(*messages[coordinatorID], *table, readKey.get_key(), true);
@@ -315,7 +318,9 @@ template <class Database> class TwoPLPasha {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
-				table->update(key, value);
+                                auto value_size = table->value_size();
+				auto row = table->search(key);
+                                twopl_pasha_global_helper.update(row, value, value_size);
 			} else {
 				txn.pendingResponses++;
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -344,7 +349,9 @@ template <class Database> class TwoPLPasha {
 				if (k == txn.coordinator_id) {
 					auto key = writeKey.get_key();
 					auto value = writeKey.get_value();
-					table->update(key, value);
+					auto value_size = table->value_size();
+                                        auto row = table->search(key);
+                                        twopl_pasha_global_helper.update(row, value, value_size);
 				} else {
 					txn.pendingResponses++;
 					auto coordinatorID = k;
@@ -478,8 +485,9 @@ template <class Database> class TwoPLPasha {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
 					auto value = readKey.get_value();
-					std::atomic<uint64_t> &tid = *table->search_metadata(key);
-					TwoPLPashaHelper::read_lock_release(tid);
+					std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+					TwoPLPashaHelper::read_lock_release(*meta);
 				} else {
 					// txn.pendingResponses++;
 					auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -500,9 +508,9 @@ template <class Database> class TwoPLPasha {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
-				std::atomic<uint64_t> &tid = *table->search_metadata(key);
-				table->update(key, value);
-				TwoPLPashaHelper::write_lock_release(tid, commit_tid);
+				std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                CHECK(meta != nullptr);
+				TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
 			} else {
 				// txn.pendingResponses++;
 				auto coordinatorID = partitioner.master_coordinator(partitionId);
