@@ -78,15 +78,20 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 	{
 		txn.lock_request_handler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value,
 							bool local_index_read, bool write_lock, bool &success, bool &remote) -> uint64_t {
+                        ITable *table = this->db.find_table(table_id, partition_id);
+
 			if (local_index_read) {
 				success = true;
 				remote = false;
-				return this->protocol.search(table_id, partition_id, key, value);
+                                auto value_bytes = table->value_size();
+                                auto row = table->search(key);
+				return twopl_pasha_global_helper.read(row, value, value_bytes, this->n_local_cxl_access);
 			}
 
-			ITable *table = this->db.find_table(table_id, partition_id);
-
 			if (this->partitioner->has_master_partition(partition_id)) {
+                                // statistics
+                                this->n_local_access.fetch_add(1);
+
 				remote = false;
 
 				std::atomic<uint64_t> *meta = table->search_metadata(key);
@@ -101,12 +106,17 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 				}
 
 				if (success) {
-					return this->protocol.search(table_id, partition_id, key, value);
+                                        auto value_bytes = table->value_size();
+                                        auto row = table->search(key);
+                                        return twopl_pasha_global_helper.read(row, value, value_bytes, this->n_local_cxl_access);
 				} else {
 					return 0;
 				}
 
 			} else {
+                                // statistics
+                                this->n_remote_access.fetch_add(1);
+
                                 // multi-host transaction
                                 txn.distributed_transaction = true;
 
@@ -136,10 +146,10 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 return 0;
                                         }
                                 } else {
-                                        remote = true;
-
                                         // statistics
                                         this->n_remote_access_with_req.fetch_add(1);
+
+                                        remote = true;
 
                                         // data is not in the shared region
                                         // ask the remote host to do the data migration

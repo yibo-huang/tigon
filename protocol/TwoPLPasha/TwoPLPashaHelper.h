@@ -107,7 +107,7 @@ class TwoPLPashaHelper {
         {
         }
 
-	uint64_t read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
+	uint64_t read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, std::atomic<uint64_t> &local_cxl_access)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
@@ -119,6 +119,9 @@ class TwoPLPashaHelper {
 		        std::memcpy(dest, src, size);
                         tid_ = lmeta->tid;
                 } else {
+                        // statistics
+                        local_cxl_access.fetch_add(1);
+
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         void *src = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
                         smeta->lock();

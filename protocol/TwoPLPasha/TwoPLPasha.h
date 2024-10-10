@@ -36,14 +36,6 @@ template <class Database> class TwoPLPasha {
 	{
 	}
 
-	uint64_t search(std::size_t table_id, std::size_t partition_id, const void *key, void *value) const
-	{
-		ITable *table = db.find_table(table_id, partition_id);
-		auto value_bytes = table->value_size();
-		auto row = table->search(key);
-		return twopl_pasha_global_helper.read(row, value, value_bytes);
-	}
-
 	uint64_t generate_tid(TransactionType &txn)
 	{
 		auto &readSet = txn.readSet;

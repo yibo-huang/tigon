@@ -37,14 +37,6 @@ template <class Database> class SundialPasha {
 	{
 	}
 
-	uint64_t search(std::size_t table_id, std::size_t partition_id, const void *key, void *value) const
-	{
-		ITable *table = db.find_table(table_id, partition_id);
-		auto value_bytes = table->value_size();
-		auto row = table->search(key);
-		return SiloHelper::read(row, value, value_bytes);
-	}
-
 	void abort(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
 	{
 		auto &writeSet = txn.writeSet;
