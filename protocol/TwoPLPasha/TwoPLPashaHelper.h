@@ -295,8 +295,7 @@ out_unlock_lmeta:
                         // can we get the lock?
                         if (is_read_locked(old_value) || is_write_locked(old_value)) {
                                 success = false;
-                                lmeta->unlock();
-                                return remove_lock_bit(old_value);
+                                goto out_unlock_lmeta;
                         }
 
                         // OK, we can get the lock

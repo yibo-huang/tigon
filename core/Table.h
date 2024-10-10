@@ -113,6 +113,15 @@ class MetaInitFuncSundialPasha {
 	}
 };
 
+extern uint64_t TwoPLMetadataInit();
+class MetaInitFuncTwoPL {
+    public:
+	uint64_t operator()()
+	{
+		return TwoPLMetadataInit();
+	}
+};
+
 extern uint64_t TwoPLPashaMetadataLocalInit();
 class MetaInitFuncTwoPLPasha {
     public:

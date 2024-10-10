@@ -173,6 +173,9 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_warehouse_vec.push_back(
 					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncSundialPasha> >(warehouseTableID, partitionID));
+                        } else if (context.protocol == "TwoPL") {
+                                tbl_warehouse_vec.push_back(
+					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncTwoPL> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
                                 tbl_warehouse_vec.push_back(
 					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncTwoPLPasha> >(warehouseTableID, partitionID));
@@ -197,7 +200,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_district_vec.push_back(
 					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncSundialPasha> >(districtTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_district_vec.push_back(
+					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncTwoPL> >(districtTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_district_vec.push_back(
 					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncTwoPLPasha> >(districtTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -221,7 +227,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_customer_vec.push_back(
 					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncSundialPasha> >(customerTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_customer_vec.push_back(
+					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncTwoPL> >(customerTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_customer_vec.push_back(
 					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncTwoPLPasha> >(customerTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -247,6 +256,10 @@ class Database {
 				tbl_customer_name_idx_vec.push_back(
 					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncSundialPasha> >(
 						customerNameIdxTableID, partitionID));
+                        } else if (context.protocol == "TwoPL") {
+				tbl_customer_name_idx_vec.push_back(
+					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncTwoPL> >(
+						customerNameIdxTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
 				tbl_customer_name_idx_vec.push_back(
 					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncTwoPLPasha> >(
@@ -263,7 +276,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_history_vec.push_back(
 					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator, MetaInitFuncSundialPasha> >(historyTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_history_vec.push_back(
+					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator, MetaInitFuncTwoPL> >(historyTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_history_vec.push_back(
 					std::make_unique<TableBTreeOLC<history::key, history::value, history::KeyComparator, history::ValueComparator, MetaInitFuncTwoPLPasha> >(historyTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -287,7 +303,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_new_order_vec.push_back(
 					std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator, MetaInitFuncSundialPasha> >(newOrderTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_new_order_vec.push_back(
+					std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator, MetaInitFuncTwoPL> >(newOrderTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_new_order_vec.push_back(
 					std::make_unique<TableBTreeOLC<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator, MetaInitFuncTwoPLPasha> >(newOrderTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -312,7 +331,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_order_vec.push_back(
 					std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator, MetaInitFuncSundialPasha> >(orderTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_order_vec.push_back(
+					std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator, MetaInitFuncTwoPL> >(orderTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_order_vec.push_back(
 					std::make_unique<TableBTreeOLC<order::key, order::value, order::KeyComparator, order::ValueComparator, MetaInitFuncTwoPLPasha> >(orderTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -335,6 +357,9 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_order_cust_vec.push_back(
 					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator, MetaInitFuncSundialPasha> >(orderCustTableID, partitionID));
+                        } else if (context.protocol == "TwoPL") {
+				tbl_order_cust_vec.push_back(
+					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator, MetaInitFuncTwoPL> >(orderCustTableID, partitionID));
 			} else if (context.protocol == "TwoPLPasha") {
 				tbl_order_cust_vec.push_back(
 					std::make_unique<TableBTreeOLC<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator, MetaInitFuncTwoPLPasha> >(orderCustTableID, partitionID));
@@ -358,7 +383,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_order_line_vec.push_back(
 					std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator, MetaInitFuncSundialPasha> >(orderLineTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_order_line_vec.push_back(
+					std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator, MetaInitFuncTwoPL> >(orderLineTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_order_line_vec.push_back(
 					std::make_unique<TableBTreeOLC<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator, MetaInitFuncTwoPLPasha> >(orderLineTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -383,7 +411,10 @@ class Database {
                         } else if (context.protocol == "SundialPasha") {
 				tbl_stock_vec.push_back(
 					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncSundialPasha> >(stockTableID, partitionID));
-			} else if (context.protocol == "TwoPLPasha") {
+			} else if (context.protocol == "TwoPL") {
+				tbl_stock_vec.push_back(
+					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncTwoPL> >(stockTableID, partitionID));
+                        } else if (context.protocol == "TwoPLPasha") {
 				tbl_stock_vec.push_back(
 					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncTwoPLPasha> >(stockTableID, partitionID));
                         } else if (context.protocol != "HStore") {
@@ -404,6 +435,8 @@ class Database {
 			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncSundial> >(itemTableID, 0));
                 } else if (context.protocol == "SundialPasha") {
 			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncSundialPasha> >(itemTableID, 0));
+                } else if (context.protocol == "TwoPL") {
+			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncTwoPL> >(itemTableID, 0));
                 } else if (context.protocol == "TwoPLPasha") {
 			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncTwoPLPasha> >(itemTableID, 0));
 		} else if (context.protocol != "HStore") {

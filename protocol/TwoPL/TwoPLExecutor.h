@@ -51,13 +51,13 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 			if (this->partitioner->has_master_partition(partition_id)) {
 				remote = false;
 
-				std::atomic<uint64_t> *tid = table->search_metadata(key);
-                                CHECK(tid != nullptr);
+				std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                CHECK(meta != nullptr);
 
 				if (write_lock) {
-					TwoPLHelper::write_lock(*tid, success);
+					TwoPLHelper::write_lock(*meta, success);
 				} else {
-					TwoPLHelper::read_lock(*tid, success);
+					TwoPLHelper::read_lock(*meta, success);
 				}
 
 				if (success) {
@@ -139,15 +139,15 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 			}
 
 			if (local_delete) {
-                                std::atomic<uint64_t> *tid = table->search_metadata(key);
-                                if (tid == nullptr) {
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                if (meta == nullptr) {
                                         // someone else has deleted the row, so we abort
                                         txn.abort_delete = true;
                                         return false;
                                 }
 
                                 bool success = false;
-                                TwoPLHelper::write_lock(*tid, success);
+                                TwoPLHelper::write_lock(*meta, success);
                                 if (success) {
                                         // do nothing
                                 } else {

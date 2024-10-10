@@ -12,17 +12,61 @@
 namespace star
 {
 
+struct TwoPLMetadata {
+        TwoPLMetadata()
+                : tid(0)
+        {
+                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+        }
+
+        void lock()
+	{
+                pthread_spin_lock(&latch);
+	}
+
+	void unlock()
+	{
+		pthread_spin_unlock(&latch);
+	}
+
+        pthread_spinlock_t latch;
+
+	uint64_t tid{ 0 };
+};
+
+uint64_t TwoPLMetadataInit()
+{
+	return reinterpret_cast<uint64_t>(new TwoPLMetadata());
+}
+
 class TwoPLHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
 	static uint64_t read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
-		MetaDataType &tid = *std::get<0>(row);
-		void *src = std::get<1>(row);
-		std::memcpy(dest, src, size);
-		uint64_t tid_ = tid.load();
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t tid_ = 0;
+
+                lmeta->lock();
+                void *src = std::get<1>(row);
+                std::memcpy(dest, src, size);
+                tid_ = lmeta->tid;
+                lmeta->unlock();
+
 		return remove_lock_bit(tid_);
+	}
+
+        static void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size)
+	{
+		MetaDataType &meta = *std::get<0>(row);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+
+		lmeta->lock();
+                void *data_ptr = std::get<1>(row);
+                memcpy(data_ptr, value, value_size);
+		lmeta->unlock();
 	}
 
 	/**
@@ -50,80 +94,110 @@ class TwoPLHelper {
 		return READ_LOCK_BIT_MASK;
 	}
 
-	static uint64_t read_lock(std::atomic<uint64_t> &a, bool &success)
+	static uint64_t read_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
-		uint64_t old_value, new_value;
-		do {
-			old_value = a.load();
-			if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
-				success = false;
-				return remove_lock_bit(old_value);
-			}
-			new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
-		} while (!a.compare_exchange_weak(old_value, new_value));
-		success = true;
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                old_value = lmeta->tid;
+
+                // can we get the lock?
+                if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                lmeta->tid = new_value;
+                success = true;
+
+out_unlock_lmeta:
+                lmeta->unlock();
 		return remove_lock_bit(old_value);
 	}
 
-	static uint64_t write_lock(std::atomic<uint64_t> &a, bool &success)
+        static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
-		uint64_t old_value = a.load();
-		if (is_read_locked(old_value) || is_write_locked(old_value)) {
-			success = false;
-			return remove_lock_bit(old_value);
-		}
-		uint64_t new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-		success = a.compare_exchange_strong(old_value, new_value);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                old_value = lmeta->tid;
+
+                // can we get the lock?
+                if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                lmeta->tid = new_value;
+                success = true;
+
+out_unlock_lmeta:
+                lmeta->unlock();
 		return remove_lock_bit(old_value);
 	}
 
-	static uint64_t write_lock(std::atomic<uint64_t> &a)
+	static uint64_t write_lock(std::atomic<uint64_t> &meta)
 	{
-		uint64_t old_value, new_value;
+		uint64_t ret = 0;
+                bool success = false;
 
-		do {
-			do {
-				old_value = a.load();
-			} while (is_read_locked(old_value) || is_write_locked(old_value));
+                while (true) {
+                        ret = write_lock(meta, success);
+                        if (success == true) {
+                                break;
+                        }
+                }
 
-			new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-
-		} while (!a.compare_exchange_weak(old_value, new_value));
-		return remove_lock_bit(old_value);
+                return ret;
 	}
 
-	static void read_lock_release(std::atomic<uint64_t> &a)
+	static void read_lock_release(std::atomic<uint64_t> &meta)
 	{
-		uint64_t old_value, new_value;
-		do {
-			old_value = a.load();
-			DCHECK(is_read_locked(old_value));
-			DCHECK(!is_write_locked(old_value));
-			new_value = old_value - (1ull << READ_LOCK_BIT_OFFSET);
-		} while (!a.compare_exchange_weak(old_value, new_value));
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                old_value = lmeta->tid;
+                DCHECK(is_read_locked(old_value));
+                DCHECK(!is_write_locked(old_value));
+                new_value = old_value - (1ull << READ_LOCK_BIT_OFFSET);
+                lmeta->tid = new_value;
+                lmeta->unlock();
 	}
 
-	static void write_lock_release(std::atomic<uint64_t> &a)
+	static void write_lock_release(std::atomic<uint64_t> &meta)
 	{
-		uint64_t old_value, new_value;
-		old_value = a.load();
-		DCHECK(!is_read_locked(old_value));
-		DCHECK(is_write_locked(old_value));
-		new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
-		bool ok = a.compare_exchange_strong(old_value, new_value);
-		DCHECK(ok);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value, new_value;
+
+                lmeta->lock();
+                old_value = lmeta->tid;
+                DCHECK(!is_read_locked(old_value));
+                DCHECK(is_write_locked(old_value));
+                new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
+                lmeta->tid = new_value;
+                lmeta->unlock();
 	}
 
-	static void write_lock_release(std::atomic<uint64_t> &a, uint64_t new_value)
+	static void write_lock_release(std::atomic<uint64_t> &meta, uint64_t new_value)
 	{
-		uint64_t old_value;
-		old_value = a.load();
-		DCHECK(!is_read_locked(old_value));
-		DCHECK(is_write_locked(old_value));
-		DCHECK(!is_read_locked(new_value));
-		DCHECK(!is_write_locked(new_value));
-		bool ok = a.compare_exchange_weak(old_value, new_value);
-		DCHECK(ok);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value;
+
+                lmeta->lock();
+                old_value = lmeta->tid;
+                DCHECK(!is_read_locked(old_value));
+                DCHECK(is_write_locked(old_value));
+                DCHECK(!is_read_locked(new_value));
+                DCHECK(!is_write_locked(new_value));
+                lmeta->tid = new_value;
+                lmeta->unlock();
 	}
 
 	static uint64_t remove_lock_bit(uint64_t value)
