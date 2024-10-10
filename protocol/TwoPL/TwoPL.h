@@ -501,7 +501,6 @@ template <class Database> class TwoPL {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
 				std::atomic<uint64_t> &tid = *table->search_metadata(key);
-				table->update(key, value);
 				TwoPLHelper::write_lock_release(tid, commit_tid);
 			} else {
 				// txn.pendingResponses++;
