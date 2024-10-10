@@ -130,18 +130,17 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 return 0;
                                         }
                                 } else {
-                                        CHECK(0);
+                                        remote = true;
 
-                                        // // statistics
-                                        // this->n_remote_access_with_req.fetch_add(1);
+                                        // statistics
+                                        this->n_remote_access_with_req.fetch_add(1);
 
-                                        // remote = true;
+                                        // data is not in the shared region
+                                        // ask the remote host to do the data migration
+                                        auto coordinatorID = this->partitioner->master_coordinator(partition_id);
+                                        txn.network_size += MessageFactoryType::new_data_migration_message(*(this->messages[coordinatorID]), *table, key, txn.transaction_id, key_offset);
+                                        txn.pendingResponses++;
 
-                                        // // data is not in the shared region
-                                        // // ask the remote host to do the data migration
-                                        // auto coordinatorID = this->partitioner->master_coordinator(partition_id);
-                                        // txn.network_size += MessageFactoryType::new_data_migration_message(*(this->messages[coordinatorID]), *table, key, txn.transaction_id, key_offset);
-                                        // txn.pendingResponses++;
                                         return 0;
                                 }
 			}

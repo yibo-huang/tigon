@@ -355,11 +355,6 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
-        static uint64_t write_lock(std::atomic<uint64_t> &meta)
-	{
-                CHECK(0);
-        }
-
 	static void read_lock_release(std::atomic<uint64_t> &meta)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
