@@ -107,20 +107,43 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 				}
 
 			} else {
-				remote = true;
+                                // multi-host transaction
+                                txn.distributed_transaction = true;
 
-				auto coordinatorID = this->partitioner->master_coordinator(partition_id);
+                                // I am not the owner of the data
+                                char *migrated_row = twopl_pasha_global_helper.get_migrated_row(table_id, partition_id, table->get_plain_key(key), true);
+                                if (migrated_row != nullptr) {
+                                        remote = false;
 
-                                txn.pendingResponses++;
-				if (write_lock) {
-					txn.network_size +=
-						MessageFactoryType::new_write_lock_message(*(this->messages[coordinatorID]), *table, key, key_offset);
-				} else {
-					txn.network_size +=
-						MessageFactoryType::new_read_lock_message(*(this->messages[coordinatorID]), *table, key, key_offset);
-				}
-				txn.distributed_transaction = true;
-				return 0;
+                                        // mark it as reference counted so that we know if we need to release it upon commit/abort
+                                        txn.readSet[key_offset].set_reference_counted();
+
+                                        if (write_lock) {
+                                                TwoPLPashaHelper::remote_write_lock(migrated_row, success);
+                                        } else {
+                                                TwoPLPashaHelper::remote_read_lock(migrated_row, success);
+                                        }
+
+                                        if (success) {
+                                                return twopl_pasha_global_helper.remote_read(migrated_row, value, table->value_size());
+                                        } else {
+                                                return 0;
+                                        }
+                                } else {
+                                        CHECK(0);
+
+                                        // // statistics
+                                        // this->n_remote_access_with_req.fetch_add(1);
+
+                                        // remote = true;
+
+                                        // // data is not in the shared region
+                                        // // ask the remote host to do the data migration
+                                        // auto coordinatorID = this->partitioner->master_coordinator(partition_id);
+                                        // txn.network_size += MessageFactoryType::new_data_migration_message(*(this->messages[coordinatorID]), *table, key, txn.transaction_id, key_offset);
+                                        // txn.pendingResponses++;
+                                        return 0;
+                                }
 			}
 		};
 

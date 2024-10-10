@@ -243,6 +243,18 @@ class TwoPLPashaRWKey {
                 this->processed = true;
 	}
 
+        // reference counting
+        bool get_reference_counted()
+	{
+		return reference_counted;
+	}
+
+	void set_reference_counted()
+	{
+		DCHECK(this->reference_counted == false);
+		this->reference_counted = true;
+	}
+
     private:
 	/*
 	 * A bitvec is a 64-bit word.
@@ -270,6 +282,9 @@ class TwoPLPashaRWKey {
         const void *max_key = nullptr;
         uint64_t limit = 0;
         void *scan_results = nullptr;
+
+        // for move in & out
+        bool reference_counted = false;
 
         bool processed = false;
 

@@ -130,13 +130,14 @@ template <class Database> class TwoPLPasha {
 			if (readKey.get_read_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
-					auto value = readKey.get_value();
 					std::atomic<uint64_t> *meta = table->search_metadata(key);
                                         CHECK(meta != 0);
 					TwoPLPashaHelper::read_lock_release(*meta);
 				} else {
-					auto coordinatorID = partitioner.master_coordinator(partitionId);
-					txn.network_size += MessageFactoryType::new_abort_message(*messages[coordinatorID], *table, readKey.get_key(), false);
+					auto key = readKey.get_key();
+                                        char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                        CHECK(migrated_row != nullptr);
+                                        TwoPLPashaHelper::remote_read_lock_release(migrated_row);
 				}
 			}
 
@@ -148,13 +149,16 @@ template <class Database> class TwoPLPasha {
                                         CHECK(meta != 0);
 					TwoPLPashaHelper::write_lock_release(*meta);
 				} else {
-					auto coordinatorID = partitioner.master_coordinator(partitionId);
-					txn.network_size += MessageFactoryType::new_abort_message(*messages[coordinatorID], *table, readKey.get_key(), true);
+					auto key = readKey.get_key();
+                                        char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                        CHECK(migrated_row != nullptr);
+                                        TwoPLPashaHelper::remote_write_lock_release(migrated_row);
 				}
 			}
 		}
 
-		sync_messages(txn, false);
+                // release migrated rows
+                release_migrated_rows(txn);
 	}
 
 	bool commit(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
@@ -162,15 +166,6 @@ template <class Database> class TwoPLPasha {
 		if (txn.abort_lock) {
 			abort(txn, messages);
 			return false;
-		}
-
-		{
-			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_prepare_time(us); });
-			if (txn.get_logger()) {
-				prepare_and_redo_for_commit(txn, messages);
-			} else {
-				prepare_for_commit(txn, messages);
-			}
 		}
 
 		// all locks are acquired
@@ -244,6 +239,9 @@ template <class Database> class TwoPLPasha {
 			release_lock(txn, commit_tid, messages);
 		}
 
+                // release migrated rows
+                release_migrated_rows(txn);
+
 		return true;
 	}
 
@@ -272,6 +270,10 @@ template <class Database> class TwoPLPasha {
 				auto field_size = table->field_size();
 				if (partitioner.has_master_partition(partitionId))
 					continue;
+
+                                // replication not supported
+                                DCHECK(false);
+
 				has_other_node = true;
 				auto coordinatorId = partitioner.master_coordinator(partitionId);
 				if (coordinator_covered[coordinatorId] == false) {
@@ -322,10 +324,12 @@ template <class Database> class TwoPLPasha {
 				auto row = table->search(key);
                                 twopl_pasha_global_helper.update(row, value, value_size);
 			} else {
-				txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				txn.network_size += MessageFactoryType::new_write_message(*messages[coordinatorID], *table, writeKey.get_key(),
-											  writeKey.get_value(), commit_tid, persist_commit_record[i]);
+				auto key = writeKey.get_key();
+				auto value = writeKey.get_value();
+                                auto value_size = table->value_size();
+				char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                CHECK(migrated_row != nullptr);
+                                twopl_pasha_global_helper.remote_update(migrated_row, value, value_size);
 			}
 
 			// value replicate
@@ -363,112 +367,6 @@ template <class Database> class TwoPLPasha {
 
 			DCHECK(replicate_count == partitioner.replica_num() - 1);
 		}
-		sync_messages(txn);
-	}
-
-	void prepare_and_redo_for_commit(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
-	{
-		auto &readSet = txn.readSet;
-		auto &writeSet = txn.writeSet;
-		if (txn.is_single_partition()) {
-			// Redo logging
-			for (size_t j = 0; j < writeSet.size(); ++j) {
-				auto &writeKey = writeSet[j];
-				auto tableId = writeKey.get_table_id();
-				auto partitionId = writeKey.get_partition_id();
-				auto table = db.find_table(tableId, partitionId);
-				auto key_size = table->key_size();
-				auto value_size = table->value_size();
-				auto key = writeKey.get_key();
-				auto value = writeKey.get_value();
-				DCHECK(key);
-				DCHECK(value);
-				std::ostringstream ss;
-				ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-				   << std::string((char *)value, value_size);
-				auto output = ss.str();
-				txn.get_logger()->write(output.c_str(), output.size(), false);
-			}
-		} else {
-			std::vector<std::vector<TwoPLPashaRWKey> > writeSetGroupByCoordinator(context.coordinator_num);
-
-			for (auto i = 0u; i < writeSet.size(); i++) {
-				auto &writeKey = writeSet[i];
-				auto tableId = writeKey.get_table_id();
-				auto partitionId = writeKey.get_partition_id();
-				auto table = db.find_table(tableId, partitionId);
-				auto coordinatorId = partitioner.master_coordinator(partitionId);
-				writeSetGroupByCoordinator[coordinatorId].push_back(writeKey);
-			}
-
-			for (size_t i = 0; i < context.coordinator_num; ++i) {
-				auto &writeSet = writeSetGroupByCoordinator[i];
-				if (writeSet.empty())
-					continue;
-				if (i == partitioner.get_coordinator_id()) {
-					// Redo logging
-					for (size_t j = 0; j < writeSet.size(); ++j) {
-						auto &writeKey = writeSet[j];
-						auto tableId = writeKey.get_table_id();
-						auto partitionId = writeKey.get_partition_id();
-						auto table = db.find_table(tableId, partitionId);
-						auto key_size = table->key_size();
-						auto value_size = table->value_size();
-						auto key = writeKey.get_key();
-						auto value = writeKey.get_value();
-						DCHECK(key);
-						DCHECK(value);
-						std::ostringstream ss;
-						ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-						   << std::string((char *)value, value_size);
-						auto output = ss.str();
-						txn.get_logger()->write(output.c_str(), output.size(), false);
-					}
-				} else {
-					txn.pendingResponses++;
-					auto coordinatorID = i;
-					txn.network_size += MessageFactoryType::new_prepare_and_redo_message(*messages[coordinatorID], writeSet, db);
-				}
-			}
-			sync_messages(txn);
-		}
-	}
-
-	void prepare_for_commit(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
-	{
-		auto &readSet = txn.readSet;
-		auto &writeSet = txn.writeSet;
-		std::unordered_set<int> partitions;
-		for (auto i = 0u; i < writeSet.size(); i++) {
-			auto &writeKey = writeSet[i];
-			auto tableId = writeKey.get_table_id();
-			auto partitionId = writeKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-
-			if (!partitioner.has_master_partition(partitionId)) {
-				partitions.insert(partitionId);
-			}
-		}
-
-		for (auto i = 0u; i < readSet.size(); i++) {
-			auto &readKey = readSet[i];
-			auto tableId = readKey.get_table_id();
-			auto partitionId = readKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-
-			if (!partitioner.has_master_partition(partitionId)) {
-				partitions.insert(partitionId);
-			}
-		}
-
-		for (auto it : partitions) {
-			auto partitionId = it;
-			txn.pendingResponses++;
-			auto coordinatorID = partitioner.master_coordinator(partitionId);
-			auto table = db.find_table(0, partitionId);
-			txn.network_size += MessageFactoryType::new_prepare_message(*messages[coordinatorID], *table);
-		}
-		sync_messages(txn);
 	}
 
 	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages)
@@ -484,15 +382,14 @@ template <class Database> class TwoPLPasha {
 			if (readKey.get_read_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
-					auto value = readKey.get_value();
 					std::atomic<uint64_t> *meta = table->search_metadata(key);
                                         CHECK(meta != 0);
 					TwoPLPashaHelper::read_lock_release(*meta);
 				} else {
-					// txn.pendingResponses++;
-					auto coordinatorID = partitioner.master_coordinator(partitionId);
-					txn.network_size +=
-						MessageFactoryType::new_release_read_lock_message(*messages[coordinatorID], *table, readKey.get_key());
+					auto key = readKey.get_key();
+					char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                        CHECK(migrated_row != nullptr);
+                                        twopl_pasha_global_helper.remote_read_lock_release(migrated_row);
 				}
 			}
 		}
@@ -507,20 +404,36 @@ template <class Database> class TwoPLPasha {
 			// write
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = writeKey.get_key();
-				auto value = writeKey.get_value();
 				std::atomic<uint64_t> *meta = table->search_metadata(key);
                                 CHECK(meta != nullptr);
 				TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
 			} else {
-				// txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				txn.network_size +=
-					MessageFactoryType::new_release_write_lock_message(*messages[coordinatorID], *table, writeKey.get_key(), commit_tid);
+				auto key = writeKey.get_key();
+                                char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                CHECK(migrated_row != nullptr);
+                                twopl_pasha_global_helper.remote_write_lock_release(migrated_row, commit_tid);
 			}
 		}
-
-		sync_messages(txn, false);
 	}
+
+        void release_migrated_rows(TransactionType &txn)
+        {
+                auto &readSet = txn.readSet;
+
+                // release rows that are read but not written
+		for (auto i = 0u; i < readSet.size(); ++i) {
+			auto &readKey = readSet[i];
+                        auto tableId = readKey.get_table_id();
+			auto partitionId = readKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+
+			if (readKey.get_reference_counted() == true) {
+                                DCHECK(partitioner.has_master_partition(partitionId) == false);
+                                auto key = readKey.get_key();
+                                twopl_pasha_global_helper.release_migrated_row(tableId, partitionId, table->get_plain_key(key));
+                        }
+		}
+        }
 
 	void sync_messages(TransactionType &txn, bool wait_response = true)
 	{

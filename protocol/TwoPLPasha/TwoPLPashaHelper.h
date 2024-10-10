@@ -124,9 +124,26 @@ class TwoPLPashaHelper {
                         smeta->lock();
                         CHECK(smeta->is_valid == true);
                         scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                        tid_ = smeta->tid;
                         smeta->unlock();
                 }
                 lmeta->unlock();
+
+		return remove_lock_bit(tid_);
+	}
+
+        uint64_t remote_read(char *row, void *dest, std::size_t size)
+	{
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                void *src = row + sizeof(TwoPLPashaMetadataShared);
+                uint64_t tid_ = 0;
+
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                tid_ = smeta->tid;
+		smeta->unlock();
 
 		return remove_lock_bit(tid_);
 	}
@@ -149,6 +166,18 @@ class TwoPLPashaHelper {
                         smeta->unlock();
                 }
 		lmeta->unlock();
+	}
+
+        void remote_update(char *row, const void *value, std::size_t value_size)
+	{
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                void *data_ptr = row + sizeof(TwoPLPashaMetadataShared);
+
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+                scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
+                smeta->unlock();
 	}
 
 	/**
@@ -222,6 +251,35 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
+        static uint64_t remote_read_lock(char *row, bool &success)
+	{
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value, new_value;
+
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+
+                old_value = smeta->tid;
+
+                // can we get the lock?
+                if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+                success = true;
+
+                smeta->unlock();
+
+		return remove_lock_bit(old_value);
+	}
+
+
 	static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
@@ -269,20 +327,38 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
-	static uint64_t write_lock(std::atomic<uint64_t> &meta)
+        static uint64_t remote_write_lock(char *row, bool &success)
 	{
-                uint64_t old_value = 0;
-                bool success = false;
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value, new_value;
 
-                while (true) {
-                        old_value = write_lock(meta, success);
-                        if (success == true) {
-                                break;
-                        }
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+
+                old_value = smeta->tid;
+
+                // can we get the lock?
+                if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
                 }
+
+                // OK, we can get the lock
+                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+                success = true;
+
+                smeta->unlock();
 
 		return remove_lock_bit(old_value);
 	}
+
+        static uint64_t write_lock(std::atomic<uint64_t> &meta)
+	{
+                CHECK(0);
+        }
 
 	static void read_lock_release(std::atomic<uint64_t> &meta)
 	{
@@ -310,6 +386,24 @@ out_unlock_lmeta:
                         smeta->unlock();
                 }
                 lmeta->unlock();
+	}
+
+        static void remote_read_lock_release(char *row)
+	{
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value, new_value;
+
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+
+                old_value = smeta->tid;
+                DCHECK(is_read_locked(old_value));
+                DCHECK(!is_write_locked(old_value));
+                new_value = old_value - (1ull << READ_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+
+                smeta->unlock();
 	}
 
 	static void write_lock_release(std::atomic<uint64_t> &meta)
@@ -340,6 +434,24 @@ out_unlock_lmeta:
                 lmeta->unlock();
 	}
 
+        static void remote_write_lock_release(char *row)
+	{
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value, new_value;
+
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+
+                old_value = smeta->tid;
+                DCHECK(!is_read_locked(old_value));
+                DCHECK(is_write_locked(old_value));
+                new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+
+                smeta->unlock();
+	}
+
 	static void write_lock_release(std::atomic<uint64_t> &meta, uint64_t new_value)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
@@ -368,6 +480,25 @@ out_unlock_lmeta:
                         smeta->unlock();
                 }
                 lmeta->unlock();
+	}
+
+        static void remote_write_lock_release(char *row, uint64_t new_value)
+	{
+                DCHECK(row != nullptr);
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value;
+
+		smeta->lock();
+                CHECK(smeta->is_valid == true);
+
+                old_value = smeta->tid;
+                DCHECK(!is_read_locked(old_value));
+                DCHECK(is_write_locked(old_value));
+                DCHECK(!is_read_locked(new_value));
+                DCHECK(!is_write_locked(new_value));
+                smeta->tid = new_value;
+
+                smeta->unlock();
 	}
 
 	static uint64_t remove_lock_bit(uint64_t value)
@@ -431,6 +562,40 @@ out_unlock_lmeta:
         void wait_for_pasha_metadata_init()
         {
                 while (init_finished.load(std::memory_order_acquire) == 0);
+        }
+
+        char *get_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key, bool inc_ref_cnt)
+        {
+                CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                char *migrated_row = target_cxl_table->search(plain_key);
+
+                if (migrated_row != nullptr) {
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
+                        if (inc_ref_cnt == true) {
+                                smeta->lock();
+                                if (smeta->is_valid == true) {
+                                        smeta->ref_cnt++;
+                                } else {
+                                        migrated_row = nullptr;
+                                }
+                                smeta->unlock();
+                        }
+                }
+                return migrated_row;
+        }
+
+        void release_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key)
+        {
+                CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                char *migrated_row = target_cxl_table->search(plain_key);
+                CHECK(migrated_row != nullptr);
+
+                TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
+                smeta->lock();
+                CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
+                smeta->ref_cnt--;
+                smeta->unlock();
         }
 
         bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
