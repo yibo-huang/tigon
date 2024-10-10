@@ -23,7 +23,14 @@ namespace star
 {
 
 struct TwoPLPashaMetadataLocal {
-        pthread_spinlock_t latch;
+        TwoPLPashaMetadataLocal()
+                : tid(0)
+                , is_migrated(false)
+                , migrated_row(nullptr)
+        {
+                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+        }
+
         void lock()
 	{
                 pthread_spin_lock(&latch);
@@ -33,6 +40,8 @@ struct TwoPLPashaMetadataLocal {
 	{
 		pthread_spin_unlock(&latch);
 	}
+
+        pthread_spinlock_t latch;
 
 	uint64_t tid{ 0 };
 
@@ -41,7 +50,15 @@ struct TwoPLPashaMetadataLocal {
 };
 
 struct TwoPLPashaMetadataShared {
-        pthread_spinlock_t latch;
+        TwoPLPashaMetadataShared()
+                : tid(0)
+                , ref_cnt(0)
+                , is_valid(false)
+                , scc_meta(0)
+        {
+                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+        }
+
         void lock()
 	{
                 pthread_spin_lock(&latch);
@@ -51,6 +68,8 @@ struct TwoPLPashaMetadataShared {
 	{
 		pthread_spin_unlock(&latch);
 	}
+
+        pthread_spinlock_t latch;
 
 	uint64_t tid{ 0 };
 
@@ -320,6 +339,139 @@ class TwoPLPashaHelper {
         {
                 while (init_finished.load(std::memory_order_acquire) == 0);
         }
+
+        bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                bool ret = false;
+
+		lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *local_data = std::get<1>(row);
+
+                        // allocate the CXL row
+                        std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
+                        char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size, CXLMemory::DATA_ALLOCATION));
+                        char *migrated_row_value_ptr = migrated_row_ptr + sizeof(TwoPLPashaMetadataShared);
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
+                        new(smeta) TwoPLPashaMetadataShared();
+
+                        // init software cache-coherence metadata
+                        scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
+
+                        // take the CXL latch
+                        smeta->lock();
+
+                        // copy metadata
+                        smeta->tid = lmeta->tid;
+
+                        // copy data
+                        std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
+
+                        // set the migrated row as valid
+                        smeta->is_valid = true;
+
+                        // increase the reference count for the requesting host
+                        smeta->ref_cnt++;
+
+                        // insert into CXL hash tables
+                        CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                        ret = target_cxl_table->insert(plain_key, migrated_row_ptr);
+                        DCHECK(ret == true);
+
+                        // mark the local row as migrated
+                        lmeta->migrated_row = migrated_row_ptr;
+                        lmeta->is_migrated = true;
+
+                        // release the CXL latch
+                        smeta->unlock();
+
+                        // LOG(INFO) << "moved in a row with key " << plain_key << " from table " << table->tableID();
+
+                        ret = true;
+
+                        // statistic
+                        num_data_move_in.fetch_add(1);
+                } else {
+                        // increase the reference count for the requesting host, even if it is already migrated
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
+
+                        smeta->lock();
+                        CHECK(smeta->is_valid == true);
+                        smeta->ref_cnt++;
+                        smeta->unlock();
+                        ret = false;
+                }
+		lmeta->unlock();
+
+		return ret;
+	}
+
+        // TODO: currently migrating data out is not supported
+        // need to modify other functions to ensure consistency
+        bool move_from_shared_region_to_partition(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                bool ret = false;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == true) {
+                        void *local_data = std::get<1>(row);
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
+                        char *migrated_row_value = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
+
+                        // take the CXL latch
+                        smeta->lock();
+                        DCHECK(smeta->is_valid == true);
+
+                        // reference count > 0, cannot move out the tuple
+                        if (smeta->ref_cnt > 0) {
+                                smeta->unlock();
+                                lmeta->unlock();
+                                return false;
+                        }
+
+                        // copy metadata back
+                        lmeta->tid = smeta->tid;
+
+                        // copy data back
+                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, migrated_row_value, table->value_size());
+
+                        // set the migrated row as invalid
+                        smeta->is_valid = false;
+
+                        // remove from CXL index
+                        CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                        ret = target_cxl_table->remove(plain_key, lmeta->migrated_row);
+                        DCHECK(ret == true);
+
+                        // mark the local row as not migrated
+                        lmeta->migrated_row = nullptr;
+                        lmeta->is_migrated = false;
+
+                        // free the CXL row
+                        // TODO: register EBR
+                        std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
+                        cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size, CXLMemory::DATA_FREE);
+
+                        // release the CXL latch
+                        smeta->unlock();
+
+                        // LOG(INFO) << "moved out a row with key " << plain_key << " from table " << table->tableID();
+
+                        ret = true;
+
+                        // statistic
+                        num_data_move_out.fetch_add(1);
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
+
+                return ret;
+	}
 
     public:
 	static constexpr int LOCK_BIT_OFFSET = 54;

@@ -16,20 +16,16 @@ namespace star
 
 class SCCManagerFactory {
     public:
-	static SCCManager *create_scc_manager(const std::string &protocol, const std::string &scc_mechanism)
+	static SCCManager *create_scc_manager(const std::string &scc_mechanism)
 	{
                 SCCManager *scc_manager = nullptr;
 
-                if (protocol == "SundialPasha") {
-                        if (scc_mechanism == "NonTemporal") {
-                                scc_manager = new SCCNonTemporal();
-                        } else if (scc_mechanism == "NoOP") {
-                                scc_manager = new SCCNoOP();
-                        } else if (scc_mechanism == "WriteThrough") {
-                                scc_manager = new SCCWriteThrough();
-                        } else {
-                                CHECK(0);
-                        }
+                if (scc_mechanism == "NonTemporal") {
+                        scc_manager = new SCCNonTemporal();
+                } else if (scc_mechanism == "NoOP") {
+                        scc_manager = new SCCNoOP();
+                } else if (scc_mechanism == "WriteThrough") {
+                        scc_manager = new SCCWriteThrough();
                 } else {
                         CHECK(0);
                 }

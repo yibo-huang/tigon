@@ -479,12 +479,13 @@ class TwoPLPashaMessageHandler {
 		Decoder dec(stringPiece);
 		dec >> write_lock;
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
+		std::atomic<uint64_t> *meta = table.search_metadata(key);
+                CHECK(meta != nullptr);
 
 		if (write_lock) {
-			TwoPLPashaHelper::write_lock_release(tid);
+			TwoPLPashaHelper::write_lock_release(*meta);
 		} else {
-			TwoPLPashaHelper::read_lock_release(tid);
+			TwoPLPashaHelper::read_lock_release(*meta);
 		}
 	}
 
@@ -711,12 +712,13 @@ class TwoPLPashaMessageHandler {
 
 		DCHECK(dec.size() == 0);
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
+		std::atomic<uint64_t> *meta = table.search_metadata(key);
+                CHECK(meta != nullptr);
 
-		uint64_t last_tid = TwoPLPashaHelper::write_lock(tid);
+		uint64_t last_tid = TwoPLPashaHelper::write_lock(*meta);
 		DCHECK(last_tid < commit_tid);
 		table.deserialize_value(key, valueStringPiece);
-		TwoPLPashaHelper::write_lock_release(tid, commit_tid);
+		TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
 
 		// uint64_t lsn = 0;
 		//  if (txn->get_logger()) {
@@ -792,9 +794,10 @@ class TwoPLPashaMessageHandler {
 		const void *key = stringPiece.data();
 		stringPiece.remove_prefix(key_size);
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
+		std::atomic<uint64_t> *meta = table.search_metadata(key);
+                CHECK(meta != nullptr);
 
-		TwoPLPashaHelper::read_lock_release(tid);
+		TwoPLPashaHelper::read_lock_release(*meta);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size();
@@ -848,8 +851,9 @@ class TwoPLPashaMessageHandler {
 		Decoder dec(stringPiece);
 		dec >> commit_tid;
 
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
-		TwoPLPashaHelper::write_lock_release(tid, commit_tid);
+		std::atomic<uint64_t> *meta = table.search_metadata(key);
+                CHECK(meta != nullptr);
+		TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size();

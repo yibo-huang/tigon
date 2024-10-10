@@ -44,26 +44,26 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                         new(&twopl_pasha_global_helper) TwoPLPashaHelper(coordinator_id, context.coordinator_num,
                                 db.get_table_num_per_partition(), context.partition_num / context.coordinator_num);
 
-                        // // init migration manager
-                        // migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
-                        //         context.when_to_move_out, context.max_migrated_rows_size);
+                        // init migration manager
+                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
+                                context.when_to_move_out, context.max_migrated_rows_size);
 
-                        // // init software cache-coherence manager
-                        // scc_manager = SCCManagerFactory::create_scc_manager(context.protocol, context.scc_mechanism);
+                        // init software cache-coherence manager
+                        scc_manager = SCCManagerFactory::create_scc_manager(context.scc_mechanism);
 
                         // init CXL hash tables
                         twopl_pasha_global_helper.init_pasha_metadata();
 
-                        // // handle pre-migration
-                        // if (context.pre_migrate == "None") {
-                        //         // do nothing
-                        // } else if (context.pre_migrate == "All") {
-                        //         db.move_all_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-                        // } else if (context.pre_migrate == "NonPart") {
-                        //         db.move_non_part_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-                        // } else {
-                        //         CHECK(0);
-                        // }
+                        // handle pre-migration
+                        if (context.pre_migrate == "None") {
+                                // do nothing
+                        } else if (context.pre_migrate == "All") {
+                                db.move_all_tables_into_cxl(std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, &twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                        } else if (context.pre_migrate == "NonPart") {
+                                db.move_non_part_tables_into_cxl(std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, &twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                        } else {
+                                CHECK(0);
+                        }
 
                         // commit metadata init
                         twopl_pasha_global_helper.commit_pasha_metadata_init();
@@ -89,12 +89,15 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 			if (this->partitioner->has_master_partition(partition_id)) {
 				remote = false;
 
-				std::atomic<uint64_t> &tid = *table->search_metadata(key);
+				std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                if (meta == nullptr) {
+                                        return 0;
+                                }
 
 				if (write_lock) {
-					TwoPLPashaHelper::write_lock(tid, success);
+					TwoPLPashaHelper::write_lock(*meta, success);
 				} else {
-					TwoPLPashaHelper::read_lock(tid, success);
+					TwoPLPashaHelper::read_lock(*meta, success);
 				}
 
 				if (success) {
@@ -176,15 +179,15 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 			}
 
 			if (local_delete) {
-                                std::atomic<uint64_t> *tid = table->search_metadata(key);
-                                if (tid == nullptr) {
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                if (meta == nullptr) {
                                         // someone else has deleted the row, so we abort
                                         txn.abort_delete = true;
-                                        return false;
+                                        return 0;
                                 }
 
                                 bool success = false;
-                                TwoPLPashaHelper::write_lock(*tid, success);
+                                TwoPLPashaHelper::write_lock(*meta, success);
                                 if (success) {
                                         // do nothing
                                 } else {

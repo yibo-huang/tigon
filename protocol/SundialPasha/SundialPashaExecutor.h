@@ -49,7 +49,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                 context.when_to_move_out, context.max_migrated_rows_size);
 
                         // init software cache-coherence manager
-                        scc_manager = SCCManagerFactory::create_scc_manager(context.protocol, context.scc_mechanism);
+                        scc_manager = SCCManagerFactory::create_scc_manager(context.scc_mechanism);
 
                         // init CXL hash tables
                         sundial_pasha_global_helper.init_pasha_metadata();
