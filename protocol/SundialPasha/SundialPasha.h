@@ -132,6 +132,7 @@ template <class Database> class SundialPasha {
                 // release migrated rows
                 release_migrated_rows(txn);
 
+                // reactively move out data
                 if (migration_manager->when_to_move_out == MigrationManager::Reactive) {
                         // send out data move out hints
                         for (auto remote_host_id : txn.remote_hosts_involved) {
@@ -231,6 +232,7 @@ template <class Database> class SundialPasha {
                 // release migrated rows
                 release_migrated_rows(txn);
 
+                // reactively move out data
                 if (migration_manager->when_to_move_out == MigrationManager::Reactive) {
                         // send out data move out hints
                         for (auto remote_host_id : txn.remote_hosts_involved) {

@@ -467,5 +467,7 @@ process_net_req_and_ret:
 	uint64_t txn_random_seed_start = 0;
 	uint64_t transaction_id = 0;
 	uint64_t straggler_wait_time = 0;
+
+        std::unordered_set<std::size_t> remote_hosts_involved;
 };
 } // namespace star

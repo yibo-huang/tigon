@@ -110,6 +110,12 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 // multi-host transaction
                                 txn.distributed_transaction = true;
 
+                                if (migration_manager->when_to_move_out == MigrationManager::Reactive) {
+                                        // update remote hosts involved
+                                        auto coordinatorID = this->partitioner->master_coordinator(partition_id);
+                                        txn.remote_hosts_involved.insert(coordinatorID);
+                                }
+
                                 // I am not the owner of the data
                                 char *migrated_row = twopl_pasha_global_helper.get_migrated_row(table_id, partition_id, table->get_plain_key(key), true);
                                 if (migrated_row != nullptr) {
