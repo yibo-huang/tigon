@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <atomic>
-#include <immintrin.h>
+#include <xmmintrin.h>
 #include <glog/logging.h>
 
 /*
@@ -57,6 +57,9 @@ class SCCManager {
                 for (uint64_t ptr = (uint64_t)addr & ~(cacheline_size - 1); ptr < (uint64_t)addr + len; ptr += cacheline_size) {
                         asm volatile ("clflush (%0)" :: "r"(ptr));
                 }
+
+                // make sure clflush completes before memcpy
+                _mm_sfence();
         }
 
         inline void clwb(const void *addr, uint64_t len)
@@ -71,6 +74,9 @@ class SCCManager {
                 for (uint64_t ptr = (uint64_t)addr & ~(cacheline_size - 1); ptr < (uint64_t)addr + len; ptr += cacheline_size) {
                         asm volatile ("clwb (%0)" :: "r"(ptr));
                 }
+
+                // make sure clwb completes before memcpy
+                _mm_sfence();
         }
 
         std::atomic<uint64_t> num_clflush{ 0 };

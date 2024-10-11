@@ -59,6 +59,7 @@ class SCCWriteThrough : public SCCManager {
                 std::memcpy(dst, src, size);
                 clwb(dst, size);
         }
+
     private:
         using MetaType = uint32_t;
         static constexpr uint64_t bits_per_word = sizeof(MetaType) * 8;
