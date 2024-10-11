@@ -494,7 +494,8 @@ retry:
 
                         // allocate the CXL row
                         std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
-                        char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size, CXLMemory::DATA_ALLOCATION));
+                        char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size,
+                                CXLMemory::DATA_ALLOCATION, sizeof(SundialPashaMetadataShared), table->value_size()));
                         char *migrated_row_value_ptr = migrated_row_ptr + sizeof(SundialPashaMetadataShared);
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row_ptr);
                         new(smeta) SundialPashaMetadataShared();
@@ -603,7 +604,8 @@ retry:
                         // free the CXL row
                         // TODO: register EBR
                         std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
-                        cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size, CXLMemory::DATA_FREE);
+                        cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size,
+                                CXLMemory::DATA_FREE, sizeof(SundialPashaMetadataShared), table->value_size());
 
                         // release the CXL latch
                         smeta->unlock();
