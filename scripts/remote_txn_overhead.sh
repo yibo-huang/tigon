@@ -21,7 +21,8 @@ typeset WORKER_NUM=2
 
 # common parameters for YCSB
 typeset KEYS=40960
-typeset RW_RATIO=50
+typeset WRITE_INTENSIVE_RW_RATIO=50
+typeset READ_INTENSIVE_RW_RATIO=90
 
 typeset RESULT_DIR=$SCRIPT_DIR/../results/remote_txn_overhead/$current_date_time
 
@@ -44,13 +45,13 @@ function run_remote_txn_overhead_tpcc {
 
         mkdir -p $RESULT_DIR
 
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 0 0 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM None $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 10 15 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 20 30 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 30 45 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 40 60 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 50 75 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
-        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM 60 90 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 0 0 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM None $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 10 15 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 20 30 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 30 45 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 40 60 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 50 75 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
+        $SCRIPT_DIR/run.sh TPCC $PROTOCOL $HOST_NUM $WORKER_NUM mixed 60 90 $USE_CXL_TRANS $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP 0 >> $RESULT_FILE 2>&1
 }
 
 function run_remote_txn_overhead_ycsb {
@@ -89,50 +90,128 @@ function run_remote_txn_overhead_ycsb {
 
 mkdir -p $RESULT_DIR
 
-# TPCC with CXL transport
+### TPCC with CXL transport ###
 run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 WriteThrough NonPart
 run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 NonTemporal NonPart
 run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 NoOP NonPart
 
+run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 OnDemandFIFO OnDemand 10000 NoOP None
+
 run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 NoOP None
 run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM 1 NoMoveOut OnDemand 0 NoOP None
 
-# TPCC with Network transport
-# run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 0 WriteThrough
-# run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 0 NonTemporal
-# run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 0 NoOP
-
+### TPCC with Network transport ###
 run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 0 NoMoveOut OnDemand 0 NoOP None
 run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM 0 NoMoveOut OnDemand 0 NoOP None
 
-# YCSB with Uniform Distribution and CXL transport
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
 
-# YCSB with Uniform Distribution and Network transport
-# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 0 WriteThrough
-# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 0 NonTemporal
-# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0 0 NoOP
 
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+### (write-intensive) YCSB with Uniform Distribution and CXL transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-# YCSB with High-skewness with CXL transport
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-# YCSB with High-skewness with Network transport
-# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0 WriteThrough
-# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0 NonTemporal
-# run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0 NoOP
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
+
+### (write-intensive) YCSB with Uniform Distribution and Network transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+
+### (write-intensive) YCSB with High-skewness with CXL transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+
+### (write-intensive) YCSB with High-skewness with Network transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $WRITE_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
+
+
+
+
+### (read-intensive) YCSB with Uniform Distribution and CXL transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
+
+### (read-intensive) YCSB with Uniform Distribution and Network transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+
+### (read-intensive) YCSB with High-skewness with CXL transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 10000 NoOP None
+
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+
+### (read-intensive) YCSB with High-skewness with Network transport ###
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM $READ_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
