@@ -11,6 +11,7 @@
 
 #include "common/CCSet.h"
 #include "common/CCHashTable.h"
+#include "core/CXLTable.h"
 #include "core/Table.h"
 #include "glog/logging.h"
 
@@ -522,14 +523,15 @@ out_unlock_lmeta:
 
                 // init CXL hash tables
                 if (coordinator_id == 0) {
-                        cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num,
+                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num,
                                 CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < table_num_per_partition; i++) {
                                 cxl_tbl_vecs[i].resize(total_partition_num);
                                 for (int j = 0; j < total_partition_num; j++) {
                                         CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
                                         new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                        cxl_tbl_vecs[i][j] = cxl_table;
+                                        CXLTableHashMap<uint64_t> *cxl_hashtable = new CXLTableHashMap<uint64_t>(cxl_table, 0, 0);
+                                        cxl_tbl_vecs[i][j] = cxl_hashtable;
                                 }
                         }
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
@@ -538,12 +540,13 @@ out_unlock_lmeta:
                 } else {
                         void *tmp = NULL;
                         CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
-                        cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
                         for (int i = 0; i < table_num_per_partition; i++) {
                                 cxl_tbl_vecs[i].resize(total_partition_num);
                                 for (int j = 0; j < total_partition_num; j++) {
                                         CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
-                                        cxl_tbl_vecs[i][j] = cxl_table;
+                                        CXLTableHashMap<uint64_t> *cxl_hashtable = new CXLTableHashMap<uint64_t>(cxl_table, 0, 0);
+                                        cxl_tbl_vecs[i][j] = cxl_hashtable;
                                 }
                         }
                         LOG(INFO) << "TwoPLPasha Helper retrieves data migration metadata ("
@@ -563,8 +566,8 @@ out_unlock_lmeta:
 
         char *get_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key, bool inc_ref_cnt)
         {
-                CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
-                char *migrated_row = target_cxl_table->search(plain_key);
+                CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(&plain_key));
 
                 if (migrated_row != nullptr) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
@@ -583,8 +586,8 @@ out_unlock_lmeta:
 
         void release_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key)
         {
-                CCHashTable *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
-                char *migrated_row = target_cxl_table->search(plain_key);
+                CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(&plain_key));
                 CHECK(migrated_row != nullptr);
 
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
@@ -632,8 +635,8 @@ out_unlock_lmeta:
                         smeta->ref_cnt++;
 
                         // insert into CXL hash tables
-                        CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                        ret = target_cxl_table->insert(plain_key, migrated_row_ptr);
+                        CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                        ret = target_cxl_table->insert(&plain_key, migrated_row_ptr);
                         DCHECK(ret == true);
 
                         // mark the local row as migrated
@@ -699,8 +702,8 @@ out_unlock_lmeta:
                         smeta->is_valid = false;
 
                         // remove from CXL index
-                        CCHashTable *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                        ret = target_cxl_table->remove(plain_key, lmeta->migrated_row);
+                        CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                        ret = target_cxl_table->remove(&plain_key, lmeta->migrated_row);
                         DCHECK(ret == true);
 
                         // mark the local row as not migrated
@@ -748,8 +751,7 @@ out_unlock_lmeta:
         std::size_t table_num_per_partition;
         std::size_t partition_num_per_host;
 
-        CCHashTable *cxl_hashtables;
-        std::vector<std::vector<CCHashTable *> > cxl_tbl_vecs;
+        std::vector<std::vector<CXLTableBase *> > cxl_tbl_vecs;
 
         std::atomic<uint64_t> init_finished;
 };
