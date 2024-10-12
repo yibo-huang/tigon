@@ -22,6 +22,8 @@
 
 #include "common/btree_olc_cxl/EBR_CXL.h"
 
+#include "common/CXLMemory.h"
+
 #include "atomic_offset_ptr.hpp"
 #include <boost/interprocess/offset_ptr.hpp>
 
@@ -851,7 +853,7 @@ class BPlusTree {
 		 */
 		BTreeLeaf *split(KeyType &sep)
 		{
-			char *base = new char[sizeof(BTreeLeaf)];
+                        char *base = reinterpret_cast<char *>(star::cxl_memory.cxlalloc_malloc_wrapper(sizeof(BTreeLeaf), star::CXLMemory::INDEX_ALLOCATION));
 			BTreeLeaf *newLeaf = new (base) BTreeLeaf(); // Placement new
 
 			newLeaf->setCount(this->getCount() - (this->getCount() / 2));
@@ -1103,7 +1105,7 @@ class BPlusTree {
 
 		BTreeInner *split(KeyType &sep)
 		{
-			char *base = new char[InnerPageSize];
+                        char *base = reinterpret_cast<char *>(star::cxl_memory.cxlalloc_malloc_wrapper(InnerPageSize, star::CXLMemory::INDEX_ALLOCATION));
 			BTreeInner *newInner = new (base) BTreeInner(); // Placement new
 
 			newInner->setCount(this->getCount() - (this->getCount() / 2));
@@ -1419,7 +1421,7 @@ class BPlusTree {
 		, valueComp_(valueComp)
 		, keyUnique_(isUnique)
 	{
-		char *base = new char[LeafPageSize];
+                char *base = reinterpret_cast<char *>(star::cxl_memory.cxlalloc_malloc_wrapper(LeafPageSize, star::CXLMemory::INDEX_ALLOCATION));
 		root_.store(new (base) BTreeLeaf()); // Placement new
 		stats_.leaf_nodes++;
 		// std::cout << "BTreeLeaf::maxEntries = " << BTreeLeaf::maxEntries << ", "
@@ -1428,7 +1430,7 @@ class BPlusTree {
 
 	void makeRoot(const KeyType &k, NodeBase *leftChild, NodeBase *rightChild)
 	{
-		char *base = new char[InnerPageSize];
+                char *base = reinterpret_cast<char *>(star::cxl_memory.cxlalloc_malloc_wrapper(InnerPageSize, star::CXLMemory::INDEX_ALLOCATION));
 		auto inner = new (base) BTreeInner(); // Placement new
 
 		inner->setCount(1);
