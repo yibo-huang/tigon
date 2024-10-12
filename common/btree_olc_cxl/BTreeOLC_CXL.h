@@ -1,6 +1,10 @@
 #pragma once
 // Adapted from https://github.com/zxjcarrot/spitfire/blob/main/include/engine/btreeolc.h
 // Contributors: Jie Hou, Yilin Chen, Xinjing ZHou
+
+// The shared-memory version of BTreeOLC, which uses offset_ptr for position-independence
+// and cxlalloc for dynamic memory management
+
 #include <immintrin.h>
 #include <sched.h>
 
@@ -18,6 +22,9 @@
 
 #include "common/btree_olc_cxl/EBR_CXL.h"
 
+#include "atomic_offset_ptr.hpp"
+#include <boost/interprocess/offset_ptr.hpp>
+
 extern thread_local uint32_t RWSpinLatchThreadId;
 
 constexpr float kMergeThreshold = 0.4;
@@ -27,7 +34,7 @@ constexpr uint64_t kLockMask = 1 << 10;
 constexpr uint64_t kReaderMask = kLockMask - 1;
 constexpr uint64_t kVersionMask = ~kReaderMask;
 
-namespace btreeolc
+namespace btreeolc_cxl
 {
 
 struct LatchBase {
@@ -546,7 +553,7 @@ class BPlusTree {
 	 * class StackNodeElement - used when delete nodes recursively
 	 */
 	struct StackNodeElement {
-		NodeBase *node;
+		boost::interprocess::offset_ptr<NodeBase> node;
 		int pos;
 		uint64_t version;
 	};
@@ -559,8 +566,8 @@ class BPlusTree {
 		static constexpr uint64_t maxEntries = (LeafPageSize - sizeof(NodeBase) - sizeof(BTreeLeaf *) * 2) / (sizeof(KeyValuePair));
 		static_assert(maxEntries >= 3, "maxEntries of BTreeLeaf must >= 3");
 
-		BTreeLeaf *pre_;
-		BTreeLeaf *next_;
+		boost::interprocess::offset_ptr<BTreeLeaf> pre_;
+		boost::interprocess::offset_ptr<BTreeLeaf> next_;
 
 		/** This is the array that we perform search on */
 		KeyType keys_[maxEntries];
@@ -668,7 +675,7 @@ class BPlusTree {
 				sibling->values_[i - this->getCount()].~ValueType();
 			}
 			this->setCount(this->getCount() + sibling->getCount());
-			this->next_ = sibling->next_;
+			this->next_ = sibling->next_.get();
 			assert(((uint64_t)sibling) != 0xffffffffffffffffull);
 			EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(sibling);
 		}
@@ -848,7 +855,7 @@ class BPlusTree {
 			BTreeLeaf *newLeaf = new (base) BTreeLeaf(); // Placement new
 
 			newLeaf->setCount(this->getCount() - (this->getCount() / 2));
-			newLeaf->next_ = next_;
+			newLeaf->next_ = next_.get();
 			newLeaf->pre_ = this;
 
 			this->setCount(this->getCount() - newLeaf->getCount());
@@ -1179,7 +1186,7 @@ class BPlusTree {
 		/** Enum that represents the state of the iterator */
 		enum IteratorState { VALID, END, REND, RETRY1, INVALID };
 
-		BTreeLeaf *curNode_;
+		boost::interprocess::offset_ptr<BTreeLeaf> curNode_;
 		int curPos_;
 		IteratorState state_;
 
@@ -1193,7 +1200,7 @@ class BPlusTree {
 
 		~BPlusTreeIterator()
 		{
-			if (curNode_) {
+			if (curNode_.get()) {
 				curNode_->iteratorLeave();
 			}
 		}
@@ -1205,7 +1212,7 @@ class BPlusTree {
 			: curNode_(curNode)
 			, curPos_(curPos)
 		{
-			if (curNode_ == nullptr || curNode_->getCount() == curPos) {
+			if (curNode_.get() == nullptr || curNode_->getCount() == curPos) {
 				setEndIterator(true);
 				return;
 			}
@@ -1244,13 +1251,13 @@ class BPlusTree {
 		 */
 		bool operator==(const BPlusTreeIterator &itr)
 		{
-			bool result = (curNode_ == itr.curNode_ && curPos_ == itr.curPos_ && state_ == itr.state_);
+			bool result = (curNode_.get() == itr.curNode_.get() && curPos_ == itr.curPos_ && state_ == itr.state_);
 			return result;
 		}
 
 		bool operator!=(const BPlusTreeIterator &itr)
 		{
-			bool result = (curNode_ == itr.curNode_ && curPos_ == itr.curPos_ && state_ == itr.state_);
+			bool result = (curNode_.get() == itr.curNode_.get() && curPos_ == itr.curPos_ && state_ == itr.state_);
 			return !result;
 		}
 
@@ -1269,7 +1276,7 @@ class BPlusTree {
 		 */
 		void resetIterator(bool itrLeave)
 		{
-			if (curNode_ && itrLeave) {
+			if (curNode_.get() && itrLeave) {
 				curNode_->iteratorLeave();
 			}
 			curNode_ = nullptr;
@@ -1325,12 +1332,12 @@ class BPlusTree {
 			curPos_++;
 			// move to next leafNode
 			if (curPos_ >= static_cast<int>(curNode_->getCount())) {
-				if (curNode_->next_ == nullptr) {
+				if (curNode_->next_.get() == nullptr) {
 					setEndIterator(true);
 					return;
 				}
-				auto preNode = curNode_;
-				curNode_ = curNode_->next_;
+				auto preNode = curNode_.get();
+				curNode_ = curNode_->next_.get();
 				curNode_->iteratorEnter(needRestart);
 				if (needRestart) {
 					preNode->iteratorLeave();
@@ -1352,12 +1359,12 @@ class BPlusTree {
 			curPos_--;
 			// move to previous leafNode
 			if (curPos_ < 0) {
-				if (curNode_->pre_ == nullptr) {
+				if (curNode_->pre_.get() == nullptr) {
 					setEndIterator(true);
 					return;
 				}
-				auto preNode = curNode_;
-				curNode_ = curNode_->pre_;
+				auto preNode = curNode_.get();
+				curNode_ = curNode_->pre_.get();
 				curNode_->iteratorEnter(needRestart);
 				if (needRestart) {
 					preNode->iteratorLeave();
@@ -1375,7 +1382,7 @@ class BPlusTree {
 	 */
 	void display()
 	{
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		// std::cout << node->getCount() << std::endl;
 		std::queue<NodeBase *> nodeQueue;
 
@@ -1413,7 +1420,7 @@ class BPlusTree {
 		, keyUnique_(isUnique)
 	{
 		char *base = new char[LeafPageSize];
-		root_ = new (base) BTreeLeaf(); // Placement new
+		root_.store(new (base) BTreeLeaf()); // Placement new
 		stats_.leaf_nodes++;
 		// std::cout << "BTreeLeaf::maxEntries = " << BTreeLeaf::maxEntries << ", "
 		//           << "BTreeInner::maxEntries = " << BTreeInner::maxEntries << ".\n";
@@ -1428,7 +1435,7 @@ class BPlusTree {
 		inner->newKey(0, k);
 		inner->childAt(0) = leftChild;
 		inner->childAt(1) = rightChild;
-		root_ = inner;
+		root_.store(inner);
 	}
 
 	void destroy(NodeBase *node)
@@ -1662,7 +1669,7 @@ class BPlusTree {
 	bool insert(const KeyType &k, const ValueType &v)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 restart:
 		// need yield CPU when come here at second time
@@ -1671,9 +1678,9 @@ restart:
 		bool needRestart = false;
 
 		// Current node
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -1699,7 +1706,7 @@ restart:
 					goto restart;
 				}
 				// parent is null and node isn't root
-				if (!parent && (node != root_)) {
+				if (!parent && (node != root_.load())) {
 					// there's a new parent
 					node->writeUnlock();
 					goto restart;
@@ -1767,7 +1774,7 @@ restart:
 					parent->writeUnlock();
 				goto restart;
 			}
-			if (!parent && (node != root_)) {
+			if (!parent && (node != root_.load())) {
 				// there's a new parent
 				node->writeUnlock();
 				goto restart;
@@ -1826,7 +1833,7 @@ restart:
 	ValueType insert(const KeyType &k, const ValueType &v, bool *result)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 restart:
 		// need yield CPU when come here at second time
@@ -1835,9 +1842,9 @@ restart:
 		bool needRestart = false;
 
 		// Current node
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -1863,7 +1870,7 @@ restart:
 					goto restart;
 				}
 				// parent is null and node isn't root
-				if (!parent && (node != root_)) {
+				if (!parent && (node != root_.load())) {
 					// there's a new parent
 					node->writeUnlock();
 					goto restart;
@@ -1933,7 +1940,7 @@ restart:
 					parent->writeUnlock();
 				goto restart;
 			}
-			if (!parent && (node != root_)) {
+			if (!parent && (node != root_.load())) {
 				// there's a new parent
 				node->writeUnlock();
 				goto restart;
@@ -1997,7 +2004,7 @@ restart:
 	ValueType getValue(const KeyType &k, std::function<ValueType(void)> createValue)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 restart:
 		// need yield CPU when come here at second time
@@ -2006,9 +2013,9 @@ restart:
 		bool needRestart = false;
 
 		// Current node
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -2034,7 +2041,7 @@ restart:
 					goto restart;
 				}
 				// parent is null and node isn't root
-				if (!parent && (node != root_)) {
+				if (!parent && (node != root_.load())) {
 					// there's a new parent
 					node->writeUnlock();
 					goto restart;
@@ -2105,7 +2112,7 @@ restart:
 				}
 				goto restart;
 			}
-			if (!parent && (node != root_)) {
+			if (!parent && (node != root_.load())) {
 				// there's a new parent
 				node->writeUnlock();
 				goto restart;
@@ -2161,7 +2168,7 @@ restart:
 	 *        RemoveResult::KEY_NOT_FOUND if key does not exists
 	 *        RemoveResult::VALUE_NOT_SATISFYING_PREDICATE if the value does not pass value_predicate check
 	 */
-	btreeolc::RemoveResult remove(const KeyType &key, std::function<btreeolc::RemovePredicateResult(const ValueType &)> value_predicate)
+	btreeolc_cxl::RemoveResult remove(const KeyType &key, std::function<btreeolc_cxl::RemovePredicateResult(const ValueType &)> value_predicate)
 	{
 		ValueType v;
 		return _remove_with_value_predicate(std::make_pair(key, v), value_predicate);
@@ -2200,7 +2207,7 @@ restart:
 	void scan(const KeyType &lowKey, const KeyType &highKey, bool leftExist, bool rightExist, uint32_t limit, std::vector<KeyValuePair> &res)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 restart:
 		res.clear();
@@ -2208,9 +2215,9 @@ restart:
 			yield(restartCount);
 		bool needRestart = false;
 
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -2252,7 +2259,7 @@ restart:
 		// according to the `leftExist`
 		if (!leftExist && keyComp_(lowKey, leaf->keys_[pos]) == 0) {
 			if ((int)pos == leaf->getCount() - 1) {
-				leaf = leaf->next_;
+				leaf = leaf->next_.get();
 				pos = 0;
 			} else {
 				pos++;
@@ -2287,7 +2294,7 @@ restart:
 	{
 		bool leftExist = true;
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 		int leavesTraversed = 0;
 		KeyType lowKey = startKey;
@@ -2296,9 +2303,9 @@ restart:
 			yield(restartCount);
 		bool needRestart = false;
 
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -2349,7 +2356,7 @@ restart:
 		unsigned pos = leaf->lowerBound(lowKey, keyComp_);
 
 		bool quit = false;
-		BTreeLeaf *nextLeaf = leaf->next_;
+		BTreeLeaf *nextLeaf = leaf->next_.get();
 		for (unsigned p = pos; p < leaf->getCount(); ++p) {
 			bool lastItem = nextLeaf == nullptr && p + 1 == leaf->getCount();
 			bool end = processor(leaf->keys_[p], leaf->values_[p], lastItem);
@@ -2396,7 +2403,7 @@ restart:
 		}
 		// the last element of stack is a leaf Node
 		StackNodeElement tope = stack[stack.size() - 1];
-		NodeBase *childNode = tope.node;
+		NodeBase *childNode = tope.node.get();
 		uint64_t childVersion = tope.version;
 		unsigned childPos = tope.pos;
 		{
@@ -2413,7 +2420,7 @@ restart:
 		assert(stack.size() >= 2);
 		StackNodeElement parente = stack[stack.size() - 2];
 		// parent node must be inner node
-		BTreeInner *parentNode = static_cast<BTreeInner *>(parente.node);
+		BTreeInner *parentNode = static_cast<BTreeInner *>(parente.node.get());
 		uint64_t parentVersion = parente.version;
 		// unsigned parentPos = parente.pos;
 
@@ -2552,11 +2559,11 @@ restart:
 				// parentNode->keys_[childPos] = siblingMaxKey;
 				changeRoot = parentNode->erase(childPos);
 				// if (changeRoot && parentNode == root_.load()) {
-				if (changeRoot && parentNode == root_) {
+				if (changeRoot && parentNode == root_.load()) {
 					assert(((uint64_t)parentNode) != 0xffffffffffffffffull);
 					EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
 					root_.store(child);
-					// if (parentNode == root_) root_.store(child);
+					// if (parentNode == root_.load()) root_.store(child);
 				}
 			} else if (opt == MergeOperation::RightToLeft) {
 				sibling->merge(child);
@@ -2723,7 +2730,7 @@ restart:
 	/** whether key is unique */
 	const int keyUnique_;
 
-	std::atomic<NodeBase *> root_;
+        AtomicOffsetPtr<NodeBase> root_;
 
 	struct tree_stats {
 		std::atomic<uint64_t> inner_nodes{ 0 };
@@ -2790,13 +2797,13 @@ restart:
 		return res;
 	}
 
-	btreeolc::RemoveResult _remove_with_value_predicate(const KeyValuePair &element,
-							    std::function<btreeolc::RemovePredicateResult(const ValueType &)> predicate)
+	btreeolc_cxl::RemoveResult _remove_with_value_predicate(const KeyValuePair &element,
+							    std::function<btreeolc_cxl::RemovePredicateResult(const ValueType &)> predicate)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
-		btreeolc::RemoveResult saved_result = btreeolc::RemoveResult::VALUE_NOT_SATISFYING_PREDICATE;
+		btreeolc_cxl::RemoveResult saved_result = btreeolc_cxl::RemoveResult::VALUE_NOT_SATISFYING_PREDICATE;
 		bool result_saved = false;
 restart:
 		if (restartCount++)
@@ -2808,7 +2815,7 @@ restart:
 		std::vector<StackNodeElement> stack;
 		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || node != root_) {
+		if (needRestart || node != root_.load()) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -2857,7 +2864,7 @@ restart:
 		// reach the leaf node
 		BTreeLeaf *leafNode = static_cast<BTreeLeaf *>(node);
 		unsigned pos = leafNode->lowerBound(element.first, keyComp_);
-		btreeolc::RemoveResult result = btreeolc::RemoveResult::GOOD;
+		btreeolc_cxl::RemoveResult result = btreeolc_cxl::RemoveResult::GOOD;
 		bool leafNeedMerge = false;
 		if (pos < leafNode->getCount() && result_saved == false) {
 			const KeyType &key = leafNode->keys_[pos];
@@ -2880,14 +2887,14 @@ restart:
 				}
 				auto predicate_result = predicate(value);
 
-				if (predicate_result == btreeolc::RemovePredicateResult::GOOD) {
+				if (predicate_result == btreeolc_cxl::RemovePredicateResult::GOOD) {
 					leafNode->erase(pos, keyComp_, valueComp_, false);
-					result = btreeolc::RemoveResult::GOOD;
+					result = btreeolc_cxl::RemoveResult::GOOD;
 					stats_.num_items--;
-				} else if (predicate_result == btreeolc::RemovePredicateResult::VALUE_HAS_OTHER_REFERENCE) {
-					result = btreeolc::RemoveResult::VALUE_HAS_OTHER_REFERENCE;
+				} else if (predicate_result == btreeolc_cxl::RemovePredicateResult::VALUE_HAS_OTHER_REFERENCE) {
+					result = btreeolc_cxl::RemoveResult::VALUE_HAS_OTHER_REFERENCE;
 				} else {
-					result = btreeolc::RemoveResult::VALUE_NOT_SATISFYING_PREDICATE;
+					result = btreeolc_cxl::RemoveResult::VALUE_NOT_SATISFYING_PREDICATE;
 				}
 
 				leafNode->downgradeToReadLock(versionNode);
@@ -2912,12 +2919,12 @@ restart:
 				}
 				return result;
 			} else {
-				result = btreeolc::RemoveResult::KEY_NOT_FOUND;
+				result = btreeolc_cxl::RemoveResult::KEY_NOT_FOUND;
 			}
 			result_saved = true;
 			saved_result = result;
 		} else {
-			result = btreeolc::RemoveResult::KEY_NOT_FOUND;
+			result = btreeolc_cxl::RemoveResult::KEY_NOT_FOUND;
 		}
 
 		if (result_saved == false) {
@@ -2950,7 +2957,7 @@ restart:
 	bool _remove(const KeyType &deleteKey)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 		bool saved_success = false;
 		bool result_saved = false;
@@ -2964,7 +2971,7 @@ restart:
 		std::vector<StackNodeElement> stack;
 		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || node != root_) {
+		if (needRestart || node != root_.load()) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -3090,16 +3097,16 @@ restart:
 	bool _lookupForUpdate(const KeyType &key, std::function<void(const KeyType &key, ValueType &value)> update_processor)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 restart:
 		if (restartCount++)
 			yield(restartCount);
 		bool needRestart = false;
 
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -3165,16 +3172,16 @@ restart:
 	bool _lookup(const KeyValuePair &element, ValueType *&result, bool flag)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
-		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
 restart:
 		if (restartCount++)
 			yield(restartCount);
 		bool needRestart = false;
 
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
@@ -3242,9 +3249,9 @@ restart:
 			yield(restartCount);
 		bool needRestart = false;
 
-		NodeBase *node = root_;
+		NodeBase *node = root_.load();
 		uint64_t versionNode = node->readLockOrRestart(needRestart);
-		if (needRestart || (node != root_)) {
+		if (needRestart || (node != root_.load())) {
 			node->readUnlockOrRestart(versionNode, needRestart);
 			goto restart;
 		}
