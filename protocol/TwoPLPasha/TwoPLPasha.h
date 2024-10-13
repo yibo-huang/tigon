@@ -127,7 +127,7 @@ template <class Database> class TwoPLPasha {
 					TwoPLPashaHelper::read_lock_release(*meta);
 				} else {
 					auto key = readKey.get_key();
-                                        char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
                                         CHECK(migrated_row != nullptr);
                                         TwoPLPashaHelper::remote_read_lock_release(migrated_row);
 				}
@@ -142,7 +142,7 @@ template <class Database> class TwoPLPasha {
 					TwoPLPashaHelper::write_lock_release(*meta);
 				} else {
 					auto key = readKey.get_key();
-                                        char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
                                         CHECK(migrated_row != nullptr);
                                         TwoPLPashaHelper::remote_write_lock_release(migrated_row);
 				}
@@ -330,14 +330,14 @@ template <class Database> class TwoPLPasha {
 				auto value = writeKey.get_value();
                                 auto value_size = table->value_size();
 				auto row = table->search(key);
-                                twopl_pasha_global_helper.update(row, value, value_size);
+                                twopl_pasha_global_helper->update(row, value, value_size);
 			} else {
 				auto key = writeKey.get_key();
 				auto value = writeKey.get_value();
                                 auto value_size = table->value_size();
-				char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+				char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
                                 CHECK(migrated_row != nullptr);
-                                twopl_pasha_global_helper.remote_update(migrated_row, value, value_size);
+                                twopl_pasha_global_helper->remote_update(migrated_row, value, value_size);
 			}
 
 			// value replicate
@@ -363,7 +363,7 @@ template <class Database> class TwoPLPasha {
 					auto value = writeKey.get_value();
 					auto value_size = table->value_size();
                                         auto row = table->search(key);
-                                        twopl_pasha_global_helper.update(row, value, value_size);
+                                        twopl_pasha_global_helper->update(row, value, value_size);
 				} else {
 					txn.pendingResponses++;
 					auto coordinatorID = k;
@@ -395,9 +395,9 @@ template <class Database> class TwoPLPasha {
 					TwoPLPashaHelper::read_lock_release(*meta);
 				} else {
 					auto key = readKey.get_key();
-					char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+					char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
                                         CHECK(migrated_row != nullptr);
-                                        twopl_pasha_global_helper.remote_read_lock_release(migrated_row);
+                                        twopl_pasha_global_helper->remote_read_lock_release(migrated_row);
 				}
 			}
 		}
@@ -417,9 +417,9 @@ template <class Database> class TwoPLPasha {
 				TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
 			} else {
 				auto key = writeKey.get_key();
-                                char *migrated_row = twopl_pasha_global_helper.get_migrated_row(tableId, partitionId, table->get_plain_key(key), false);
+                                char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
                                 CHECK(migrated_row != nullptr);
-                                twopl_pasha_global_helper.remote_write_lock_release(migrated_row, commit_tid);
+                                twopl_pasha_global_helper->remote_write_lock_release(migrated_row, commit_tid);
 			}
 		}
 	}
@@ -438,7 +438,7 @@ template <class Database> class TwoPLPasha {
 			if (readKey.get_reference_counted() == true) {
                                 DCHECK(partitioner.has_master_partition(partitionId) == false);
                                 auto key = readKey.get_key();
-                                twopl_pasha_global_helper.release_migrated_row(tableId, partitionId, table->get_plain_key(key));
+                                twopl_pasha_global_helper->release_migrated_row(tableId, partitionId, key);
                         }
 		}
         }

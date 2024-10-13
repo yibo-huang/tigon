@@ -40,9 +40,11 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 		: base_type(coordinator_id, id, db, context, worker_status, n_complete_workers, n_started_workers)
 	{
                 if (id == 0) {
+                        // create or retrieve the CXL tables
+                        std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs = db.create_or_retrieve_cxl_tables(context);
+
                         // init helper
-                        new(&sundial_pasha_global_helper) SundialPashaHelper(coordinator_id, context.coordinator_num,
-                                db.get_table_num_per_partition(), context.partition_num / context.coordinator_num);
+                        sundial_pasha_global_helper = new SundialPashaHelper(coordinator_id, cxl_tbl_vecs);
 
                         // init migration manager
                         migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
@@ -51,24 +53,21 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         // init software cache-coherence manager
                         scc_manager = SCCManagerFactory::create_scc_manager(context.scc_mechanism);
 
-                        // init CXL hash tables
-                        sundial_pasha_global_helper.init_pasha_metadata();
-
                         // handle pre-migration
                         if (context.pre_migrate == "None") {
                                 // do nothing
                         } else if (context.pre_migrate == "All") {
-                                db.move_all_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                                db.move_all_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
                         } else if (context.pre_migrate == "NonPart") {
-                                db.move_non_part_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, &sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                                db.move_non_part_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
                         } else {
                                 CHECK(0);
                         }
 
                         // commit metadata init
-                        sundial_pasha_global_helper.commit_pasha_metadata_init();
+                        sundial_pasha_global_helper->commit_pasha_metadata_init();
                 } else {
-                        sundial_pasha_global_helper.wait_for_pasha_metadata_init();
+                        sundial_pasha_global_helper->wait_for_pasha_metadata_init();
                 }
 	}
 
@@ -104,7 +103,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 					DCHECK(local_index_read == false);
 					success = SundialPashaHelper::write_lock(row, rwts, txn.transaction_id);
 				}
-				auto read_rwts = sundial_pasha_global_helper.read(row, value, value_size, this->n_local_cxl_access);
+				auto read_rwts = sundial_pasha_global_helper->read(row, value, value_size, this->n_local_cxl_access);
 				txn.readSet[key_offset].set_wts(read_rwts.first);
 				txn.readSet[key_offset].set_rts(read_rwts.second);
 				if (write_lock) {
@@ -122,7 +121,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                 this->n_remote_access.fetch_add(1);
 
                                 // I am not the owner of the data
-                                char *migrated_row = sundial_pasha_global_helper.get_migrated_row(table_id, partition_id, table->get_plain_key(key), true);
+                                char *migrated_row = sundial_pasha_global_helper->get_migrated_row(table_id, partition_id, key, true);
                                 if (migrated_row != nullptr) {
                                         // data is in the shared region
                                         bool success = true;
@@ -132,7 +131,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                                 DCHECK(local_index_read == false);
                                                 success = SundialPashaHelper::remote_write_lock(migrated_row, rwts, txn.transaction_id);
                                         }
-                                        auto read_rwts = sundial_pasha_global_helper.remote_read(migrated_row, value, value_size);
+                                        auto read_rwts = sundial_pasha_global_helper->remote_read(migrated_row, value, value_size);
                                         txn.readSet[key_offset].set_wts(read_rwts.first);
                                         txn.readSet[key_offset].set_rts(read_rwts.second);
                                         if (write_lock) {

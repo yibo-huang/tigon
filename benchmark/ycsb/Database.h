@@ -20,6 +20,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/CXLMemory.h"
+#include "core/CXLTable.h"
+
 namespace star
 {
 namespace ycsb
@@ -191,7 +194,54 @@ class Database {
 		}
 	}
 
-        void move_all_tables_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func)
+        std::vector<std::vector<CXLTableBase *> > &create_or_retrieve_cxl_tables(const Context &context)
+        {
+                std::size_t coordinator_id = context.coordinator_id;
+		std::size_t partitionNum = context.partition_num;
+                std::size_t table_num_per_partition = get_table_num_per_partition();
+                std::size_t total_table_num = table_num_per_partition * partitionNum;
+
+                cxl_tbl_vecs.resize(table_num_per_partition);
+
+                if (coordinator_id == 0) {
+                        // host 0 is responsible for creating the CXL tables
+                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * total_table_num, CXLMemory::INDEX_ALLOCATION));
+
+                        auto ycsbTableID = ycsb::tableID;
+                        cxl_tbl_vecs[ycsbTableID].resize(partitionNum);
+                        for (int i = 0; i < partitionNum; i++) {
+                                CCHashTable *cxl_table = &cxl_hashtables[ycsbTableID * partitionNum + i];
+                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
+                                CXLTableHashMap<ycsb::key> *cxl_hashtable = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
+                                cxl_tbl_vecs[ycsbTableID][i] = cxl_hashtable;
+                        }
+
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
+                        LOG(INFO) << "YCSB initializes data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                } else {
+                        // other hosts wait and retrieve the CXL tables
+                        void *tmp = NULL;
+                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
+                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+
+                        auto ycsbTableID = ycsb::tableID;
+                        cxl_tbl_vecs[ycsbTableID].resize(partitionNum);
+                        for (int i = 0; i < partitionNum; i++) {
+                                CCHashTable *cxl_table = &cxl_hashtables[ycsbTableID * partitionNum + i];
+                                CXLTableHashMap<ycsb::key> *cxl_hashtable = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
+                                cxl_tbl_vecs[ycsbTableID][i] = cxl_hashtable;
+                        }
+
+                        LOG(INFO) << "YCSB retrieves data migration metadata ("
+                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                }
+
+                return cxl_tbl_vecs;
+        }
+
+        void move_all_tables_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func)
         {
                 for (int i = 0; i < tbl_vecs.size(); i++) {
                         for (int j = 0; j < tbl_vecs[i].size(); j++) {
@@ -200,9 +250,13 @@ class Database {
                 }
         }
 
-        void move_non_part_tables_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func)
+        void move_non_part_tables_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func)
         {
-                move_all_tables_into_cxl(move_in_func);
+                for (int i = 0; i < tbl_vecs.size(); i++) {
+                        for (int j = 0; j < tbl_vecs[i].size(); j++) {
+                                tbl_vecs[i][j]->move_all_into_cxl(move_in_func);
+                        }
+                }
         }
 
     private:
@@ -268,10 +322,15 @@ class Database {
         std::atomic<uint64_t> global_total_commit{ 0 };
 
     private:
+        static constexpr uint64_t cxl_hashtable_bkt_cnt = 50000;
+
 	std::vector<ThreadPool *> threadpools;
 	WALLogger *checkpoint_file_writer = nullptr;
+
 	std::vector<std::vector<ITable *> > tbl_vecs;
 	std::vector<std::unique_ptr<ITable> > tbl_ycsb_vec;
+
+        std::vector<std::vector<CXLTableBase *> > cxl_tbl_vecs;
 };
 } // namespace ycsb
 } // namespace star

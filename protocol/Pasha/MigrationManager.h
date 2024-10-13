@@ -19,8 +19,8 @@ class MigrationManager {
                 Reactive
         };
 
-        MigrationManager(std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
-                         std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+        MigrationManager(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
+                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                          const std::string when_to_move_out_str)
         : move_from_partition_to_shared_region(move_from_partition_to_shared_region)
         , move_from_shared_region_to_partition(move_from_shared_region_to_partition)
@@ -38,25 +38,29 @@ class MigrationManager {
         {
             public:
                 migrated_row_entity() = default;
-                migrated_row_entity(ITable *table, uint64_t plain_key, uint64_t size, const std::tuple<MetaDataType *, void *> row)
+                migrated_row_entity(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> row)
                         : table(table)
-                        , plain_key(plain_key)
-                        , size(size)
+                        , key_size(key_size)
+                        , row_size(row_size)
                         , local_row(row)
-                {}
+                {
+                        memcpy(this->key, key, key_size);
+                }
 
+                static constexpr uint64_t max_key_size = 64;
                 ITable *table;
-                uint64_t plain_key;
-                uint64_t size;
+                char key[max_key_size];
+                uint64_t key_size;
+                uint64_t row_size;
                 std::tuple<MetaDataType *, void *> local_row;
         };
 
-        virtual bool move_row_in(ITable *table, uint64_t plain_key, uint64_t size, const std::tuple<MetaDataType *, void *> &row) = 0;
+        virtual bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row) = 0;
         virtual bool move_row_out() = 0;
 
         // user-provided functions
-        std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region;
-        std::function<bool(ITable *, uint64_t, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition;
+        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region;
+        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition;
 
         // when to move out
         int when_to_move_out;

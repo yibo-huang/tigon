@@ -82,7 +82,7 @@ class ITable {
 		return []() {};
 	}
 
-        virtual void move_all_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func)
+        virtual void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func)
         {
         }
 };
@@ -277,13 +277,13 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		return partitionID_;
 	}
 
-        void move_all_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func) override
+        void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
         {
                 auto processor = [&](const KeyType &key, std::tuple<MetaDataType, ValueType> &row) {
                         MetaDataType *meta_ptr = &std::get<0>(row);
                         ValueType *data_ptr = &std::get<1>(row);
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
-			bool ret = move_in_func(this, get_plain_key(&key), row_tuple);
+			bool ret = move_in_func(this, &key, row_tuple);
                         CHECK(ret == true);
 		};
 
@@ -571,13 +571,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		return partitionID_;
 	}
 
-        void move_all_into_cxl(std::function<bool(ITable *, uint64_t, std::tuple<MetaDataType *, void *> &)> move_in_func) override
+        void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
         {
                 auto processor = [&](const KeyType &key, BTreeOLCValue &row, bool) -> bool {
                         MetaDataType *meta_ptr = &row.meta;
                         ValueType *data_ptr = &row.value;
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
-			bool ret = move_in_func(this, get_plain_key(&key), row_tuple);
+			bool ret = move_in_func(this, &key, row_tuple);
                         CHECK(ret == true);
                         return false;
 		};

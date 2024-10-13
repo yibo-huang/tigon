@@ -110,7 +110,7 @@ class TwoPLPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                success = migration_manager->move_row_in(&table, table.get_plain_key(key), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row);
+                success = migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row);
                 DCHECK(success == true);
 
 		// prepare response message header
@@ -159,7 +159,7 @@ class TwoPLPashaMessageHandler {
                 uint64_t tid = 0;
 
                 // search cxl table and get the data
-                char *migrated_row = twopl_pasha_global_helper.get_migrated_row(table_id, partition_id, table.get_plain_key(readKey.get_key()), false);
+                char *migrated_row = twopl_pasha_global_helper->get_migrated_row(table_id, partition_id, readKey.get_key(), false);
                 CHECK(migrated_row != nullptr);
 
                 // perform execution phase operations
@@ -178,7 +178,7 @@ class TwoPLPashaMessageHandler {
                         if (readKey.get_write_lock_request_bit()) {
                                 readKey.set_write_lock_bit();
                         }
-                        twopl_pasha_global_helper.remote_read(migrated_row, readKey.get_value(), value_size);
+                        twopl_pasha_global_helper->remote_read(migrated_row, readKey.get_value(), value_size);
                 } else {
                         txn->abort_lock = true;
                 }

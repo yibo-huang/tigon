@@ -43,7 +43,7 @@ template <class KeyType> class CXLTableHashMap : public CXLTableBase {
 	virtual void *search(const void *key) override
         {
                 const auto &k = *static_cast<const KeyType *>(key);
-                return cxl_hashtable->search(k);
+                return cxl_hashtable->search(k.get_plain_key());
         }
 
         virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results) override
@@ -55,7 +55,7 @@ template <class KeyType> class CXLTableHashMap : public CXLTableBase {
         {
                 CHECK(is_placeholder == false);
                 const auto &k = *static_cast<const KeyType *>(key);
-                return cxl_hashtable->insert(k, reinterpret_cast<char *>(row));
+                return cxl_hashtable->insert(k.get_plain_key(), reinterpret_cast<char *>(row));
         }
 
         virtual void make_placeholder_valid(const void *key) override
@@ -66,7 +66,7 @@ template <class KeyType> class CXLTableHashMap : public CXLTableBase {
         virtual bool remove(const void *key, void *row) override
         {
                 const auto &k = *static_cast<const KeyType *>(key);
-                return cxl_hashtable->remove(k, reinterpret_cast<char *>(row));
+                return cxl_hashtable->remove(k.get_plain_key(), reinterpret_cast<char *>(row));
         }
 
 	virtual std::size_t tableID() override

@@ -112,7 +112,7 @@ class SundialPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                success = migration_manager->move_row_in(&table, table.get_plain_key(key), sizeof(SundialPashaMetadataShared) + table.value_size(), row);
+                success = migration_manager->move_row_in(&table, key, table.key_size(), sizeof(SundialPashaMetadataShared) + table.value_size(), row);
                 DCHECK(success == true);
 
 		// prepare response message header
@@ -160,7 +160,7 @@ class SundialPashaMessageHandler {
 		SundialPashaRWKey &readKey = txn->readSet[key_offset];
 
                 // search cxl table and get the data
-                char *migrated_row = sundial_pasha_global_helper.get_migrated_row(table_id, partition_id, table.get_plain_key(readKey.get_key()), false);
+                char *migrated_row = sundial_pasha_global_helper->get_migrated_row(table_id, partition_id, readKey.get_key(), false);
                 CHECK(migrated_row != nullptr);
 
                 // perform execution phase operations
@@ -169,7 +169,7 @@ class SundialPashaMessageHandler {
                         DCHECK(readKey.get_local_index_read_bit() == 0);
                         success = SundialPashaHelper::remote_write_lock(migrated_row, rwts, txn->transaction_id);
                 }
-                auto read_rwts = sundial_pasha_global_helper.remote_read(migrated_row, readKey.get_value(), value_size);
+                auto read_rwts = sundial_pasha_global_helper->remote_read(migrated_row, readKey.get_value(), value_size);
                 readKey.set_wts(read_rwts.first);
                 readKey.set_rts(read_rwts.second);
                 if (readKey.get_write_request_bit()) {

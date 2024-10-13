@@ -98,20 +98,9 @@ class SundialPashaHelper {
     public:
         using MetaDataType = std::atomic<uint64_t>;
 
-        SundialPashaHelper()
-                : coordinator_id(0)
-                , coordinator_num(0)
-                , table_num_per_partition(0)
-                , partition_num_per_host(0)
-        {
-        }
-
-        SundialPashaHelper(std::size_t coordinator_id, std::size_t coordinator_num, 
-                std::size_t table_num_per_partition, std::size_t partition_num_per_host)
+        SundialPashaHelper(std::size_t coordinator_id, std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs)
                 : coordinator_id(coordinator_id)
-                , coordinator_num(coordinator_num)
-                , table_num_per_partition(table_num_per_partition)
-                , partition_num_per_host(partition_num_per_host)
+                , cxl_tbl_vecs(cxl_tbl_vecs)
         {
         }
 
@@ -398,46 +387,6 @@ retry:
                 smeta->unlock();
 	}
 
-        void init_pasha_metadata()
-        {
-                uint64_t total_partition_num = partition_num_per_host * coordinator_num;
-                uint64_t total_table_num = table_num_per_partition * total_partition_num;
-
-                cxl_tbl_vecs.resize(table_num_per_partition);
-
-                // init CXL hash tables
-                if (coordinator_id == 0) {
-                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CCHashTable) * total_table_num,
-                                CXLMemory::INDEX_ALLOCATION));
-                        for (int i = 0; i < table_num_per_partition; i++) {
-                                cxl_tbl_vecs[i].resize(total_partition_num);
-                                for (int j = 0; j < total_partition_num; j++) {
-                                        CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
-                                        new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                        CXLTableHashMap<uint64_t> *cxl_hashtable = new CXLTableHashMap<uint64_t>(cxl_table, 0, 0);
-                                        cxl_tbl_vecs[i][j] = cxl_hashtable;
-                                }
-                        }
-                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
-                        LOG(INFO) << "SundialPasha Helper initializes data migration metadata ("
-                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
-                } else {
-                        void *tmp = NULL;
-                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
-                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
-                        for (int i = 0; i < table_num_per_partition; i++) {
-                                cxl_tbl_vecs[i].resize(total_partition_num);
-                                for (int j = 0; j < total_partition_num; j++) {
-                                        CCHashTable *cxl_table = &cxl_hashtables[i * total_partition_num + j];
-                                        CXLTableHashMap<uint64_t> *cxl_hashtable = new CXLTableHashMap<uint64_t>(cxl_table, 0, 0);
-                                        cxl_tbl_vecs[i][j] = cxl_hashtable;
-                                }
-                        }
-                        LOG(INFO) << "SundialPasha Helper retrieves data migration metadata ("
-                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
-                }
-        }
-
         void commit_pasha_metadata_init()
         {
                 init_finished.store(1, std::memory_order_release);
@@ -448,10 +397,10 @@ retry:
                 while (init_finished.load(std::memory_order_acquire) == 0);
         }
 
-        char *get_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key, bool inc_ref_cnt)
+        char *get_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key, bool inc_ref_cnt)
         {
                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
-                char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(&plain_key));
+                char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(key));
 
                 if (migrated_row != nullptr) {
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row);
@@ -468,10 +417,10 @@ retry:
                 return migrated_row;
         }
 
-        void release_migrated_row(std::size_t table_id, std::size_t partition_id, uint64_t plain_key)
+        void release_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key)
         {
                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
-                char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(&plain_key));
+                char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(key));
                 CHECK(migrated_row != nullptr);
 
                 SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(migrated_row);
@@ -482,7 +431,7 @@ retry:
                 smeta->unlock();
         }
 
-        bool move_from_partition_to_shared_region(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 DCHECK(0 != meta.load());
@@ -525,7 +474,7 @@ retry:
 
                         // insert into CXL hash tables
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                        ret = target_cxl_table->insert(&plain_key, migrated_row_ptr);
+                        ret = target_cxl_table->insert(key, migrated_row_ptr);
                         DCHECK(ret == true);
 
                         // mark the local row as migrated
@@ -535,7 +484,7 @@ retry:
                         // release the CXL latch
                         smeta->unlock();
 
-                        // LOG(INFO) << "moved in a row with key " << plain_key << " from table " << table->tableID();
+                        // LOG(INFO) << "moved in a row with key " << key << " from table " << table->tableID();
 
                         ret = true;
 
@@ -558,7 +507,7 @@ retry:
 
         // TODO: currently migrating data out is not supported
         // need to modify other functions to ensure consistency
-        bool move_from_shared_region_to_partition(ITable *table, uint64_t plain_key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_shared_region_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 DCHECK(0 != meta.load());
@@ -597,7 +546,7 @@ retry:
 
                         // remove from CXL index
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                        ret = target_cxl_table->remove(&plain_key, lmeta->migrated_row);
+                        ret = target_cxl_table->remove(key, lmeta->migrated_row);
                         DCHECK(ret == true);
 
                         // mark the local row as not migrated
@@ -613,7 +562,7 @@ retry:
                         // release the CXL latch
                         smeta->unlock();
 
-                        // LOG(INFO) << "moved out a row with key " << plain_key << " from table " << table->tableID();
+                        // LOG(INFO) << "moved out a row with key " << key << " from table " << table->tableID();
 
                         ret = true;
 
@@ -632,18 +581,13 @@ retry:
 	static constexpr uint64_t LOCK_BIT_MASK = 0x1ull;
 
     private:
-        static constexpr uint64_t cxl_hashtable_bkt_cnt = 50000;
-
         std::size_t coordinator_id;
-        std::size_t coordinator_num;
-        std::size_t table_num_per_partition;
-        std::size_t partition_num_per_host;
 
-        std::vector<std::vector<CXLTableBase *> > cxl_tbl_vecs;
+        std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs;
 
         std::atomic<uint64_t> init_finished;
 };
 
-extern SundialPashaHelper sundial_pasha_global_helper;
+extern SundialPashaHelper *sundial_pasha_global_helper;
 
 } // namespace star
