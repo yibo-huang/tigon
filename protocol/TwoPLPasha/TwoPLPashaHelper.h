@@ -616,8 +616,6 @@ out_unlock_lmeta:
 		return ret;
 	}
 
-        // TODO: currently migrating data out is not supported
-        // need to modify other functions to ensure consistency
         bool move_from_shared_region_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
 	{
                 MetaDataType &meta = *std::get<0>(row);
