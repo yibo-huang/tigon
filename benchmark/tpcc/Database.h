@@ -673,209 +673,218 @@ class Database {
 
                 if (coordinator_id == 0) {
                         // host 0 is responsible for creating the CXL tables
-                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
-                                        sizeof(CCHashTable) * total_table_num, CXLMemory::INDEX_ALLOCATION));
+                        boost::interprocess::offset_ptr<void> *cxl_table_ptrs = reinterpret_cast<boost::interprocess::offset_ptr<void> *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(boost::interprocess::offset_ptr<void>) * total_table_num, CXLMemory::INDEX_ALLOCATION));
 
                         auto warehouseTableID = warehouse::tableID;
                         cxl_tbl_vecs[warehouseTableID].resize(partitionNum);
+                        CCHashTable *warehouse_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[warehouseTableID * partitionNum + i];
+                                CCHashTable *cxl_table = &warehouse_cxl_hashtables[i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<warehouse::key> *cxl_hashtable = new CXLTableHashMap<warehouse::key>(cxl_table, warehouseTableID, i);
-                                cxl_tbl_vecs[warehouseTableID][i] = cxl_hashtable;
+                                cxl_table_ptrs[warehouseTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[warehouseTableID][i] = new CXLTableHashMap<warehouse::key>(cxl_table, warehouseTableID, i);
                         }
 
                         auto districtTableID = district::tableID;
                         cxl_tbl_vecs[districtTableID].resize(partitionNum);
+                        CCHashTable *district_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[districtTableID * partitionNum + i];
+                                CCHashTable *cxl_table = &district_cxl_hashtables[i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<district::key> *cxl_hashtable = new CXLTableHashMap<district::key>(cxl_table, districtTableID, i);
-                                cxl_tbl_vecs[districtTableID][i] = cxl_hashtable;
+                                cxl_table_ptrs[districtTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[districtTableID][i] = new CXLTableHashMap<district::key>(cxl_table, districtTableID, i);
                         }
 
                         auto customerTableID = customer::tableID;
                         cxl_tbl_vecs[customerTableID].resize(partitionNum);
+                        CCHashTable *customer_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[customerTableID * partitionNum + i];
+                                CCHashTable *cxl_table = &customer_cxl_hashtables[i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<customer::key> *cxl_hashtable = new CXLTableHashMap<customer::key>(cxl_table, customerTableID, i);
-                                cxl_tbl_vecs[customerTableID][i] = cxl_hashtable;
+                                cxl_table_ptrs[customerTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[customerTableID][i] = new CXLTableHashMap<customer::key>(cxl_table, customerTableID, i);
                         }
 
                         auto customerNameIdxTableID = customer_name_idx::tableID;
                         cxl_tbl_vecs[customerNameIdxTableID].resize(partitionNum);
+                        CCHashTable *customer_name_idx_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[customerNameIdxTableID * partitionNum + i];
+                                CCHashTable *cxl_table = &customer_name_idx_cxl_hashtables[i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<customer_name_idx::key> *cxl_hashtable = new CXLTableHashMap<customer_name_idx::key>(cxl_table, customerNameIdxTableID, i);
-                                cxl_tbl_vecs[customerNameIdxTableID][i] = cxl_hashtable;
+                                cxl_table_ptrs[customerNameIdxTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[customerNameIdxTableID][i] = new CXLTableHashMap<customer_name_idx::key>(cxl_table, customerNameIdxTableID, i);
                         }
 
                         auto historyTableID = history::tableID;
                         cxl_tbl_vecs[historyTableID].resize(partitionNum);
+                        auto history_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<history::key, history::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CXLTableBTreeOLC<history::key, history::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[historyTableID * partitionNum + i];
-                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<history::key> *cxl_hashtable = new CXLTableHashMap<history::key>(cxl_table, historyTableID, i);
-                                cxl_tbl_vecs[historyTableID][i] = cxl_hashtable;
+                                auto cxl_table = &history_cxl_btreetables[i];
+                                new(cxl_table) CXLTableBTreeOLC<history::key, history::KeyComparator>::CXLBTree();
+                                cxl_table_ptrs[historyTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[historyTableID][i] = new CXLTableBTreeOLC<history::key, history::KeyComparator>(cxl_table, historyTableID, i);
                         }
 
                         auto newOrderTableID = new_order::tableID;
                         cxl_tbl_vecs[newOrderTableID].resize(partitionNum);
+                        auto new_order_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<new_order::key, new_order::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CXLTableBTreeOLC<new_order::key, new_order::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[newOrderTableID * partitionNum + i];
-                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<new_order::key> *cxl_hashtable = new CXLTableHashMap<new_order::key>(cxl_table, newOrderTableID, i);
-                                cxl_tbl_vecs[newOrderTableID][i] = cxl_hashtable;
+                                auto cxl_table = &new_order_cxl_btreetables[i];
+                                new(cxl_table) CXLTableBTreeOLC<new_order::key, new_order::KeyComparator>::CXLBTree();
+                                cxl_table_ptrs[newOrderTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[newOrderTableID][i] = new CXLTableBTreeOLC<new_order::key, new_order::KeyComparator>(cxl_table, newOrderTableID, i);
                         }
 
                         auto orderTableID = order::tableID;
                         cxl_tbl_vecs[orderTableID].resize(partitionNum);
+                        auto order_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<order::key, order::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CXLTableBTreeOLC<order::key, order::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[orderTableID * partitionNum + i];
-                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<order::key> *cxl_hashtable = new CXLTableHashMap<order::key>(cxl_table, orderTableID, i);
-                                cxl_tbl_vecs[orderTableID][i] = cxl_hashtable;
+                                auto cxl_table = &order_cxl_btreetables[i];
+                                new(cxl_table) CXLTableBTreeOLC<order::key, order::KeyComparator>::CXLBTree();
+                                cxl_table_ptrs[orderTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[orderTableID][i] = new CXLTableBTreeOLC<order::key, order::KeyComparator>(cxl_table, orderTableID, i);
                         }
-
 
                         auto orderCustTableID = order_customer::tableID;
                         cxl_tbl_vecs[orderCustTableID].resize(partitionNum);
+                        auto order_cust_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<order_customer::key, order_customer::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CXLTableBTreeOLC<order_customer::key, order_customer::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[orderCustTableID * partitionNum + i];
-                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<order_customer::key> *cxl_hashtable = new CXLTableHashMap<order_customer::key>(cxl_table, orderCustTableID, i);
-                                cxl_tbl_vecs[orderCustTableID][i] = cxl_hashtable;
+                                auto cxl_table = &order_cust_cxl_btreetables[i];
+                                new(cxl_table) CXLTableBTreeOLC<order_customer::key, order_customer::KeyComparator>::CXLBTree();
+                                cxl_table_ptrs[orderCustTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[orderCustTableID][i] = new CXLTableBTreeOLC<order_customer::key, order_customer::KeyComparator>(cxl_table, orderCustTableID, i);
                         }
+
 
                         auto orderLineTableID = order_line::tableID;
                         cxl_tbl_vecs[orderLineTableID].resize(partitionNum);
+                        auto order_line_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<order_line::key, order_line::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CXLTableBTreeOLC<order_line::key, order_line::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[orderLineTableID * partitionNum + i];
-                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<order_line::key> *cxl_hashtable = new CXLTableHashMap<order_line::key>(cxl_table, orderLineTableID, i);
-                                cxl_tbl_vecs[orderLineTableID][i] = cxl_hashtable;
+                                auto cxl_table = &order_line_cxl_btreetables[i];
+                                new(cxl_table) CXLTableBTreeOLC<order_line::key, order_line::KeyComparator>::CXLBTree();
+                                cxl_table_ptrs[orderLineTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[orderLineTableID][i] = new CXLTableBTreeOLC<order_line::key, order_line::KeyComparator>(cxl_table, orderLineTableID, i);
                         }
 
                         auto itemTableID = item::tableID;
                         cxl_tbl_vecs[itemTableID].resize(partitionNum);
+                        CCHashTable *item_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[itemTableID * partitionNum + i];
+                                CCHashTable *cxl_table = &item_cxl_hashtables[i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<item::key> *cxl_hashtable = new CXLTableHashMap<item::key>(cxl_table, itemTableID, i);
-                                cxl_tbl_vecs[itemTableID][i] = cxl_hashtable;
+                                cxl_table_ptrs[itemTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[itemTableID][i] = new CXLTableHashMap<item::key>(cxl_table, itemTableID, i);
                         }
 
                         auto stockTableID = stock::tableID;
                         cxl_tbl_vecs[stockTableID].resize(partitionNum);
+                        CCHashTable *stock_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[stockTableID * partitionNum + i];
+                                CCHashTable *cxl_table = &stock_cxl_hashtables[i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<stock::key> *cxl_hashtable = new CXLTableHashMap<stock::key>(cxl_table, stockTableID, i);
-                                cxl_tbl_vecs[stockTableID][i] = cxl_hashtable;
+                                cxl_table_ptrs[stockTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[stockTableID][i] = new CXLTableHashMap<stock::key>(cxl_table, stockTableID, i);
                         }
 
-                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
-                        LOG(INFO) << "TPCC initializes data migration metadata ("
-                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_table_ptrs);
+                        LOG(INFO) << "TPCC initializes data migration metadata";
                 } else {
                         // other hosts wait and retrieve the CXL tables
                         void *tmp = NULL;
                         CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
-                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+                        boost::interprocess::offset_ptr<void> *cxl_table_ptrs = reinterpret_cast<boost::interprocess::offset_ptr<void> *>(tmp);
 
                         auto warehouseTableID = warehouse::tableID;
                         cxl_tbl_vecs[warehouseTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[warehouseTableID * partitionNum + i];
-                                CXLTableHashMap<warehouse::key> *cxl_hashtable = new CXLTableHashMap<warehouse::key>(cxl_table, warehouseTableID, i);
-                                cxl_tbl_vecs[warehouseTableID][i] = cxl_hashtable;
+                                CCHashTable *cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[warehouseTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[warehouseTableID][i] = new CXLTableHashMap<warehouse::key>(cxl_table, warehouseTableID, i);
                         }
 
                         auto districtTableID = district::tableID;
                         cxl_tbl_vecs[districtTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[districtTableID * partitionNum + i];
-                                CXLTableHashMap<district::key> *cxl_hashtable = new CXLTableHashMap<district::key>(cxl_table, districtTableID, i);
-                                cxl_tbl_vecs[districtTableID][i] = cxl_hashtable;
+                                CCHashTable *cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[districtTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[districtTableID][i] = new CXLTableHashMap<district::key>(cxl_table, districtTableID, i);
                         }
 
                         auto customerTableID = customer::tableID;
                         cxl_tbl_vecs[customerTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[customerTableID * partitionNum + i];
-                                CXLTableHashMap<customer::key> *cxl_hashtable = new CXLTableHashMap<customer::key>(cxl_table, customerTableID, i);
-                                cxl_tbl_vecs[customerTableID][i] = cxl_hashtable;
+                                CCHashTable *cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[customerTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[customerTableID][i] = new CXLTableHashMap<customer::key>(cxl_table, customerTableID, i);
                         }
 
                         auto customerNameIdxTableID = customer_name_idx::tableID;
                         cxl_tbl_vecs[customerNameIdxTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[customerNameIdxTableID * partitionNum + i];
-                                CXLTableHashMap<customer_name_idx::key> *cxl_hashtable = new CXLTableHashMap<customer_name_idx::key>(cxl_table, customerNameIdxTableID, i);
-                                cxl_tbl_vecs[customerNameIdxTableID][i] = cxl_hashtable;
+                                CCHashTable *cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[customerNameIdxTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[customerNameIdxTableID][i] = new CXLTableHashMap<customer_name_idx::key>(cxl_table, customerNameIdxTableID, i);
                         }
 
                         auto historyTableID = history::tableID;
                         cxl_tbl_vecs[historyTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[historyTableID * partitionNum + i];
-                                CXLTableHashMap<history::key> *cxl_hashtable = new CXLTableHashMap<history::key>(cxl_table, historyTableID, i);
-                                cxl_tbl_vecs[historyTableID][i] = cxl_hashtable;
+                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<history::key, history::KeyComparator>::CXLBTree *>(cxl_table_ptrs[historyTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[historyTableID][i] = new CXLTableBTreeOLC<history::key, history::KeyComparator>(cxl_table, historyTableID, i);
                         }
 
                         auto newOrderTableID = new_order::tableID;
                         cxl_tbl_vecs[newOrderTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[newOrderTableID * partitionNum + i];
-                                CXLTableHashMap<new_order::key> *cxl_hashtable = new CXLTableHashMap<new_order::key>(cxl_table, newOrderTableID, i);
-                                cxl_tbl_vecs[newOrderTableID][i] = cxl_hashtable;
+                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<new_order::key, new_order::KeyComparator>::CXLBTree *>(cxl_table_ptrs[newOrderTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[newOrderTableID][i] = new CXLTableBTreeOLC<new_order::key, new_order::KeyComparator>(cxl_table, newOrderTableID, i);
                         }
 
                         auto orderTableID = order::tableID;
                         cxl_tbl_vecs[orderTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[orderTableID * partitionNum + i];
-                                CXLTableHashMap<order::key> *cxl_hashtable = new CXLTableHashMap<order::key>(cxl_table, orderTableID, i);
-                                cxl_tbl_vecs[orderTableID][i] = cxl_hashtable;
+                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<order::key, order::KeyComparator>::CXLBTree *>(cxl_table_ptrs[orderTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[orderTableID][i] = new CXLTableBTreeOLC<order::key, order::KeyComparator>(cxl_table, orderTableID, i);
                         }
 
 
                         auto orderCustTableID = order_customer::tableID;
                         cxl_tbl_vecs[orderCustTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[orderCustTableID * partitionNum + i];
-                                CXLTableHashMap<order_customer::key> *cxl_hashtable = new CXLTableHashMap<order_customer::key>(cxl_table, orderCustTableID, i);
-                                cxl_tbl_vecs[orderCustTableID][i] = cxl_hashtable;
+                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<order_customer::key, order_customer::KeyComparator>::CXLBTree *>(cxl_table_ptrs[orderCustTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[orderCustTableID][i] = new CXLTableBTreeOLC<order_customer::key, order_customer::KeyComparator>(cxl_table, orderCustTableID, i);
                         }
 
                         auto orderLineTableID = order_line::tableID;
                         cxl_tbl_vecs[orderLineTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[orderLineTableID * partitionNum + i];
-                                CXLTableHashMap<order_line::key> *cxl_hashtable = new CXLTableHashMap<order_line::key>(cxl_table, orderLineTableID, i);
-                                cxl_tbl_vecs[orderLineTableID][i] = cxl_hashtable;
+                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<order_line::key, order_line::KeyComparator>::CXLBTree *>(cxl_table_ptrs[orderLineTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[orderLineTableID][i] = new CXLTableBTreeOLC<order_line::key, order_line::KeyComparator>(cxl_table, orderLineTableID, i);
                         }
 
                         auto itemTableID = item::tableID;
                         cxl_tbl_vecs[itemTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[itemTableID * partitionNum + i];
-                                CXLTableHashMap<item::key> *cxl_hashtable = new CXLTableHashMap<item::key>(cxl_table, itemTableID, i);
-                                cxl_tbl_vecs[itemTableID][i] = cxl_hashtable;
+                                CCHashTable *cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[itemTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[itemTableID][i] = new CXLTableHashMap<item::key>(cxl_table, itemTableID, i);
                         }
 
                         auto stockTableID = stock::tableID;
                         cxl_tbl_vecs[stockTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[stockTableID * partitionNum + i];
-                                CXLTableHashMap<stock::key> *cxl_hashtable = new CXLTableHashMap<stock::key>(cxl_table, stockTableID, i);
-                                cxl_tbl_vecs[stockTableID][i] = cxl_hashtable;
+                                CCHashTable *cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[stockTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[stockTableID][i] = new CXLTableHashMap<stock::key>(cxl_table, stockTableID, i);
                         }
 
-                        LOG(INFO) << "TPCC retrieves data migration metadata ("
-                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                        LOG(INFO) << "TPCC retrieves data migration metadata";
                 }
 
                 return cxl_tbl_vecs;

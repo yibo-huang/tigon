@@ -213,13 +213,11 @@ class Database {
                         for (int i = 0; i < partitionNum; i++) {
                                 CCHashTable *cxl_table = &cxl_hashtables[ycsbTableID * partitionNum + i];
                                 new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                CXLTableHashMap<ycsb::key> *cxl_hashtable = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
-                                cxl_tbl_vecs[ycsbTableID][i] = cxl_hashtable;
+                                cxl_tbl_vecs[ycsbTableID][i] = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
                         }
 
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
-                        LOG(INFO) << "YCSB initializes data migration metadata ("
-                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                        LOG(INFO) << "YCSB initializes data migration metadata";
                 } else {
                         // other hosts wait and retrieve the CXL tables
                         void *tmp = NULL;
@@ -230,12 +228,10 @@ class Database {
                         cxl_tbl_vecs[ycsbTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
                                 CCHashTable *cxl_table = &cxl_hashtables[ycsbTableID * partitionNum + i];
-                                CXLTableHashMap<ycsb::key> *cxl_hashtable = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
-                                cxl_tbl_vecs[ycsbTableID][i] = cxl_hashtable;
+                                cxl_tbl_vecs[ycsbTableID][i] = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
                         }
 
-                        LOG(INFO) << "YCSB retrieves data migration metadata ("
-                                << total_table_num << " CXL hash tables each with " << cxl_hashtable_bkt_cnt << " entries)";
+                        LOG(INFO) << "YCSB retrieves data migration metadata";
                 }
 
                 return cxl_tbl_vecs;
