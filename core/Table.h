@@ -39,7 +39,7 @@ class ITable {
 
 	virtual MetaDataType *search_metadata(const void *key) = 0;
 
-        virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results) = 0;
+        virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) = 0;
 
 	virtual bool insert(const void *key, const void *value, bool is_placeholder = false) = 0;
 
@@ -182,7 +182,7 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		return map_.contains(k);
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results) override
+        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) override
         {
                 // hash table does not support scan
                 CHECK(0);
@@ -640,7 +640,7 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		return map_.contains(k);
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results) override
+        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) override
         {
                 // hash table does not support scan
                 CHECK(0);
@@ -776,7 +776,7 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		return map_.contains(k);
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results) override
+        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) override
         {
                 // hash table does not support scan
                 CHECK(0);

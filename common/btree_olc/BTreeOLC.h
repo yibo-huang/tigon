@@ -18,6 +18,9 @@
 
 #include "common/btree_olc/EBR.h"
 
+namespace btreeolc
+{
+
 extern thread_local uint32_t RWSpinLatchThreadId;
 
 constexpr float kMergeThreshold = 0.4;
@@ -26,9 +29,6 @@ constexpr uint64_t kLeafPageSize = 4096;
 constexpr uint64_t kLockMask = 1 << 10;
 constexpr uint64_t kReaderMask = kLockMask - 1;
 constexpr uint64_t kVersionMask = ~kReaderMask;
-
-namespace btreeolc
-{
 
 struct LatchBase {
 	std::atomic<uint64_t> word{ 0 };

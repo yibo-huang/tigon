@@ -1,5 +1,8 @@
 #include "BTreeOLC.h"
 
+namespace btreeolc
+{
+
 uint32_t AllocateRWSpinLatchThreadId()
 {
 	static std::atomic<uint32_t> RWSpinLatchThreadIdAlloc{ 0 };
@@ -7,3 +10,5 @@ uint32_t AllocateRWSpinLatchThreadId()
 }
 
 thread_local uint32_t RWSpinLatchThreadId = AllocateRWSpinLatchThreadId();
+
+}

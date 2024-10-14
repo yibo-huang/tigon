@@ -8,6 +8,9 @@
 #include <list>
 #include <utility>
 
+namespace btreeolc
+{
+
 constexpr unsigned kNumberEpochs = 3;
 
 template <unsigned Epochs> struct Orphan {
@@ -443,3 +446,5 @@ template <std::size_t UpdateThreshold, class Deallocator> std::atomic<unsigned> 
 template <std::size_t UpdateThreshold, class Deallocator>
 typename EBR<UpdateThreshold, Deallocator>::template ThreadBlockList<typename EBR<UpdateThreshold, Deallocator>::ThreadControlBlock>
 	EBR<UpdateThreshold, Deallocator>::global_thread_block_list_;
+
+}
