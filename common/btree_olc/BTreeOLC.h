@@ -2285,7 +2285,6 @@ restart:
 	 */
 	void scanForUpdate(const KeyType &startKey, std::function<bool(const KeyType &, ValueType &, bool)> processor)
 	{
-		bool leftExist = true;
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
 		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
 		int restartCount = 0;
@@ -2359,6 +2358,105 @@ restart:
 			}
 		}
 		node->writeUnlock();
+		leavesTraversed++;
+		if (quit == false && nextLeaf != nullptr) {
+			// versionNode = nextLeaf->readLockOrRestart(needRestart);
+			if (nextLeaf->getCount() > 0) {
+				lowKey = nextLeaf->keys_[0];
+			} else {
+				quit = true;
+			}
+			// nextLeaf->readUnlockOrRestart(versionNode, needRestart);
+			// goto restart;
+		} else {
+			quit = true;
+		}
+
+		if (quit == false) {
+			goto restart;
+		}
+	}
+
+        /**
+	 * Range scan items starting at `startKey` for update.
+	 * Leaves will be write-locked.
+	 * The scan ends when processor returns true or all items are traversed.
+	 */
+	void scanForUpdateNoContention(const KeyType &startKey, std::function<bool(const KeyType &, ValueType &, bool)> processor)
+	{
+		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
+		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		int restartCount = 0;
+		int leavesTraversed = 0;
+		KeyType lowKey = startKey;
+restart:
+		if (restartCount++)
+			yield(restartCount);
+		bool needRestart = false;
+
+		NodeBase *node = root_;
+		uint64_t versionNode = node->readLockOrRestart(needRestart);
+		if (needRestart || (node != root_)) {
+			node->readUnlockOrRestart(versionNode, needRestart);
+			goto restart;
+		}
+
+		// Parent of current node
+		BTreeInner *parent = nullptr;
+		uint64_t versionParent;
+
+		// find the first leafNode
+		while (node->getType() == NodeType::BTreeInner) {
+			auto inner = static_cast<BTreeInner *>(node);
+
+			if (parent) {
+				parent->readUnlockOrRestart(versionParent, needRestart);
+				if (needRestart)
+					goto restart;
+			}
+
+			parent = inner;
+			versionParent = versionNode;
+			node = inner->childAt(inner->lowerBound(lowKey, keyComp_));
+
+			// prefetch((char *)node, kPageSize);
+			inner->checkOrRestart(versionNode, needRestart);
+			if (needRestart)
+				goto restart;
+			versionNode = node->readLockOrRestart(needRestart);
+			if (needRestart)
+				goto restart;
+		}
+		auto leaf = static_cast<BTreeLeaf *>(node);
+
+		// node->upgradeToWriteLockOrRestart(versionNode, needRestart);
+		// if (needRestart) {
+		// 	if (leavesTraversed == 0) {
+		// 		lowKey = startKey;
+		// 	}
+		// 	goto restart;
+		// }
+		if (parent) {
+			parent->readUnlockOrRestart(versionParent, needRestart);
+			if (needRestart) {
+				node->writeUnlock();
+				goto restart;
+			}
+		}
+
+		unsigned pos = leaf->lowerBound(lowKey, keyComp_);
+
+		bool quit = false;
+		BTreeLeaf *nextLeaf = leaf->next_;
+		for (unsigned p = pos; p < leaf->getCount(); ++p) {
+			bool lastItem = nextLeaf == nullptr && p + 1 == leaf->getCount();
+			bool end = processor(leaf->keys_[p], leaf->values_[p], lastItem);
+			if (end) {
+				quit = true;
+				break;
+			}
+		}
+		// node->writeUnlock();
 		leavesTraversed++;
 		if (quit == false && nextLeaf != nullptr) {
 			// versionNode = nextLeaf->readLockOrRestart(needRestart);

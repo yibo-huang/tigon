@@ -585,7 +585,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 KeyType start_key;
                 memset(&start_key, 0, sizeof(KeyType));
                 CHECK(start_key.get_plain_key() == 0);
-                btree.scanForUpdate(start_key, processor);
+                btree.scanForUpdateNoContention(start_key, processor);
         }
 
     private:
