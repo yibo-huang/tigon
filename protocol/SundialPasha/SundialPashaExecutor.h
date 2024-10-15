@@ -45,6 +45,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 
                         // init helper
                         sundial_pasha_global_helper = new SundialPashaHelper(coordinator_id, cxl_tbl_vecs);
+                        CHECK(sundial_pasha_global_helper != nullptr);
 
                         // init migration manager
                         migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,

@@ -45,6 +45,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                         // init helper
                         twopl_pasha_global_helper = new TwoPLPashaHelper(coordinator_id, cxl_tbl_vecs);
+                        CHECK(twopl_pasha_global_helper != nullptr);
 
                         // init migration manager
                         migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,

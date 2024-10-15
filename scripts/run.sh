@@ -441,7 +441,7 @@ fi
 typeset RUN_TYPE=$1
 
 # global configurations
-typeset PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE=512
+typeset PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE=1024
 typeset PASHA_CXL_TRANS_ENTRY_NUM=4096
 
 typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=8192
@@ -469,15 +469,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset TIME_TO_WARMUP=${15}
         typeset GATHER_OUTPUT=${16}
 
-        # if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
-        #         typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
-        #         typeset CXL_TRANS_ENTRY_NUM=$PASHA_CXL_TRANS_ENTRY_NUM
-        # else
-        #         typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE
-        #         typeset CXL_TRANS_ENTRY_NUM=$BASELINE_CXL_TRANS_ENTRY_NUM
-        # fi
-
-        if [ $PROTOCOL = "SundialPasha" ]; then
+        if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
                 typeset CXL_TRANS_ENTRY_NUM=$PASHA_CXL_TRANS_ENTRY_NUM
         else
@@ -510,15 +502,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset TIME_TO_WARMUP=${16}
         typeset GATHER_OUTPUT=${17}
 
-        # if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
-        #         typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
-        #         typeset CXL_TRANS_ENTRY_NUM=$PASHA_CXL_TRANS_ENTRY_NUM
-        # else
-        #         typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE
-        #         typeset CXL_TRANS_ENTRY_NUM=$BASELINE_CXL_TRANS_ENTRY_NUM
-        # fi
-
-        if [ $PROTOCOL = "SundialPasha" ]; then
+        if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
                 typeset CXL_TRANS_ENTRY_NUM=$PASHA_CXL_TRANS_ENTRY_NUM
         else
