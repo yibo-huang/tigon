@@ -50,6 +50,9 @@ class ITable {
 	virtual void update(
 		const void *key, const void *value, std::function<void(const void *, const void *)> on_update = [](const void *, const void *) {}) = 0;
 
+        virtual bool search_and_update_next_key_info(const void *key,
+                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) = 0;
+
 	virtual void deserialize_value(const void *key, StringPiece stringPiece) = 0;
 
 	virtual void serialize_value(Encoder &enc, const void *value) = 0;
@@ -84,6 +87,7 @@ class ITable {
 
         virtual void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func)
         {
+                CHECK(0);
         }
 };
 
@@ -222,6 +226,13 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		on_update(key, &std::get<1>(row));
 		std::get<1>(row) = v;
 	}
+
+        bool search_and_update_next_key_info(const void *key,
+                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+        {
+                // no need to maintain next-key information for unordered tables
+                return true;
+        }
 
 	void deserialize_value(const void *key, StringPiece stringPiece) override
 	{
@@ -512,6 +523,27 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		row_ptr->value = v;
 	}
 
+        bool search_and_update_next_key_info(const void *key,
+                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+        {
+                auto processor = [&](const KeyType *prev_key, BTreeOLCValue *prev_value, const KeyType *cur_key, BTreeOLCValue *cur_value, const KeyType *next_key, BTreeOLCValue *next_value) {
+                        void *prev_meta = nullptr, *cur_meta = nullptr, *next_meta = nullptr;
+                        if (prev_value != nullptr)
+                                prev_meta = reinterpret_cast<void *>(prev_value->meta.load());
+                        if (cur_value != nullptr)
+                                cur_meta = reinterpret_cast<void *>(cur_value->meta.load());
+                        if (next_value != nullptr)
+                                next_meta = reinterpret_cast<void *>(next_value->meta.load());
+                        update_processor(prev_key, prev_meta, cur_key, cur_meta, next_key, next_meta);
+		};
+
+                const auto &k = *static_cast<const KeyType *>(key);
+                bool success = btree.lookupForNextKeyUpdate(k, processor);
+                CHECK(success == true);
+
+                return success;
+        }
+
 	void deserialize_value(const void *key, StringPiece stringPiece) override
 	{
 		tid_check();
@@ -677,6 +709,13 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		row = v;
 	}
 
+        bool search_and_update_next_key_info(const void *key,
+                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+        {
+                // no need to maintain next-key information for unordered tables
+                return true;
+        }
+
 	void deserialize_value(const void *key, StringPiece stringPiece) override
 	{
 		std::size_t size = stringPiece.size();
@@ -818,6 +857,13 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 		on_update(key, &std::get<1>(row));
 		std::get<1>(row) = v;
 	}
+
+        bool search_and_update_next_key_info(const void *key,
+                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+        {
+                // no need to maintain next-key information for unordered tables
+                return true;
+        }
 
 	void deserialize_value(const void *key, StringPiece stringPiece) override
 	{

@@ -2746,6 +2746,16 @@ restart:
 		return _lookupForUpdate(key, update_processor);
 	}
 
+        /**
+	 * find key, take write locks for all the necessary leaf nodes,
+         * find the prev_key and the next_key, and invoke the provided function
+	 */
+	bool lookupForNextKeyUpdate(const KeyType &key,
+                std::function<void(const KeyType *prev_key, ValueType *prev_value, const KeyType *cur_key, ValueType *cur_value, const KeyType *next_key, ValueType *next_value)> update_processor)
+	{
+		return _lookupForNextKeyUpdate(key, update_processor);
+	}
+
 	/**
 	 * find <key, value>
 	 * return true if <key, value> exists and delete successfully
@@ -3254,6 +3264,142 @@ restart:
 		}
 
 		leaf->writeUnlock();
+		return success;
+	}
+
+        bool _lookupForNextKeyUpdate(const KeyType &key,
+                std::function<void(const KeyType *prev_key, ValueType *prev_value, const KeyType *cur_key, ValueType *cur_value, const KeyType *next_key, ValueType *next_value)> &update_processor)
+	{
+		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
+		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		int restartCount = 0;
+restart:
+		if (restartCount++)
+			yield(restartCount);
+		bool needRestart = false;
+
+		NodeBase *node = root_;
+		uint64_t versionNode = node->readLockOrRestart(needRestart);
+		if (needRestart || (node != root_)) {
+			node->readUnlockOrRestart(versionNode, needRestart);
+			goto restart;
+		}
+
+		// Parent of current node
+		BTreeInner *parent = nullptr;
+		uint64_t versionParent = 0;
+
+		while (node->getType() == NodeType::BTreeInner) {
+			auto inner = static_cast<BTreeInner *>(node);
+
+			if (parent) {
+				parent->readUnlockOrRestart(versionParent, needRestart);
+				if (needRestart)
+					goto restart;
+			}
+
+			parent = inner;
+			versionParent = versionNode;
+
+			node = inner->childAt(inner->lowerBound(key, keyComp_));
+			prefetch((char *)node, sizeof(NodeMetaData));
+			inner->checkOrRestart(versionNode, needRestart);
+			if (needRestart)
+				goto restart;
+			versionNode = node->readLockOrRestart(needRestart);
+			if (needRestart)
+				goto restart;
+		}
+		node->checkOrRestart(versionNode, needRestart);
+		if (needRestart)
+			goto restart;
+
+		auto leaf = static_cast<BTreeLeaf *>(node);
+		leaf->upgradeToWriteLockOrRestart(versionNode, needRestart);
+		if (needRestart) {
+			goto restart;
+		}
+		if (parent) {
+			// check the version only, don't call `readUnlockOrRestart`
+			parent->checkOrRestart(versionParent, needRestart);
+			if (needRestart) {
+				leaf->writeUnlock();
+				goto restart;
+			}
+		}
+
+                // now we get a write lock for the target leaf node
+		bool success = false;
+
+                BTreeLeaf *prevLeaf = nullptr, *nextLeaf = nullptr;
+                KeyType *cur_key = nullptr, *prev_key = nullptr, *next_key = nullptr;
+                ValueType *cur_value = nullptr, *prev_value = nullptr, *next_value = nullptr;
+
+		unsigned pos = leaf->lowerBound(key, keyComp_);
+
+                // proceed only if the key exists
+		if ((pos < leaf->getCount()) && keyComp_(leaf->keys_[pos], key) == 0) {
+			success = true;
+
+                        // record the current key & value
+                        cur_key = &leaf->keys_[pos];
+                        cur_value = &leaf->values_[pos];
+
+                        // get the previous key & value
+                        if (pos > 0) {
+                                // the previous tuple is within the current leaf node
+                                prev_key = &leaf->keys_[pos - 1];
+                                prev_value = &leaf->values_[pos - 1];
+                        } else {
+                                // the previous tuple is within the previous leaf node
+                                prevLeaf = leaf->pre_;
+                                if (prevLeaf != nullptr) {
+                                        prevLeaf->writeLockOrRestart(needRestart);
+                                        if (needRestart == true) {
+		                                leaf->writeUnlock();
+                                                goto restart;
+                                        }
+                                        if (prevLeaf->getCount() > 0) {
+                                                prev_key = &prevLeaf->keys_[prevLeaf->getCount() - 1];
+                                                prev_value = &prevLeaf->values_[prevLeaf->getCount() - 1];
+                                        }
+                                }
+                        }
+
+                        // get the next key & value
+                        if (pos < leaf->getCount() - 1) {
+                                // the next tuple is within the current leaf node
+                                next_key = &leaf->keys_[pos + 1];
+                                next_value = &leaf->values_[pos + 1];
+                        } else {
+                                // the next tuple is within the next leaf node
+                                nextLeaf = leaf->next_;
+                                if (nextLeaf != nullptr) {
+                                        nextLeaf->writeLockOrRestart(needRestart);
+                                        if (needRestart == true) {
+		                                leaf->writeUnlock();
+                                                if (prevLeaf)
+                                                        prevLeaf->writeUnlock();
+                                                goto restart;
+                                        }
+                                        if (nextLeaf->getCount() > 0) {
+                                                next_key = &nextLeaf->keys_[0];
+                                                next_value = &nextLeaf->values_[0];
+                                        }
+                                }
+                        }
+
+                        // now we've taken the write locks for all the necessary leaf nodes
+                        update_processor(prev_key, prev_value, cur_key, cur_value, next_key, next_value);
+		}
+
+                // unlock all the leaf nodes
+                leaf->writeUnlock();
+                if (prevLeaf)
+                        prevLeaf->writeUnlock();
+                if (nextLeaf)
+                        nextLeaf->writeUnlock();
+
 		return success;
 	}
 

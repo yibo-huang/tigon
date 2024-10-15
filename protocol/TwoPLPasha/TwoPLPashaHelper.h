@@ -83,6 +83,8 @@ struct TwoPLPashaMetadataShared {
 
         // software cache-coherence metadata
         uint64_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
+
+        bool is_next_key_real{ false };
 };
 
 uint64_t TwoPLPashaMetadataLocalInit();
@@ -549,6 +551,36 @@ out_unlock_lmeta:
 
         bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
 	{
+                bool is_next_key_migrated = false;
+                auto move_in_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
+                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
+                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
+                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+
+                        CHECK(cur_lmeta != nullptr);
+
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->lock();
+                                if (prev_lmeta->is_migrated == true) {
+                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                        prev_smeta->lock();
+                                        prev_smeta->is_next_key_real = true;
+                                        prev_smeta->unlock();
+                                }
+                                prev_lmeta->unlock();
+                        }
+
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->lock();
+                                if (next_lmeta->is_migrated == true) {
+                                        is_next_key_migrated = true;
+                                }
+                                next_lmeta->unlock();
+                        } else {
+                                is_next_key_migrated = true;
+                        }
+		};
+
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 bool ret = false;
@@ -583,10 +615,16 @@ out_unlock_lmeta:
                         // increase the reference count for the requesting host
                         smeta->ref_cnt++;
 
-                        // insert into CXL hash tables
+                        // insert into the corresponding CXL table
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
                         ret = target_cxl_table->insert(key, migrated_row_ptr);
-                        DCHECK(ret == true);
+                        CHECK(ret == true);
+
+                        // update next-key information
+                        ret = table->search_and_update_next_key_info(key, move_in_processor);
+                        CHECK(ret == true);
+                        if (is_next_key_migrated == true)
+                                smeta->is_next_key_real = true;
 
                         // mark the local row as migrated
                         lmeta->migrated_row = migrated_row_ptr;
