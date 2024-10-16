@@ -478,11 +478,6 @@ class SundialPashaHelper {
                 }
 		lmeta->unlock();
 
-                // statistics
-                if (move_in_success == true) {
-                        num_data_move_in.fetch_add(1);
-                }
-
 		return move_in_success;
 	}
 
@@ -570,6 +565,7 @@ class SundialPashaHelper {
                         } else {
                                 // increase the reference count for the requesting host, even if it is already migrated
                                 SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+
                                 smeta->lock();
                                 CHECK(smeta->is_valid == true);
                                 smeta->ref_cnt++;
@@ -598,11 +594,6 @@ class SundialPashaHelper {
                 ret = table->search_and_update_next_key_info(key, move_in_processor);
                 CHECK(ret == true);
 
-                // statistics
-                if (move_in_success == true) {
-                        num_data_move_in.fetch_add(1);
-                }
-
 		return move_in_success;
 	}
 
@@ -618,7 +609,12 @@ class SundialPashaHelper {
                         CHECK(0);
                 }
 
-		return move_in_success;
+                // statistics
+                if (move_in_success == true) {
+                        num_data_move_in.fetch_add(1);
+                }
+
+		return true;
 	}
 
         bool move_from_shared_region_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
@@ -678,7 +674,7 @@ class SundialPashaHelper {
 
                         ret = true;
 
-                        // statistic
+                        // statistics
                         num_data_move_out.fetch_add(1);
                 } else {
                         DCHECK(0);
