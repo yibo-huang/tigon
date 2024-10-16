@@ -129,7 +129,6 @@ class TwoPLPashaHelper {
 
         uint64_t remote_read(char *row, void *dest, std::size_t size)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 void *src = row + sizeof(TwoPLPashaMetadataShared);
                 uint64_t tid_ = 0;
@@ -165,7 +164,6 @@ class TwoPLPashaHelper {
 
         void remote_update(char *row, const void *value, std::size_t value_size)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 void *data_ptr = row + sizeof(TwoPLPashaMetadataShared);
 
@@ -248,7 +246,6 @@ out_unlock_lmeta:
 
         static uint64_t remote_read_lock(char *row, bool &success)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 uint64_t old_value, new_value;
 
@@ -323,7 +320,6 @@ out_unlock_lmeta:
 
         static uint64_t remote_write_lock(char *row, bool &success)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 uint64_t old_value, new_value;
 
@@ -379,7 +375,6 @@ out_unlock_lmeta:
 
         static void remote_read_lock_release(char *row)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 uint64_t old_value, new_value;
 
@@ -425,7 +420,6 @@ out_unlock_lmeta:
 
         static void remote_write_lock_release(char *row)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 uint64_t old_value, new_value;
 
@@ -473,7 +467,6 @@ out_unlock_lmeta:
 
         static void remote_write_lock_release(char *row, uint64_t new_value)
 	{
-                DCHECK(row != nullptr);
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 uint64_t old_value;
 
