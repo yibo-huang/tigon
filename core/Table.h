@@ -22,6 +22,8 @@ extern void tid_check();
 
 class ITable {
     public:
+        enum { HASHMAP, BTREE };
+
 	using MetaDataType = std::atomic<uint64_t>;
 
 	virtual ~ITable() = default;
@@ -66,6 +68,8 @@ class ITable {
 	virtual std::size_t tableID() = 0;
 
 	virtual std::size_t partitionID() = 0;
+
+        virtual int tableType() = 0;
 
 	virtual void turn_on_cow()
 	{
@@ -287,6 +291,11 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 		tid_check();
 		return partitionID_;
 	}
+
+        int tableType() override
+        {
+                return HASHMAP;
+        }
 
         void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
         {
@@ -603,6 +612,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		return partitionID_;
 	}
 
+        int tableType() override
+        {
+                return BTREE;
+        }
+
         void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
         {
                 auto processor = [&](const KeyType &key, BTreeOLCValue &row, bool) -> bool {
@@ -763,6 +777,11 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 		return partitionID_;
 	}
 
+        int tableType() override
+        {
+                return HASHMAP;
+        }
+
     private:
 	UnsafeHashMap<KeyType, ValueType> map_;
 	std::size_t tableID_;
@@ -916,6 +935,11 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 	{
 		return partitionID_;
 	}
+
+        int tableType() override
+        {
+                return HASHMAP;
+        }
 
 	virtual void turn_on_cow() override
 	{
