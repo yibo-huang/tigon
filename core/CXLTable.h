@@ -111,7 +111,7 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
                         return *this;
                 }
 
-                boost::interprocess::offset_ptr<void> row;
+                boost::interprocess::offset_ptr<void> row{ nullptr };
                 std::atomic<bool> is_valid{ false };
         };
 

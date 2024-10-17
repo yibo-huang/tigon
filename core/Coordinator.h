@@ -249,7 +249,7 @@ class Coordinator {
                                   << ", remote_access: " << n_remote_access
                                   << ", remote_access_with_req: " << n_remote_access_with_req << " (" << 100.0 * n_remote_access_with_req / n_remote_access << "%)"
                                   << ", data_move_in: " << n_data_move_in
-                                  << ", n_data_move_out: " << n_data_move_out;
+                                  << ", data_move_out: " << n_data_move_out;
 			count++;
 			if (count > warmup && count <= timeToRun - cooldown) {
 				warmed_up = true;
