@@ -27,6 +27,8 @@
 #include "atomic_offset_ptr.hpp"
 #include <boost/interprocess/offset_ptr.hpp>
 
+#include "glog/logging.h"
+
 namespace btreeolc_cxl
 {
 
@@ -565,7 +567,7 @@ class BPlusTree {
 	 */
 	class BTreeLeaf : public NodeBase {
 	    public:
-		static constexpr uint64_t maxEntries = (LeafPageSize - sizeof(NodeBase) - sizeof(BTreeLeaf *) * 2) / (sizeof(KeyValuePair));
+		static constexpr uint64_t maxEntries = (LeafPageSize - sizeof(NodeBase) - sizeof(boost::interprocess::offset_ptr<BTreeLeaf>) * 2) / (sizeof(KeyValuePair));
 		static_assert(maxEntries >= 3, "maxEntries of BTreeLeaf must >= 3");
 
 		boost::interprocess::offset_ptr<BTreeLeaf> pre_;
@@ -903,7 +905,7 @@ class BPlusTree {
 	 */
 	class BTreeInner : public NodeBase {
 	    public:
-		static constexpr uint64_t maxEntries = (InnerPageSize - sizeof(NodeBase)) / (sizeof(KeyType) + sizeof(NodeBase *));
+		static constexpr uint64_t maxEntries = (InnerPageSize - sizeof(NodeBase)) / (sizeof(KeyType) + sizeof(boost::interprocess::offset_ptr<NodeBase>));
 		static_assert(maxEntries >= 3, "maxEntries of BTreeInner must >= 3");
 
 		static constexpr uint64_t childOffset = maxEntries * sizeof(KeyType);
@@ -926,9 +928,9 @@ class BPlusTree {
 			return *reinterpret_cast<KeyType *>(reinterpret_cast<intptr_t>(data_) + i * sizeof(KeyType));
 		}
 
-		NodeBase *&childAt(size_t i)
+		boost::interprocess::offset_ptr<NodeBase> &childAt(size_t i)
 		{
-			return *reinterpret_cast<NodeBase **>(reinterpret_cast<intptr_t>(data_) + childOffset + i * sizeof(NodeBase *));
+			return *reinterpret_cast<boost::interprocess::offset_ptr<NodeBase> *>(reinterpret_cast<intptr_t>(data_) + childOffset + i * sizeof(boost::interprocess::offset_ptr<NodeBase>));
 		}
 
 		void newKey(const size_t pos, const KeyType &key)
@@ -967,7 +969,10 @@ class BPlusTree {
 			keyAt(this->getCount() - 1).~KeyType(); // call dtor manually
 
 			// always merge nodes to the left node, so remove the `pos + 1` child
-			memmove(&childAt(pos + 1), &childAt(pos + 2), sizeof(NodeBase *) * (this->getCount() - pos - 1));
+			// memmove(&childAt(pos + 1), &childAt(pos + 2), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (this->getCount() - pos - 1));
+                        for (int i = 0; i < this->getCount() - pos - 1; i++) {
+                                childAt(pos + 1 + i) = childAt(pos + 2 + i).get();
+                        }
 		}
 		/**
 		 * @note Used when KeyType is non-trivial, e.g. `OLTPBtreeVarlenKey`.
@@ -993,7 +998,10 @@ class BPlusTree {
 			EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(ptr);
 
 			// always merge nodes to the left node, so remove the `pos + 1` child
-			memmove(&childAt(pos + 1), &childAt(pos + 2), sizeof(NodeBase *) * (this->getCount() - pos - 1));
+			// memmove(&childAt(pos + 1), &childAt(pos + 2), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (this->getCount() - pos - 1));
+                        for (int i = 0; i < this->getCount() - pos - 1; i++) {
+                                childAt(pos + 1 + i) = childAt(pos + 2 + i).get();
+                        }
 		}
 
 		void merge(BTreeInner *sibling, const KeyType &subTreeMaxKey)
@@ -1020,7 +1028,10 @@ class BPlusTree {
 				sibling->keyAt(i).~KeyType(); // call dtor manually
 			}
 
-			memmove(&childAt(this->getCount() + 1), &sibling->childAt(0), sizeof(NodeBase *) * (sibling->getCount() + 1));
+			// memmove(&childAt(this->getCount() + 1), &sibling->childAt(0), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (sibling->getCount() + 1));
+                        for (int i = 0; i < sibling->getCount() + 1; i++) {
+                                childAt(this->getCount() + 1 + i) = sibling->childAt(i).get();
+                        }
 		}
 		/**
 		 * @note Used when KeyType is non-trivial, e.g. `OLTPBtreeVarlenKey`.
@@ -1041,27 +1052,10 @@ class BPlusTree {
 				sibling->keyAt(i).~KeyType(); // call dtor manually
 			}
 
-			memmove(&childAt(this->getCount() + 1), &sibling->childAt(0), sizeof(NodeBase *) * (sibling->getCount() + 1));
-		}
-
-		__attribute__((deprecated)) void updateKey(const KeyType &oldKey, const KeyType &newKey, const KeyComparator &keyComp_)
-		{
-			unsigned pos = lowerBound(oldKey, keyComp_);
-			assert(pos >= 0 && pos < this->getCount());
-			keyAt(pos) = newKey;
-		}
-
-		__attribute__((deprecated)) void removeKey(const KeyType &key, const KeyComparator &keyComp_)
-		{
-			unsigned pos = lowerBound(key, keyComp_);
-			assert(pos >= 0 && pos < this->getCount());
-			for (uint16_t i = pos; i < this->getCount() - 1u; i++) {
-				keyAt(i) = keyAt(i + 1);
-			}
-			keyAt(this->getCount() - 1u).~KeyType(); // call dtor manually
-
-			memmove(&childAt(pos + 1), &childAt(pos + 2), sizeof(KeyType) * (this->getCount() - pos + 1));
-			setCount(this->getCount() - 1);
+			// memmove(&childAt(this->getCount() + 1), &sibling->childAt(0), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (sibling->getCount() + 1));
+                        for (int i = 0; i < sibling->getCount() + 1; i++) {
+                                childAt(this->getCount() + 1 + i) = sibling->childAt(i).get();
+                        }
 		}
 
 		bool hasEnoughSpace(int need)
@@ -1123,7 +1117,11 @@ class BPlusTree {
 				newInner->newKey(i, keyAt(this->getCount() + 1 + i));
 				keyAt(this->getCount() + 1 + i).~KeyType(); // call dtor manually
 			}
-			memcpy(&newInner->childAt(0), &childAt(this->getCount() + 1), sizeof(NodeBase *) * (newInner->getCount() + 1));
+
+			// memcpy(&newInner->childAt(0), &childAt(this->getCount() + 1), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (newInner->getCount() + 1));
+                        for (int i = 0; i < newInner->getCount() + 1; i++) {
+                                newInner->childAt(i) = childAt(this->getCount() + 1 + i).get();
+                        }
 
 			return newInner;
 		}
@@ -1148,7 +1146,10 @@ class BPlusTree {
 				keyAt(pos) = k;
 			}
 
-			memmove(&childAt(pos + 1), &childAt(pos), sizeof(NodeBase *) * (this->getCount() - pos + 1));
+			// memmove(&childAt(pos + 1), &childAt(pos), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (this->getCount() - pos + 1));
+                        for (int i = this->getCount() - pos; i >= 0; i--) {
+                                childAt(pos + 1 + i) = childAt(pos + i).get();
+                        }
 			childAt(pos) = child;
 
 			std::swap(childAt(pos), childAt(pos + 1));
@@ -1171,7 +1172,7 @@ class BPlusTree {
 
 			if (this->getCount()) {
 				for (int i = 0; i <= this->getCount(); i++) {
-					nodeQueue.push(childAt(i));
+					nodeQueue.push(childAt(i).get());
 				}
 				return this->getCount() + 1;
 			} else {
@@ -1442,32 +1443,12 @@ class BPlusTree {
 
 	void destroy(NodeBase *node)
 	{
-		if (node == nullptr)
-			return;
-		if (node->getType() == NodeType::BTreeInner) {
-			auto inner = static_cast<BTreeInner *>(node);
-			for (size_t i = 0; i <= inner->getCount(); ++i) {
-				if (i != inner->getCount()) {
-					inner->keyAt(i).~KeyType(); // call dtor manually
-				}
-				destroy(inner->childAt(i));
-			}
-			inner->~BTreeInner();
-			delete[] reinterpret_cast<char *>(inner);
-		} else {
-			auto leaf = static_cast<BTreeLeaf *>(node);
-			for (size_t i = 0; i < leaf->getCount(); ++i) {
-				leaf->keys_[i].~KeyType(); // call dtor manually
-				leaf->values_[i].~ValueType();
-			}
-			leaf->~BTreeLeaf();
-			delete[] reinterpret_cast<char *>(leaf);
-		}
+		CHECK(0);
 	}
 
 	~BPlusTree()
 	{
-		destroy(root_.load());
+		CHECK(0);
 	}
 
 	int intRand(const int &min, const int &max)
@@ -1600,13 +1581,16 @@ class BPlusTree {
 				// adjust left node
 				a->setCount(a->getCount() + 1);
 				a->newKey(a->getCount() - 1, p->keyAt(pos));
-				a->childAt(a->getCount()) = b->childAt(0);
+				a->childAt(a->getCount()) = b->childAt(0).get();
 
 				// adjust parent
 				p->keyAt(pos) = b->keyAt(0);
 
 				// adjust right node
-				memmove(&b->childAt(0), &b->childAt(1), sizeof(NodeBase *) * (b->getCount()));
+				// memmove(&b->childAt(0), &b->childAt(1), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (b->getCount()));
+                                for (int i = 0; i < b->getCount() - 1; i++) {
+                                        b->childAt(i) = b->childAt(1 + i).get();
+                                }
 				for (uint16_t i = 0; i < b->getCount() - 1; i++) {
 					b->keyAt(i) = b->keyAt(i + 1);
 				}
@@ -1623,13 +1607,16 @@ class BPlusTree {
 				 *  a   b  c  d   e               a   b    c d   e
 				 */
 				// adjust right node
-				memmove(&b->childAt(1), &b->childAt(0), sizeof(NodeBase *) * (b->getCount() + 1));
+				// memmove(&b->childAt(1), &b->childAt(0), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (b->getCount() + 1));
+                                for (int i = b->getCount(); i >= 0; i--) {
+                                        b->childAt(1 + i) = b->childAt(i).get();
+                                }
 				for (int i = b->getCount(); i > 0; i--) {
 					b->newKey(i, b->keyAt(i - 1));
 					b->keyAt(i - 1).~KeyType();
 				}
 				b->newKey(0, p->keyAt(pos));
-				b->childAt(0) = a->childAt(a->getCount());
+				b->childAt(0) = a->childAt(a->getCount()).get();
 				b->setCount(b->getCount() + 1);
 
 				// adjust parent
@@ -1739,7 +1726,7 @@ restart:
 			parent = inner;
 			versionParent = versionNode;
 
-			node = inner->childAt(inner->lowerBound(k, keyComp_));
+			node = inner->childAt(inner->lowerBound(k, keyComp_)).get();
 			// prefetch((char *)node, sizeof(NodeMetaData));
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart)
@@ -1910,7 +1897,7 @@ restart:
 			parent = inner;
 			versionParent = versionNode;
 
-			node = inner->childAt(inner->lowerBound(k, keyComp_));
+			node = inner->childAt(inner->lowerBound(k, keyComp_)).get();
 			// prefetch((char *)node, sizeof(NodeMetaData));
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart)
@@ -2081,7 +2068,7 @@ restart:
 			parent = inner;
 			versionParent = versionNode;
 
-			node = inner->childAt(inner->lowerBound(k, keyComp_));
+			node = inner->childAt(inner->lowerBound(k, keyComp_)).get();
 			// prefetch((char *)node, sizeof(NodeMetaData));
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart)
@@ -2240,7 +2227,7 @@ restart:
 
 			parent = inner;
 			versionParent = versionNode;
-			node = inner->childAt(inner->lowerBound(lowKey, keyComp_));
+			node = inner->childAt(inner->lowerBound(lowKey, keyComp_)).get();
 
 			// prefetch((char *)node, kPageSize);
 			inner->checkOrRestart(versionNode, needRestart);
@@ -2328,7 +2315,7 @@ restart:
 
 			parent = inner;
 			versionParent = versionNode;
-			node = inner->childAt(inner->lowerBound(lowKey, keyComp_));
+			node = inner->childAt(inner->lowerBound(lowKey, keyComp_)).get();
 
 			// prefetch((char *)node, kPageSize);
 			inner->checkOrRestart(versionNode, needRestart);
@@ -2445,10 +2432,10 @@ restart:
 			unsigned rightSiblingPos = childPos + 1;
 			NodeBase *leftSibling = nullptr, *rightSibling = nullptr;
 			if (leftSiblingPos >= 0 && leftSiblingPos < parentNode->getCount()) {
-				leftSibling = parentNode->childAt(leftSiblingPos);
+				leftSibling = parentNode->childAt(leftSiblingPos).get();
 			}
 			if (rightSiblingPos > 0 && rightSiblingPos <= parentNode->getCount()) {
-				rightSibling = parentNode->childAt(rightSiblingPos);
+				rightSibling = parentNode->childAt(rightSiblingPos).get();
 			}
 			if (leftSibling == nullptr && rightSibling == nullptr) {
 				single_child = true;
@@ -2588,7 +2575,7 @@ restart:
 			auto child = static_cast<BTreeInner *>(childNode);
 			auto sibling = static_cast<BTreeInner *>(siblingNode);
 			if (opt == MergeOperation::LeftToRight) {
-				const KeyType &subTreeMaxKey = _getSubTreeMaxKey(child->childAt(child->getCount()));
+				const KeyType &subTreeMaxKey = _getSubTreeMaxKey(child->childAt(child->getCount()).get());
 				child->merge(sibling, subTreeMaxKey);
 				stats_.inner_nodes--;
 				// KeyType siblingSubTreeMaxKey = _getSubTreeMaxKey(sibling);
@@ -2600,7 +2587,7 @@ restart:
 					root_.store(child);
 				}
 			} else if (opt == MergeOperation::RightToLeft) {
-				const KeyType &subTreeMaxKey = _getSubTreeMaxKey(sibling->childAt(sibling->getCount()));
+				const KeyType &subTreeMaxKey = _getSubTreeMaxKey(sibling->childAt(sibling->getCount()).get());
 				sibling->merge(child, subTreeMaxKey);
 				stats_.inner_nodes--;
 				changeRoot = parentNode->erase(siblingPos);
@@ -2772,7 +2759,7 @@ restart:
 
 			// get the last child
 			auto pos = node->getCount();
-			node = inner->childAt(pos);
+			node = inner->childAt(pos).get();
 
 			inner->checkOrRestart(version, needRestart);
 			if (needRestart)
@@ -2841,7 +2828,7 @@ restart:
 			versionParent = versionNode;
 
 			unsigned pos = inner->lowerBound(element.first, keyComp_);
-			node = inner->childAt(pos);
+			node = inner->childAt(pos).get();
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart) {
 				goto restart;
@@ -2997,7 +2984,7 @@ restart:
 			versionParent = versionNode;
 
 			unsigned pos = inner->lowerBound(deleteKey, keyComp_);
-			node = inner->childAt(pos);
+			node = inner->childAt(pos).get();
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart) {
 				goto restart;
@@ -3129,7 +3116,7 @@ restart:
 			parent = inner;
 			versionParent = versionNode;
 
-			node = inner->childAt(inner->lowerBound(key, keyComp_));
+			node = inner->childAt(inner->lowerBound(key, keyComp_)).get();
 			prefetch((char *)node, sizeof(NodeMetaData));
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart)
@@ -3204,7 +3191,7 @@ restart:
 			parent = inner;
 			versionParent = versionNode;
 
-			node = inner->childAt(inner->lowerBound(element.first, keyComp_));
+			node = inner->childAt(inner->lowerBound(element.first, keyComp_)).get();
 			prefetch((char *)node, sizeof(NodeMetaData));
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart)
@@ -3274,7 +3261,7 @@ restart:
 			parent = inner;
 			versionParent = versionNode;
 
-			node = inner->childAt(inner->lowerBound(key, keyComp_));
+			node = inner->childAt(inner->lowerBound(key, keyComp_)).get();
 			prefetch((char *)node, sizeof(NodeMetaData));
 			inner->checkOrRestart(versionNode, needRestart);
 			if (needRestart)

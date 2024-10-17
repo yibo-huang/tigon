@@ -7,6 +7,8 @@
 #include "common/CCHashTable.h"
 #include "common/btree_olc_cxl/BTreeOLC_CXL.h"
 
+#include <boost/interprocess/offset_ptr.hpp>
+
 namespace star
 {
 
@@ -98,25 +100,25 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
 
                 BTreeOLCValue(const BTreeOLCValue &value)
                 {
-                        this->row = value.row;
+                        this->row = value.row.get();
                         this->is_valid.store(value.is_valid.load());
                 }
 
                 BTreeOLCValue &operator=(const BTreeOLCValue &value)
                 {
-                        this->row = value.row;
+                        this->row = value.row.get();
                         this->is_valid.store(value.is_valid.load());
                         return *this;
                 }
 
-                void *row;
+                boost::interprocess::offset_ptr<void> row;
                 std::atomic<bool> is_valid{ false };
         };
 
         struct BTreeOLCValueComparator {
                 int operator()(const BTreeOLCValue &a, const BTreeOLCValue &b) const
                 {
-                        if (a.row == b.row)
+                        if (a.row.get() == b.row.get())
                                 return 0;
                         else
                                 return 1;
@@ -138,11 +140,15 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
         {
                 const auto &k = *static_cast<const KeyType *>(key);
 
-                BTreeOLCValue *value_ptr;
+                BTreeOLCValue *value_ptr = nullptr;
                 bool success = cxl_btree_->lookup(k, value_ptr);
 
-                if (value_ptr->is_valid.load() == true) {
-                        return value_ptr->row;
+                if (value_ptr != nullptr) {
+                        if (value_ptr->is_valid.load() == true) {
+                                return value_ptr->row.get();
+                        } else {
+                                return nullptr;
+                        }
                 } else {
                         return nullptr;
                 }
@@ -163,7 +169,7 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
 
                         if (value.is_valid.load() == true) {
                                 CHECK(KeyComparator()(key, min_k) >= 0);
-                                std::tuple<KeyType, void *> row_tuple(key, value.row);
+                                std::tuple<KeyType, void *> row_tuple(key, value.row.get());
                                 results.push_back(row_tuple);
                         }
 
