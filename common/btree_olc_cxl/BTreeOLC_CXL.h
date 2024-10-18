@@ -627,7 +627,10 @@ class BPlusTree {
 		template <typename T = KeyType> typename std::enable_if<std::is_trivial<T>::value == true, void>::type __adjust_elements_in_erase(int pos)
 		{
 			memmove(keys_ + pos, keys_ + pos + 1, sizeof(KeyType) * (this->getCount() - pos - 1));
-			memmove(values_ + pos, values_ + pos + 1, sizeof(ValueType) * (this->getCount() - pos - 1));
+			// memmove(values_ + pos, values_ + pos + 1, sizeof(ValueType) * (this->getCount() - pos - 1));
+                        for (int i = 0; i < this->getCount() - pos - 1; i++) {
+                                values_[pos + i] = values_[pos + 1 + i];
+                        }
 			// for (uint16_t i = pos; i < this->getCount() - 1u; i++) {
 			//     keys_[i] = keys_[i + 1];
 			//     values_[i] = values_[i + 1];
@@ -1588,7 +1591,7 @@ class BPlusTree {
 
 				// adjust right node
 				// memmove(&b->childAt(0), &b->childAt(1), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (b->getCount()));
-                                for (int i = 0; i < b->getCount() - 1; i++) {
+                                for (int i = 0; i < b->getCount(); i++) {
                                         b->childAt(i) = b->childAt(1 + i).get();
                                 }
 				for (uint16_t i = 0; i < b->getCount() - 1; i++) {
@@ -2630,7 +2633,7 @@ restart:
 	 * find key and all its corresponding values
 	 * return true if key exists
 	 */
-	bool lookup(const KeyType &key, ValueType *&result)
+	bool lookup(const KeyType &key, ValueType &result)
 	{
 		return _lookup(key, result);
 	}
@@ -2649,7 +2652,7 @@ restart:
 	 * return true if <key, value> exists and delete successfully
 	 * NOTE: lookup only append data to result
 	 */
-	bool lookup(const KeyType &key, const ValueType &value, ValueType *&result)
+	bool lookup(const KeyType &key, const ValueType &value, ValueType &result)
 	{
 		return _lookup({ key, value }, result, false);
 	}
@@ -3158,7 +3161,7 @@ restart:
 	/**
 	 * @param flag find key and it corresponding value when flag is true
 	 */
-	bool _lookup(const KeyValuePair &element, ValueType *&result, bool flag)
+	bool _lookup(const KeyValuePair &element, ValueType &result, bool flag)
 	{
 		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
 		// btreeolc_cxl::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
@@ -3206,11 +3209,11 @@ restart:
 		if ((pos < leaf->getCount()) && keyComp_(leaf->keys_[pos], element.first) == 0) {
 			if (flag) {
 				success = true;
-				result = &leaf->values_[pos];
+				result = leaf->values_[pos];
 			} else {
 				if (valueComp_(element.second, leaf->values_[pos]) == 0) {
 					success = true;
-					result = &leaf->values_[pos];
+					result = leaf->values_[pos];
 				}
 			}
 		}
@@ -3230,7 +3233,7 @@ restart:
 	/**
 	 * find key and it's corresponding value
 	 */
-	bool _lookup(const KeyType &key, ValueType *&result)
+	bool _lookup(const KeyType &key, ValueType &result)
 	{
 		int restartCount = 0;
 restart:
@@ -3278,7 +3281,7 @@ restart:
 		bool success = false;
 		if ((pos < leaf->getCount()) && keyComp_(leaf->keys_[pos], key) == 0) {
 			success = true;
-			result = &leaf->values_[pos];
+			result = leaf->values_[pos];
 		}
 		if (parent) {
 			parent->readUnlockOrRestart(versionParent, needRestart);

@@ -140,15 +140,12 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
         {
                 const auto &k = *static_cast<const KeyType *>(key);
 
-                BTreeOLCValue *value_ptr = nullptr;
-                bool success = cxl_btree_->lookup(k, value_ptr);
+                BTreeOLCValue value;
+                bool success = cxl_btree_->lookup(k, value);
 
-                if (value_ptr != nullptr) {
-                        if (value_ptr->is_valid.load() == true) {
-                                return value_ptr->row.get();
-                        } else {
-                                return nullptr;
-                        }
+                if (success == true) {
+                        CHECK(value.is_valid == true);
+                        return value.row.get();
                 } else {
                         return nullptr;
                 }
@@ -196,13 +193,7 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
 
         virtual void make_placeholder_valid(const void *key) override
         {
-                const auto &k = *static_cast<const KeyType *>(key);
-
-                BTreeOLCValue *value_ptr;
-                bool success = cxl_btree_->lookup(k, value_ptr);
-                CHECK(success == true);
-                CHECK(value_ptr->is_valid.load() == false);
-                value_ptr->is_valid.store(true);
+                CHECK(0);
         }
 
         virtual bool remove(const void *key, void *row) override
