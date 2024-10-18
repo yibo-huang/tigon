@@ -99,13 +99,17 @@ class Database {
 		for (auto partitionID = 0u; partitionID < partitionNum; partitionID++) {
 			auto ycsbTableID = ycsb::tableID;
 			if (context.protocol == "Sundial") {
-				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncSundial> >(ycsbTableID, partitionID));
+				tbl_ycsb_vec.push_back(
+					std::make_unique<TableBTreeOLC<ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator, MetaInitFuncSundial> >(ycsbTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
-                                tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncSundialPasha> >(ycsbTableID, partitionID));
+                                tbl_ycsb_vec.push_back(
+					std::make_unique<TableBTreeOLC<ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator, MetaInitFuncSundialPasha> >(ycsbTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
-                                tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncTwoPL> >(ycsbTableID, partitionID));
+                                tbl_ycsb_vec.push_back(
+					std::make_unique<TableBTreeOLC<ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator, MetaInitFuncTwoPL> >(ycsbTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
-                                tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, MetaInitFuncTwoPLPasha> >(ycsbTableID, partitionID));
+                                tbl_ycsb_vec.push_back(
+					std::make_unique<TableBTreeOLC<ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator, MetaInitFuncTwoPLPasha> >(ycsbTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
 			} else {
@@ -205,32 +209,34 @@ class Database {
 
                 if (coordinator_id == 0) {
                         // host 0 is responsible for creating the CXL tables
-                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
-                                        sizeof(CCHashTable) * total_table_num, CXLMemory::INDEX_ALLOCATION));
+                        boost::interprocess::offset_ptr<void> *cxl_table_ptrs = reinterpret_cast<boost::interprocess::offset_ptr<void> *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(boost::interprocess::offset_ptr<void>) * total_table_num, CXLMemory::INDEX_ALLOCATION));
 
                         auto ycsbTableID = ycsb::tableID;
                         cxl_tbl_vecs[ycsbTableID].resize(partitionNum);
+                        auto ycsb_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<ycsb::key, ycsb::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CXLTableBTreeOLC<ycsb::key, ycsb::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[ycsbTableID * partitionNum + i];
-                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
-                                cxl_tbl_vecs[ycsbTableID][i] = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
+                                auto cxl_table = &ycsb_cxl_btreetables[i];
+                                new(cxl_table) CXLTableBTreeOLC<ycsb::key, ycsb::KeyComparator>::CXLBTree();
+                                cxl_table_ptrs[ycsbTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
+                                cxl_tbl_vecs[ycsbTableID][i] = new CXLTableBTreeOLC<ycsb::key, ycsb::KeyComparator>(cxl_table, ycsbTableID, i);
                         }
 
-                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_hashtables);
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_table_ptrs);
                         LOG(INFO) << "YCSB initializes data migration metadata";
                 } else {
                         // other hosts wait and retrieve the CXL tables
                         void *tmp = NULL;
                         CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_data_migration_root_index, &tmp);
-                        CCHashTable *cxl_hashtables = reinterpret_cast<CCHashTable *>(tmp);
+                        boost::interprocess::offset_ptr<void> *cxl_table_ptrs = reinterpret_cast<boost::interprocess::offset_ptr<void> *>(tmp);
 
                         auto ycsbTableID = ycsb::tableID;
                         cxl_tbl_vecs[ycsbTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                CCHashTable *cxl_table = &cxl_hashtables[ycsbTableID * partitionNum + i];
-                                cxl_tbl_vecs[ycsbTableID][i] = new CXLTableHashMap<ycsb::key>(cxl_table, ycsbTableID, i);
+                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<ycsb::key, ycsb::KeyComparator>::CXLBTree *>(cxl_table_ptrs[ycsbTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[ycsbTableID][i] = new CXLTableBTreeOLC<ycsb::key, ycsb::KeyComparator>(cxl_table, ycsbTableID, i);
                         }
-
                         LOG(INFO) << "YCSB retrieves data migration metadata";
                 }
 
