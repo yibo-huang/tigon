@@ -532,7 +532,6 @@ class SundialPashaHelper {
                                 // release the CXL latch
                                 smeta->unlock();
 
-                                // LOG(INFO) << "moved in a row with key " << key << " from table " << table->tableID();
                                 move_in_success = true;
                         } else {
                                 // increase the reference count for the requesting host, even if it is already migrated
@@ -586,25 +585,26 @@ class SundialPashaHelper {
                         num_data_move_in.fetch_add(1);
                 }
 
-		return true;
+		return move_in_success;
 	}
 
-        bool move_from_shared_region_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_hashmap_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
-                SundialPashaMetadataShared *smeta = nullptr;
+                void *local_data = std::get<1>(row);
                 bool ret = false;
 
                 lmeta->lock();
                 if (lmeta->is_migrated == true) {
-                        void *local_data = std::get<1>(row);
-                        smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         char *migrated_row_value = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
 
                         // take the CXL latch
                         smeta->lock();
-                        DCHECK(smeta->is_valid == true);
+
+                        // the tuple must be valid
+                        CHECK(smeta->is_valid == true);
 
                         // reference count > 0, cannot move out the tuple
                         if (smeta->ref_cnt > 0) {
@@ -627,7 +627,7 @@ class SundialPashaHelper {
                         // remove from CXL index
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
                         ret = target_cxl_table->remove(key, lmeta->migrated_row);
-                        DCHECK(ret == true);
+                        CHECK(ret == true);
 
                         // mark the local row as not migrated
                         lmeta->migrated_row = nullptr;
@@ -641,19 +641,126 @@ class SundialPashaHelper {
 
                         // release the CXL latch
                         smeta->unlock();
-
-                        // LOG(INFO) << "moved out a row with key " << key << " from table " << table->tableID();
-
-                        ret = true;
-
-                        // statistics
-                        num_data_move_out.fetch_add(1);
                 } else {
-                        DCHECK(0);
+                        CHECK(0);
                 }
                 lmeta->unlock();
 
-                return ret;
+                return true;
+	}
+
+        bool move_from_btree_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
+                void *local_data = std::get<1>(row);
+                bool move_out_success = false;
+                bool ret = false;
+
+                auto move_out_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
+                        auto prev_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(prev_value);
+                        auto cur_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(cur_value);
+                        auto next_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(next_value);
+
+                        bool is_cur_tuple_moved_out = false;
+
+                        CHECK(lmeta != nullptr && cur_lmeta == lmeta);
+
+                        // move the current tuple out
+                        // note that here we only mark it as invalid without removing it from it CXL index
+                        lmeta->lock();
+                        if (lmeta->is_migrated == true) {
+                                SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                                char *migrated_row_value = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
+
+                                // take the CXL latch
+                                smeta->lock();
+
+                                // the tuple must be valid
+                                CHECK(smeta->is_valid == true);
+
+                                // reference count > 0, cannot move out the tuple -> early return
+                                if (smeta->ref_cnt > 0) {
+                                        smeta->unlock();
+                                        lmeta->unlock();
+                                        move_out_success = false;
+                                        return;
+                                }
+
+                                // copy metadata back
+                                lmeta->wts = smeta->wts;
+                                lmeta->rts = smeta->rts;
+                                lmeta->owner = smeta->owner;
+
+                                // copy data back
+                                scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, migrated_row_value, table->value_size());
+
+                                // set the migrated row as invalid
+                                smeta->is_valid = false;
+
+                                // remove the current-key from the CXL index
+                                // it is safe to do so because there is no concurrent data move in/out
+                                CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                                ret = target_cxl_table->remove(key, nullptr);
+                                CHECK(ret == true);
+
+                                // mark the local row as not migrated
+                                lmeta->migrated_row = nullptr;
+                                lmeta->is_migrated = false;
+
+                                // free the CXL row
+                                // TODO: register EBR
+                                std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
+                                cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size,
+                                        CXLMemory::DATA_FREE, sizeof(SundialPashaMetadataShared), table->value_size());
+
+                                // release the CXL latch
+                                smeta->unlock();
+                        } else {
+                                CHECK(0);
+                        }
+                        lmeta->unlock();
+
+                        // update the next-key information for the previous tuple
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->lock();
+                                if (prev_lmeta->is_migrated == true) {
+                                        auto prev_smeta = reinterpret_cast<SundialPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                        prev_smeta->lock();
+                                        prev_smeta->is_next_key_real = false;
+                                        prev_smeta->unlock();
+                                }
+                                prev_lmeta->unlock();
+                        }
+
+                        move_out_success = true;
+		};
+
+                // update next-key information
+                ret = table->search_and_update_next_key_info(key, move_out_processor);
+                CHECK(ret == true);
+
+		return move_out_success;
+	}
+
+        bool move_from_shared_region_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+	{
+                bool move_out_success = false;
+
+                if (table->tableType() == ITable::HASHMAP) {
+                        move_out_success = move_from_hashmap_to_partition(table, key, row);
+                } else if (table->tableType() == ITable::BTREE) {
+                        move_out_success = move_from_btree_to_partition(table, key, row);
+                } else {
+                        CHECK(0);
+                }
+
+                // statistics
+                if (move_out_success == true) {
+                        num_data_move_out.fetch_add(1);
+                }
+
+		return move_out_success;
 	}
 
     public:
