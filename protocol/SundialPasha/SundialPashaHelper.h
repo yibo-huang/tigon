@@ -147,6 +147,7 @@ class SundialPashaHelper {
 
 		smeta->lock();
                 CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
                 rts = smeta->rts;
                 wts = smeta->wts;
                 scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
@@ -195,6 +196,7 @@ class SundialPashaHelper {
 
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
                 rwts.first = smeta->wts;
                 rwts.second = smeta->rts;
                 if (smeta->owner == 0 || smeta->owner == transaction_id) {
@@ -244,6 +246,7 @@ class SundialPashaHelper {
 
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
                 if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
                         success = false;
                 } else {
@@ -257,45 +260,12 @@ class SundialPashaHelper {
 
 	static void replica_update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts)
 	{
-		MetaDataType &meta = *std::get<0>(row);
-		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
-
-		lmeta->lock();
-                if (lmeta->is_migrated == false) {
-                        void *data_ptr = std::get<1>(row);
-                        DCHECK(lmeta->wts == lmeta->rts);
-                        if (commit_ts > lmeta->wts) { // Thomas write rule
-                                lmeta->wts = lmeta->rts = commit_ts;
-                                memcpy(data_ptr, value, value_size);
-                        }
-                } else {
-                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
-                        void *data_ptr = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
-                        smeta->lock();
-                        CHECK(smeta->is_valid == true);
-                        DCHECK(smeta->wts == smeta->rts);
-                        if (commit_ts > smeta->wts) { // Thomas write rule
-                                smeta->wts = smeta->rts = commit_ts;
-                                memcpy(data_ptr, value, value_size);
-                        }
-                        smeta->unlock();
-                }
-		lmeta->unlock();
+		CHECK(0);
 	}
 
         static void remote_replica_update(char *row, const void *value, std::size_t value_size, uint64_t commit_ts)
 	{
-		SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(row);
-                void *data_ptr = row + sizeof(SundialPashaMetadataShared);
-
-                smeta->lock();
-                CHECK(smeta->is_valid == true);
-                DCHECK(smeta->wts == smeta->rts);
-                if (commit_ts > smeta->wts) { // Thomas write rule
-                        smeta->wts = smeta->rts = commit_ts;
-                        memcpy(data_ptr, value, value_size);
-                }
-                smeta->unlock();
+		CHECK(0);
 	}
 
 	void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
@@ -331,6 +301,7 @@ class SundialPashaHelper {
 
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
                 CHECK(smeta->owner == transaction_id);
                 scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
                 smeta->wts = smeta->rts = commit_ts;
@@ -363,6 +334,7 @@ class SundialPashaHelper {
 
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
                 CHECK(smeta->owner == transaction_id);
                 smeta->owner = 0;
                 smeta->unlock();
