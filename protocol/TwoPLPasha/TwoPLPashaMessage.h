@@ -110,8 +110,8 @@ class TwoPLPashaMessageHandler {
 		DCHECK(dec.size() == 0);
 
                 // move the tuple to the shared region if it is not currently there
-                success = migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row);
-                DCHECK(success == true);
+                // the return value does not matter
+                migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
@@ -124,7 +124,7 @@ class TwoPLPashaMessageHandler {
 		responseMessage.flush();
 
                 if (migration_manager->when_to_move_out == MigrationManager::OnDemand) {
-                        // before moving in the tuple, we move out tuples
+                        // after moving in the tuple, we move out tuples
                         migration_manager->move_row_out();
                 }
 	}
