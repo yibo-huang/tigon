@@ -15,7 +15,7 @@ function print_usage {
         echo "KILL: None"
         echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
-        echo "CI: HOST_NUM"
+        echo "CI: HOST_NUM WORKER_NUM"
         echo "COLLECT_OUTPUTS: HOST_NUM"
 }
 
@@ -68,6 +68,10 @@ function print_server_string {
 }
 
 function run_exp_tpcc {
+        if [ $# != 17 ]; then
+                print_usage
+                exit -1
+        fi
         typeset PROTOCOL=$1
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
@@ -84,7 +88,7 @@ function run_exp_tpcc {
         typeset PRE_MIGRATE=${14}
         typeset TIME_TO_RUN=${15}
         typeset TIME_TO_WARMUP=${16}
-        typeset GATHER_OUTPUTS=${17}
+        typeset GATHER_OUTPUT=${17}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -250,6 +254,10 @@ function run_exp_tpcc {
 }
 
 function run_exp_ycsb {
+        if [ $# != 18 ]; then
+                print_usage
+                exit -1
+        fi
         typeset PROTOCOL=$1
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
@@ -557,22 +565,23 @@ elif [ $RUN_TYPE = "COMPILE_SYNC" ]; then
 
         exit 0
 elif [ $RUN_TYPE = "CI" ]; then
-        if [ $# != 2 ]; then
+        if [ $# != 3 ]; then
                 print_usage
                 exit -1
         fi
 
         typeset HOST_NUM=$2
+        typeset WORKER_NUM=$3
 
-        run_exp_tpcc SundialPasha $HOST_NUM 2 10 15 true 4096
-        run_exp_tpcc Sundial $HOST_NUM 2 10 15 true 4096
-        run_exp_tpcc Lotus $HOST_NUM 2 10 15 true 4096
-        run_exp_tpcc Calvin $HOST_NUM 2 10 15 true 4096
+        run_exp_tpcc SundialPasha $HOST_NUM $WORKER_NUM mixed 10 15 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
+        run_exp_tpcc TwoPLPasha $HOST_NUM $WORKER_NUM mixed 10 15 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
+        run_exp_tpcc Sundial $HOST_NUM $WORKER_NUM mixed 10 15 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
+        run_exp_tpcc TwoPL $HOST_NUM $WORKER_NUM mixed 10 15 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
 
-        run_exp_tpcc SundialPasha $HOST_NUM 2 10 15 true 4096
-        run_exp_ycsb Sundial $HOST_NUM 2 50 0 10 true 4096
-        run_exp_ycsb Lotus $HOST_NUM 2 50 0 10 true 4096
-        run_exp_ycsb Calvin $HOST_NUM 2 50 0 10 true 4096
+        run_exp_ycsb SundialPasha $HOST_NUM $WORKER_NUM 40960 50 0 10 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
+        run_exp_ycsb TwoPLPasha $HOST_NUM $WORKER_NUM 40960 50 0 10 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
+        run_exp_ycsb Sundial $HOST_NUM $WORKER_NUM 40960 50 0 10 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
+        run_exp_ycsb TwoPL $HOST_NUM $WORKER_NUM 40960 50 0 10 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM OnDemandFIFO OnDemand 1000 WriteThrough None 10 5 0
 
         exit 0
 elif [ $RUN_TYPE = "COLLECT_OUTPUTS" ]; then
