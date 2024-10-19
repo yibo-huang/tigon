@@ -115,12 +115,12 @@ template <typename KeyType, uint64_t leaf_size, uint64_t inner_size> void single
 
 template <typename KeyType, uint64_t leaf_size, uint64_t inner_size> void singleLookupTest(btree_t<KeyType, leaf_size, inner_size> &btree)
 {
-	Value *res;
+	Value res;
 	for (int i = 0; i < 100000; i++) {
 		KeyType k{ i };
 		bool lookup_flag = btree.lookup(k, res);
 		ASSERT_EQ(lookup_flag, true);
-		ASSERT_EQ(res->getValue(), i);
+		ASSERT_EQ(res.getValue(), i);
 		delete[] k.transfer();
 	}
 }
@@ -324,7 +324,7 @@ template <typename KeyType, uint64_t leaf_size, uint64_t inner_size> void multiS
 	auto res_1 = f1.get();
 
 	for (int i = 0; i < 1000; i++) {
-		Value *v;
+		Value v;
 		bool res = btree.lookup(i, v);
 		if (i < 200 && i >= 0) {
 			assert(res != res0_200[i]);
@@ -481,10 +481,10 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Query
 					std::this_thread::sleep_for(std::chrono::milliseconds(id * 40));
 					// std::cout << "thread #" << id << " begin query...\n";
 					for (int i = 0; i < kElementCount; ++i) {
-						Value *res;
+						Value res;
 						KeyType k{ i };
 						if (btree.lookup(k, res)) {
-							ASSERT_EQ(res->getValue(), i);
+							ASSERT_EQ(res.getValue(), i);
 						} else {
 							// std::cout << "#" << i << ": Not found.\n";
 						}
@@ -533,10 +533,10 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Query
 					std::this_thread::sleep_for(std::chrono::milliseconds(id * 5));
 					// std::cout << "thread #" << id << " begin query...\n";
 					for (int i = 0; i < kElementCount; ++i) {
-						Value *res;
+						Value res;
 						KeyType k{ i };
 						if (btree.lookup(k, res)) {
-							ASSERT_EQ(res->getValue(), i);
+							ASSERT_EQ(res.getValue(), i);
 						} else {
 							// std::cout << "#" << i << ": Not found.\n";
 						}
@@ -604,7 +604,7 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Delet
 
 		// 3. all elements should be deleted
 		for (int i = 0; i < kElementCount; ++i) {
-			Value *res;
+			Value res;
 			KeyType k{ i };
 			ASSERT_FALSE(btree.lookup(k, res));
 			delete[] k.transfer();
@@ -655,7 +655,7 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Delet
 
 		// 3. all elements should be deleted
 		for (int i = 0; i < kElementCount; ++i) {
-			Value *res;
+			Value res;
 			KeyType k{ i };
 			ASSERT_FALSE(btree.lookup(k, res));
 			delete[] k.transfer();
@@ -698,10 +698,10 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Inser
 
 		// 2. all elements should be inserted
 		for (int i = 0; i < kElementCount; ++i) {
-			Value *res;
+			Value res;
 			KeyType k{ i };
 			ASSERT_TRUE(btree.lookup(k, res));
-			ASSERT_EQ(res->getValue(), i);
+			ASSERT_EQ(res.getValue(), i);
 			delete[] k.transfer();
 		}
 
@@ -792,10 +792,10 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Inser
 		}
 		int left = 0;
 		for (int i = 0; i < kElementCount; ++i) {
-			Value *res;
+			Value res;
 			KeyType k(keys[i]);
 			if (btree.lookup(k, res)) {
-				ASSERT_EQ(res->getValue(), 0);
+				ASSERT_EQ(res.getValue(), 0);
 				left++;
 			}
 
@@ -928,10 +928,10 @@ template <typename KeyType, uint64_t page_size = 4096> void ConcurrentTest_Inser
 			query_threads.emplace_back(
 				[&btree](int id) {
 					for (int i = 0; i < kElementCount; ++i) {
-						Value *res;
+						Value res;
 						KeyType k{ i };
 						if (btree.lookup(k, res)) {
-							ASSERT_EQ(res->getValue(), i);
+							ASSERT_EQ(res.getValue(), i);
 						} else {
 							// std::cout << "#" << i << ": Not found.\n";
 						}

@@ -324,35 +324,39 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
         static constexpr uint64_t leaf_page_size = 4096;
         static constexpr uint64_t inner_page_size = 4096;
 
+        struct ValueStruct {
+                MetaDataType meta;     // the value is the pointer to the local metadata
+                ValueType data;
+
+                std::atomic<bool> is_valid{ false };
+        };
+
         // std::atomic has implicitly deleted copy-constructor
         // so we need to define a ValueType that supports it
         struct BTreeOLCValue {
                 BTreeOLCValue() = default;
 
-                BTreeOLCValue(const BTreeOLCValue &row)
+                BTreeOLCValue(const BTreeOLCValue &value)
                 {
-                        this->meta.store(row.meta.load());
-                        this->value = row.value;
-                        this->is_valid.store(row.is_valid.load());
+                        this->row = value.row;
                 }
 
-                BTreeOLCValue &operator=(const BTreeOLCValue &row)
+                BTreeOLCValue &operator=(const BTreeOLCValue &value)
                 {
-                        this->meta.store(row.meta.load());
-                        this->value = row.value;
-                        this->is_valid.store(row.is_valid.load());
+                        this->row = value.row;
                         return *this;
                 }
 
-                MetaDataType meta;
-                ValueType value;
-                std::atomic<bool> is_valid{ false };
+                ValueStruct *row{ nullptr };
         };
 
         struct BTreeOLCValueComparator {
                 int operator()(const BTreeOLCValue &a, const BTreeOLCValue &b) const
                 {
-                        return ValueComparator(a.value, b.value);
+                        if (a.row == b.row)
+                                return 0;
+                        else
+                                return 1;
                 }
         };
 
@@ -378,12 +382,16 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 
-                BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
+                BTreeOLCValue value;
+                bool success = btree.lookup(k, value);
 
-                if (row_ptr->is_valid.load() == true) {
-                        MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&row_ptr->meta);
-                        return std::make_tuple(meta_ptr, &row_ptr->value);
+                if (success == true) {
+                        if (value.row->is_valid.load() == true) {
+                                MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&value.row->meta);
+                                return std::make_tuple(meta_ptr, &value.row->data);
+                        } else {
+                                return std::make_tuple(nullptr, nullptr);
+                        }
                 } else {
                         return std::make_tuple(nullptr, nullptr);
                 }
@@ -394,13 +402,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 
-                BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
-                CHECK(success == true);
+                BTreeOLCValue value;
+                bool success = btree.lookup(k, value);
 
                 if (success == true) {
-                        if (row_ptr->is_valid.load() == true) {
-                                return &row_ptr->value;
+                        if (value.row->is_valid.load() == true) {
+                                return &value.row->data;
                         } else {
                                 return nullptr;
                         }
@@ -413,12 +420,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 	{
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
-                BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
+
+                BTreeOLCValue value;
+                bool success = btree.lookup(k, value);
 
                 if (success == true) {
-                        if (row_ptr->is_valid.load() == true) {
-                                return &row_ptr->meta;
+                        if (value.row->is_valid.load() == true) {
+                                return &value.row->meta;
                         } else {
                                 return nullptr;
                         }
@@ -432,11 +440,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 
-                BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
+                BTreeOLCValue value;
+                bool success = btree.lookup(k, value);
 
                 if (success) {
-                        if (row_ptr->is_valid.load() == true) {
+                        if (value.row->is_valid.load() == true) {
                                 return true;
                         } else {
                                 return false;
@@ -453,17 +461,17 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 const auto &max_k = *static_cast<const KeyType *>(max_key);
                 auto &results = *static_cast<std::vector<std::tuple<KeyType, std::atomic<uint64_t> *, void *> > *>(results_ptr);
 
-                auto processor = [&](const KeyType &key, BTreeOLCValue &row, bool) -> bool {
+                auto processor = [&](const KeyType &key, BTreeOLCValue &value, bool) -> bool {
                         if (limit != 0 && results.size() == limit)
                                 return true;
 
                         if (KeyComparator()(key, max_k) > 0)
                                 return true;
 
-                        if (row.is_valid.load() == true) {
+                        if (value.row->is_valid.load() == true) {
                                 CHECK(KeyComparator()(key, min_k) >= 0);
-                                MetaDataType *meta_ptr = &row.meta;
-                                ValueType *data_ptr = &row.value;
+                                MetaDataType *meta_ptr = &value.row->meta;
+                                ValueType *data_ptr = &value.row->data;
                                 std::tuple<KeyType, MetaDataType *, void *> row_tuple(key, meta_ptr, data_ptr);
                                 results.push_back(row_tuple);
                         }
@@ -472,9 +480,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		};
 
                 btree.scanForUpdate(min_k, processor);
-
-                // right now StockLevel might get empty scan results
-                // CHECK(results.size() > 0);
         }
 
 	bool insert(const void *key, const void *value, bool is_placeholder = false) override
@@ -483,15 +488,22 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
 
-                BTreeOLCValue row;
-                row.meta = MetaInitFunc()();
-                row.value = v;
+                // create value that will not be moved around
+                ValueStruct *row = new ValueStruct;
+                CHECK(row != nullptr);
+                row->meta = MetaInitFunc()();
+                row->data = v;
                 if (is_placeholder == true)
-                        row.is_valid.store(false);
+                        row->is_valid.store(false);
                 else
-                        row.is_valid.store(true);
+                        row->is_valid.store(true);
 
-		bool success = btree.insert(k, row);
+                // BTreeOLCValue will be moved around and thus only stores pointers to the actual value
+                BTreeOLCValue btree_value;
+                btree_value.row = row;
+
+                // insert BTreeOLCValue to BTreeOLC
+		bool success = btree.insert(k, btree_value);
 		return success;
 	}
 
@@ -500,11 +512,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 tid_check();
 		const auto &k = *static_cast<const KeyType *>(key);
 
-                BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
+                BTreeOLCValue value;
+                bool success = btree.lookup(k, value);
                 CHECK(success == true);
-                CHECK(row_ptr->is_valid.load() == false);
-                row_ptr->is_valid.store(true);
+                CHECK(value.row->is_valid.load() == false);
+
+                value.row->is_valid.store(true);
         }
 
         bool remove(const void *key) override
@@ -524,12 +537,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
 
-                BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
+                BTreeOLCValue btree_value;
+                bool success = btree.lookup(k, btree_value);
                 CHECK(success == true);
 
-		on_update(key, &row_ptr->value);
-		row_ptr->value = v;
+		on_update(key, &btree_value.row->data);
+		btree_value.row->data = v;
 	}
 
         bool search_and_update_next_key_info(const void *key,
@@ -538,11 +551,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 auto processor = [&](const KeyType *prev_key, BTreeOLCValue *prev_value, const KeyType *cur_key, BTreeOLCValue *cur_value, const KeyType *next_key, BTreeOLCValue *next_value) {
                         void *prev_meta = nullptr, *cur_meta = nullptr, *next_meta = nullptr;
                         if (prev_value != nullptr)
-                                prev_meta = reinterpret_cast<void *>(prev_value->meta.load());
+                                prev_meta = reinterpret_cast<void *>(prev_value->row->meta.load());
                         if (cur_value != nullptr)
-                                cur_meta = reinterpret_cast<void *>(cur_value->meta.load());
+                                cur_meta = reinterpret_cast<void *>(cur_value->row->meta.load());
                         if (next_value != nullptr)
-                                next_meta = reinterpret_cast<void *>(next_value->meta.load());
+                                next_meta = reinterpret_cast<void *>(next_value->row->meta.load());
                         update_processor(prev_key, prev_meta, cur_key, cur_meta, next_key, next_meta);
 		};
 
@@ -559,11 +572,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		std::size_t size = stringPiece.size();
 		const auto &k = *static_cast<const KeyType *>(key);
 
-		BTreeOLCValue *row_ptr;
-                bool success = btree.lookup(k, row_ptr);
+		BTreeOLCValue value;
+                bool success = btree.lookup(k, value);
                 CHECK(success == true);
 
-		auto &v = row_ptr->value;
+		auto &v = value.row->data;
 
 		Decoder dec(stringPiece);
 		dec >> v;
@@ -619,9 +632,9 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 
         void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
         {
-                auto processor = [&](const KeyType &key, BTreeOLCValue &row, bool) -> bool {
-                        MetaDataType *meta_ptr = &row.meta;
-                        ValueType *data_ptr = &row.value;
+                auto processor = [&](const KeyType &key, BTreeOLCValue &value, bool) -> bool {
+                        MetaDataType *meta_ptr = &value.row->meta;
+                        ValueType *data_ptr = &value.row->data;
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
 			bool ret = move_in_func(this, &key, row_tuple);
                         CHECK(ret == true);
