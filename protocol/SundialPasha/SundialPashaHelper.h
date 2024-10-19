@@ -582,6 +582,7 @@ class SundialPashaHelper {
 
                 // statistics
                 if (move_in_success == true) {
+                        // LOG(INFO) << "moved in a row with key " << table->get_plain_key(key) << " from table " << table->tableID();
                         num_data_move_in.fetch_add(1);
                 }
 
@@ -757,6 +758,7 @@ class SundialPashaHelper {
 
                 // statistics
                 if (move_out_success == true) {
+                        // LOG(INFO) << "moved out a row with key " << table->get_plain_key(key) << " from table " << table->tableID();
                         num_data_move_out.fetch_add(1);
                 }
 
