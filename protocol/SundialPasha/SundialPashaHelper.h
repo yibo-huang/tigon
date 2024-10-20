@@ -24,25 +24,29 @@ namespace star
 {
 
 struct SundialPashaMetadataLocal {
-	std::atomic<uint64_t> latch{ 0 };
+        SundialPashaMetadataLocal()
+                : wts(0)
+                , rts(0)
+                , owner(0)
+                , is_migrated(false)
+                , migrated_row(nullptr)
+                , is_valid(false)
+        {
+                // this spinlock will only be shared within a single process
+                pthread_spin_init(&latch, PTHREAD_PROCESS_PRIVATE);
+        }
+
 	void lock()
 	{
-retry:
-		auto v = latch.load();
-		if (v == 0) {
-			if (latch.compare_exchange_strong(v, 1))
-				return;
-			goto retry;
-		} else {
-			goto retry;
-		}
+                pthread_spin_lock(&latch);
 	}
 
 	void unlock()
 	{
-		DCHECK(latch.load() == 1);
-		latch.store(0);
+		pthread_spin_unlock(&latch);
 	}
+
+        pthread_spinlock_t latch;
 
 	uint64_t wts{ 0 };
 	uint64_t rts{ 0 };
@@ -55,25 +59,30 @@ retry:
 };
 
 struct SundialPashaMetadataShared {
-	std::atomic<uint64_t> latch{ 0 };
+	SundialPashaMetadataShared()
+                : wts(0)
+                , rts(0)
+                , owner(0)
+                , ref_cnt(0)
+                , is_valid(false)
+                , scc_meta(0)
+                , is_next_key_real(false)
+        {
+                // this spinlock will be shared between multiple processes
+                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+        }
+
 	void lock()
 	{
-retry:
-		auto v = latch.load();
-		if (v == 0) {
-			if (latch.compare_exchange_strong(v, 1))
-				return;
-			goto retry;
-		} else {
-			goto retry;
-		}
+                pthread_spin_lock(&latch);
 	}
 
 	void unlock()
 	{
-		DCHECK(latch.load() == 1);
-		latch.store(0);
+		pthread_spin_unlock(&latch);
 	}
+
+        pthread_spinlock_t latch;
 
 	uint64_t wts{ 0 };
 	uint64_t rts{ 0 };
