@@ -45,8 +45,6 @@ class ITable {
 
 	virtual bool insert(const void *key, const void *value, bool is_placeholder = false) = 0;
 
-        virtual void make_placeholder_valid(const void *key) = 0;
-
         virtual bool remove(const void *key) = 0;
 
 	virtual void update(
@@ -210,11 +208,6 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
 
                 return true;
 	}
-
-        void make_placeholder_valid(const void *key) override
-        {
-                CHECK(0);
-        }
 
         bool remove(const void *key) override
         {
@@ -485,11 +478,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		return success;
 	}
 
-        void make_placeholder_valid(const void *key) override
-        {
-                CHECK(0);
-        }
-
         bool remove(const void *key) override
         {
                 tid_check();
@@ -687,11 +675,6 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
                 return true;
 	}
 
-        void make_placeholder_valid(const void *key) override
-        {
-                CHECK(0);
-        }
-
         bool remove(const void *key) override
         {
                 CHECK(0);
@@ -834,11 +817,6 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
 
                 return true;
 	}
-
-        void make_placeholder_valid(const void *key) override
-        {
-                CHECK(0);
-        }
 
         bool remove(const void *key) override
         {

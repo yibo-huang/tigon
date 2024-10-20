@@ -22,8 +22,6 @@ class CXLTableBase {
 
 	virtual bool insert(const void *key, void *row, bool is_placeholder = false) = 0;
 
-        virtual void make_placeholder_valid(const void *key) = 0;
-
         virtual bool remove(const void *key, void *row) = 0;
 
 	virtual std::size_t tableID() = 0;
@@ -58,11 +56,6 @@ template <class KeyType> class CXLTableHashMap : public CXLTableBase {
                 CHECK(is_placeholder == false);
                 const auto &k = *static_cast<const KeyType *>(key);
                 return cxl_hashtable_->insert(k.get_plain_key(), reinterpret_cast<char *>(row));
-        }
-
-        virtual void make_placeholder_valid(const void *key) override
-        {
-                CHECK(0);
         }
 
         virtual bool remove(const void *key, void *row) override
@@ -189,11 +182,6 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
 
 		bool success = cxl_btree_->insert(k, value);
 		return success;
-        }
-
-        virtual void make_placeholder_valid(const void *key) override
-        {
-                CHECK(0);
         }
 
         virtual bool remove(const void *key, void *row) override
