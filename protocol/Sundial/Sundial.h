@@ -149,12 +149,7 @@ template <class Database> class Sundial {
 					return false;
 				}
 			} else {
-				CHECK(false);
-				// commit phase 2, read validation
-				if (!validate_read_set(txn, messages)) {
-					abort(txn, messages);
-					return false;
-				}
+				CHECK(0);
 			}
 		}
 
@@ -450,65 +445,6 @@ template <class Database> class Sundial {
 
 			sync_messages(txn);
 		}
-
-		return !txn.abort_read_validation;
-	}
-
-	bool validate_read_set(TransactionType &txn, std::vector<std::unique_ptr<Message> > &messages)
-	{
-		auto &readSet = txn.readSet;
-		auto &writeSet = txn.writeSet;
-
-		auto isKeyInWriteSet = [](const std::vector<SundialRWKey> &writeSet, const void *key) {
-			for (auto &writeKey : writeSet) {
-				if (writeKey.get_key() == key) {
-					return true;
-				}
-			}
-			return false;
-		};
-
-		for (auto i = 0u; i < readSet.size(); i++) {
-			auto &readKey = readSet[i];
-
-			if (readKey.get_local_index_read_bit()) {
-				continue; // read only index does not need to validate
-			}
-
-			bool in_write_set = isKeyInWriteSet(writeSet, readKey.get_key());
-			if (in_write_set) {
-				continue; // already validated in lock write set
-			}
-
-			auto tableId = readKey.get_table_id();
-			auto partitionId = readKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-			auto key = readKey.get_key();
-			auto tid = readKey.get_tid();
-
-			if (partitioner.has_master_partition(partitionId)) {
-				uint64_t latest_tid = table->search_metadata(key)->load();
-				if (SiloHelper::remove_lock_bit(latest_tid) != tid) {
-					txn.abort_read_validation = true;
-					break;
-				}
-				if (SiloHelper::is_locked(latest_tid)) { // must be locked by others
-					txn.abort_read_validation = true;
-					break;
-				}
-			} else {
-				txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				messages[coordinatorID]->set_transaction_id(txn.transaction_id);
-				txn.network_size += MessageFactoryType::new_read_validation_message(*messages[coordinatorID], *table, key, i, tid);
-			}
-		}
-
-		if (txn.pendingResponses == 0) {
-			txn.local_validated = true;
-		}
-
-		sync_messages(txn);
 
 		return !txn.abort_read_validation;
 	}

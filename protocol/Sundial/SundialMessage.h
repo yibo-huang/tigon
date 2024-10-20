@@ -20,26 +20,17 @@ namespace star
 enum class SundialMessage {
 	SEARCH_REQUEST = static_cast<int>(ControlMessage::NFIELDS),
 	SEARCH_RESPONSE,
-	LOCK_REQUEST,
-	LOCK_RESPONSE,
-	READ_VALIDATION_REQUEST,
-	READ_VALIDATION_RESPONSE,
 	READ_VALIDATION_AND_REDO_REQUEST,
 	READ_VALIDATION_AND_REDO_RESPONSE,
-	ABORT_REQUEST,
 	WRITE_REQUEST,
 	WRITE_RESPONSE,
 	REPLICATION_REQUEST,
 	REPLICATION_RESPONSE,
-	RELEASE_LOCK_REQUEST,
 	READ_REQUEST,
 	READ_RESPONSE,
 	WRITE_LOCK_REQUEST,
 	WRITE_LOCK_RESPONSE,
 	UNLOCK_REQUEST,
-	UPDATE_UNLOCK_REQUEST,
-	RENEW_LEASE_REQUEST,
-	RENEW_LEASE_RESPONSE,
 	NFIELDS
 };
 
@@ -90,29 +81,6 @@ class SundialMessageFactory {
 		return message_size;
 	}
 
-	static std::size_t new_renew_lease_message(Message &message, ITable &table, const void *key, uint32_t key_offset, uint64_t wts, uint64_t commit_ts)
-	{
-		/*
-		 * The structure of a read request: (primary key, wts, commit_ts, read key offset)
-		 */
-
-		auto key_size = table.key_size();
-
-		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(wts) + sizeof(commit_ts) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::RENEW_LEASE_REQUEST),
-											 message_size, table.tableID(), table.partitionID());
-
-		Encoder encoder(message.data);
-		encoder << message_piece_header;
-		encoder.write_n_bytes(key, key_size);
-		encoder << wts;
-		encoder << commit_ts;
-		encoder << key_offset;
-		message.flush();
-		message.set_gen_time(Time::now());
-		return message_size;
-	}
-
 	static std::size_t new_unlock_message(Message &message, ITable &table, const void *key, uint64_t transaction_id, uint32_t key_offset)
 	{
 		/*
@@ -135,32 +103,6 @@ class SundialMessageFactory {
 		return message_size;
 	}
 
-	static std::size_t new_update_and_unlock_message(Message &message, ITable &table, const void *key, const void *value, uint64_t transaction_id,
-							 uint64_t commit_ts, uint32_t key_offset)
-	{
-		/*
-		 * The structure of a update and unlock request: (primary key, value, transaction_id, write key offset)
-		 */
-
-		auto key_size = table.key_size();
-		auto value_size = table.value_size();
-
-		auto message_size = MessagePiece::get_header_size() + key_size + value_size + sizeof(transaction_id) + sizeof(key_offset) + sizeof(commit_ts);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::UPDATE_UNLOCK_REQUEST),
-											 message_size, table.tableID(), table.partitionID());
-
-		Encoder encoder(message.data);
-		encoder << message_piece_header;
-		encoder.write_n_bytes(key, key_size);
-		table.serialize_value(encoder, value);
-		encoder << transaction_id;
-		encoder << commit_ts;
-		encoder << key_offset;
-		message.flush();
-		message.set_gen_time(Time::now());
-		return message_size;
-	}
-
 	static std::size_t new_search_message(Message &message, ITable &table, const void *key, uint32_t key_offset)
 	{
 		/*
@@ -171,27 +113,6 @@ class SundialMessageFactory {
 
 		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(key_offset);
 		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::SEARCH_REQUEST), message_size,
-											 table.tableID(), table.partitionID());
-
-		Encoder encoder(message.data);
-		encoder << message_piece_header;
-		encoder.write_n_bytes(key, key_size);
-		encoder << key_offset;
-		message.flush();
-		message.set_gen_time(Time::now());
-		return message_size;
-	}
-
-	static std::size_t new_lock_message(Message &message, ITable &table, const void *key, uint32_t key_offset)
-	{
-		/*
-		 * The structure of a lock request: (primary key, write key offset)
-		 */
-
-		auto key_size = table.key_size();
-
-		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::LOCK_REQUEST), message_size,
 											 table.tableID(), table.partitionID());
 
 		Encoder encoder(message.data);
@@ -258,47 +179,6 @@ class SundialMessageFactory {
 		return message_size;
 	}
 
-	static std::size_t new_read_validation_message(Message &message, ITable &table, const void *key, uint32_t key_offset, uint64_t tid)
-	{
-		/*
-		 * The structure of a read validation request: (primary key, read key
-		 * offset, tid)
-		 */
-
-		auto key_size = table.key_size();
-
-		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(key_offset) + sizeof(tid);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::READ_VALIDATION_REQUEST),
-											 message_size, table.tableID(), table.partitionID());
-
-		Encoder encoder(message.data);
-		encoder << message_piece_header;
-		encoder.write_n_bytes(key, key_size);
-		encoder << key_offset << tid;
-		message.flush();
-		return message_size;
-	}
-
-	static std::size_t new_abort_message(Message &message, ITable &table, const void *key)
-	{
-		/*
-		 * The structure of an abort request: (primary key)
-		 */
-
-		auto key_size = table.key_size();
-
-		auto message_size = MessagePiece::get_header_size() + key_size;
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::ABORT_REQUEST), message_size,
-											 table.tableID(), table.partitionID());
-
-		Encoder encoder(message.data);
-		encoder << message_piece_header;
-		encoder.write_n_bytes(key, key_size);
-		message.flush();
-		message.set_gen_time(Time::now());
-		return message_size;
-	}
-
 	static std::size_t new_write_message(Message &message, ITable &table, const void *key, const void *value, uint64_t commit_ts, uint64_t transaction_id,
 					     bool persist_commit_record = false)
 	{
@@ -341,27 +221,6 @@ class SundialMessageFactory {
 		encoder.write_n_bytes(key, key_size);
 		table.serialize_value(encoder, value);
 		encoder << commit_ts << sync_redo;
-		message.flush();
-		message.set_gen_time(Time::now());
-		return message_size;
-	}
-
-	static std::size_t new_release_lock_message(Message &message, ITable &table, const void *key, uint64_t commit_tid)
-	{
-		/*
-		 * The structure of a replication request: (primary key, commit tid)
-		 */
-
-		auto key_size = table.key_size();
-
-		auto message_size = MessagePiece::get_header_size() + key_size + sizeof(commit_tid);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::RELEASE_LOCK_REQUEST),
-											 message_size, table.tableID(), table.partitionID());
-
-		Encoder encoder(message.data);
-		encoder << message_piece_header;
-		encoder.write_n_bytes(key, key_size);
-		encoder << commit_tid;
 		message.flush();
 		message.set_gen_time(Time::now());
 		return message_size;
@@ -450,102 +309,6 @@ class SundialMessageHandler {
 		readKey.set_tid(tid);
 		txn->pendingResponses--;
 		txn->network_size += inputPiece.get_message_length();
-	}
-
-	static void lock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::LOCK_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of a lock request: (primary key, write key offset)
-		 * The structure of a lock response: (success?, tid, write key offset)
-		 */
-
-		auto stringPiece = inputPiece.toStringPiece();
-
-		uint32_t key_offset;
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + sizeof(key_offset));
-
-		const void *key = stringPiece.data();
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
-
-		bool success;
-		uint64_t latest_tid = SundialHelper::lock(tid, success);
-
-		stringPiece.remove_prefix(key_size);
-		star::Decoder dec(stringPiece);
-		dec >> key_offset;
-
-		DCHECK(dec.size() == 0);
-
-		// prepare response message header
-		auto message_size = MessagePiece::get_header_size() + sizeof(bool) + sizeof(uint64_t) + sizeof(uint32_t);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::LOCK_RESPONSE), message_size,
-											 table_id, partition_id);
-
-		star::Encoder encoder(responseMessage.data);
-		encoder << message_piece_header;
-		encoder << success << latest_tid << key_offset;
-		responseMessage.flush();
-		responseMessage.set_gen_time(Time::now());
-	}
-
-	static void lock_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::LOCK_RESPONSE));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of a lock response: (success?, tid, write key offset)
-		 */
-
-		bool success;
-		uint64_t latest_tid;
-		uint32_t key_offset;
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + sizeof(success) + sizeof(latest_tid) + sizeof(key_offset));
-
-		StringPiece stringPiece = inputPiece.toStringPiece();
-		Decoder dec(stringPiece);
-		dec >> success >> latest_tid >> key_offset;
-
-		DCHECK(dec.size() == 0);
-
-		SundialRWKey &writeKey = txn->writeSet[key_offset];
-
-		bool tid_changed = false;
-
-		if (success) {
-			SundialRWKey *readKey = txn->get_read_key(writeKey.get_key());
-
-			DCHECK(readKey != nullptr);
-
-			uint64_t tid_on_read = readKey->get_tid();
-
-			if (latest_tid != tid_on_read) {
-				tid_changed = true;
-			}
-
-			writeKey.set_tid(latest_tid);
-			writeKey.set_write_lock_bit();
-		}
-
-		txn->pendingResponses--;
-		txn->network_size += inputPiece.get_message_length();
-
-		if (!success || tid_changed) {
-			txn->abort_lock = true;
-		}
 	}
 
 	static void read_validation_and_redo_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
@@ -643,88 +406,6 @@ class SundialMessageHandler {
 		}
 	}
 
-	static void read_validation_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(false);
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::READ_VALIDATION_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of a read validation request: (primary key, read key
-		 * offset, tid, last_validation) The structure of a read validation response: (success?, read
-		 * key offset)
-		 */
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + sizeof(uint32_t) + sizeof(uint64_t));
-
-		auto stringPiece = inputPiece.toStringPiece();
-		const void *key = stringPiece.data();
-		auto latest_tid = table.search_metadata(key)->load();
-		stringPiece.remove_prefix(key_size);
-
-		uint32_t key_offset;
-		uint64_t tid;
-		bool last_validation;
-		Decoder dec(stringPiece);
-		dec >> key_offset >> tid;
-
-		bool success = true;
-
-		if (SundialHelper::remove_lock_bit(latest_tid) != tid) {
-			success = false;
-		}
-
-		if (SundialHelper::is_locked(latest_tid)) { // must be locked by others
-			success = false;
-		}
-
-		// prepare response message header
-		auto message_size = MessagePiece::get_header_size() + sizeof(bool) + sizeof(uint32_t);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::READ_VALIDATION_RESPONSE),
-											 message_size, table_id, partition_id);
-
-		star::Encoder encoder(responseMessage.data);
-		encoder << message_piece_header;
-		encoder << success << key_offset;
-
-		responseMessage.flush();
-	}
-
-	static void read_validation_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(false);
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::READ_VALIDATION_RESPONSE));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of a read validation response: (success?, read key offset)
-		 */
-
-		bool success;
-		uint32_t key_offset;
-
-		Decoder dec(inputPiece.toStringPiece());
-
-		dec >> success >> key_offset;
-
-		SundialRWKey &readKey = txn->readSet[key_offset];
-
-		txn->pendingResponses--;
-		txn->network_size += inputPiece.get_message_length();
-
-		if (!success) {
-			txn->abort_read_validation = true;
-		}
-	}
-
 	static void read_validation_and_redo_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
 		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::READ_VALIDATION_AND_REDO_RESPONSE));
@@ -745,30 +426,6 @@ class SundialMessageHandler {
 		if (!success) {
 			txn->abort_read_validation = true;
 		}
-	}
-
-	static void abort_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::ABORT_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of an abort request: (primary key)
-		 * The structure of an abort response: null
-		 */
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size);
-
-		auto stringPiece = inputPiece.toStringPiece();
-		const void *key = stringPiece.data();
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
-
-		// unlock the key
-		SundialHelper::unlock(tid);
 	}
 
 	static void write_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
@@ -840,114 +497,12 @@ class SundialMessageHandler {
 
 	static void replication_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::REPLICATION_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-		auto field_size = table.field_size();
-
-		/*
-		 * The structure of a replication request: (primary key, field value,
-		 * commit_tid, sync_redo).
-		 * The structure of a replication response: null
-		 */
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + field_size + sizeof(uint64_t) + sizeof(bool));
-
-		auto stringPiece = inputPiece.toStringPiece();
-
-		const void *key = stringPiece.data();
-		stringPiece.remove_prefix(key_size);
-		// auto valueStringPiece = stringPiece;
-		// stringPiece.remove_prefix(field_size);
-
-		uint64_t commit_ts;
-		bool sync_redo = false;
-		Decoder dec(stringPiece);
-		dec >> commit_ts >> sync_redo;
-
-		DCHECK(dec.size() == 0);
-
-		// auto row = table.search(key);
-		// SundialHelper::replica_update(row, valueStringPiece.data(), field_size, commit_ts);
-
-		// std::atomic<uint64_t> &tid = *table.search_metadata(key);
-
-		// uint64_t last_tid = SundialHelper::lock(tid);
-		// DCHECK(last_tid < commit_tid);
-		// table.deserialize_value(key, valueStringPiece);
-		// SundialHelper::unlock(tid, commit_tid);
-
-		// uint64_t lsn = 0;
-		//  if (txn->get_logger()) {
-		//    std::ostringstream ss;
-		//    ss << commit_tid << std::string((const char *)key, key_size) << std::string(valueStringPiece.data(), field_size);
-		//    auto output = ss.str();
-		//    txn->get_logger()->write(output.c_str(), output.size(), sync_redo);
-		//  }
-
-		// if (txn->get_logger() && sync_redo) {
-		//   txn->get_logger()->sync(lsn, [&](){ txn->remote_request_handler(); });
-		// }
-
-		// prepare response message header
-		auto message_size = MessagePiece::get_header_size();
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::REPLICATION_RESPONSE),
-											 message_size, table_id, partition_id);
-
-		star::Encoder encoder(responseMessage.data);
-		encoder << message_piece_header;
-		responseMessage.flush();
-		responseMessage.set_gen_time(Time::now());
+		CHECK(0);
 	}
 
 	static void replication_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::REPLICATION_RESPONSE));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of a replication response: ()
-		 */
-
-		txn->pendingResponses--;
-		txn->network_size += inputPiece.get_message_length();
-	}
-
-	static void release_lock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::RELEASE_LOCK_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-
-		/*
-		 * The structure of a release lock request: (primary key, commit tid)
-		 * The structure of a write response: null
-		 */
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + sizeof(uint64_t));
-
-		auto stringPiece = inputPiece.toStringPiece();
-
-		const void *key = stringPiece.data();
-		stringPiece.remove_prefix(key_size);
-
-		uint64_t commit_tid;
-		Decoder dec(stringPiece);
-		dec >> commit_tid;
-		DCHECK(dec.size() == 0);
-
-		std::atomic<uint64_t> &tid = *table.search_metadata(key);
-		SundialHelper::unlock(tid, commit_tid);
+		CHECK(0);
 	}
 
 	static void read_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
@@ -1148,52 +703,6 @@ class SundialMessageHandler {
 		}
 	}
 
-	static void renew_lease_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::RENEW_LEASE_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-		auto value_size = table.value_size();
-
-		/*
-		 * The structure of a read request: (primary key, wts, commit_ts, key_offset)
-		 * The structure of a read response: (success, key_offset)
-		 */
-
-		auto stringPiece = inputPiece.toStringPiece();
-		uint32_t key_offset;
-		uint64_t wts, commit_ts;
-		bool success = false;
-
-		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + sizeof(wts) + sizeof(commit_ts) + sizeof(key_offset));
-
-		// get row and offset
-		const void *key = stringPiece.data();
-		auto row = table.search(key);
-
-		stringPiece.remove_prefix(key_size);
-		star::Decoder dec(stringPiece);
-		dec >> wts >> commit_ts >> key_offset;
-
-		DCHECK(dec.size() == 0);
-
-		// prepare response message header
-		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
-		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(SundialMessage::RENEW_LEASE_RESPONSE),
-											 message_size, table_id, partition_id);
-
-		star::Encoder encoder(responseMessage.data);
-		encoder << message_piece_header;
-
-		success = SundialHelper::renew_lease(row, wts, commit_ts);
-
-		encoder << success << key_offset;
-		responseMessage.flush();
-	}
-
 	static void unlock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
 		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::UNLOCK_REQUEST));
@@ -1227,62 +736,18 @@ class SundialMessageHandler {
 		SundialHelper::unlock(row, transaction_id);
 	}
 
-	static void update_unlock_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
-	{
-		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(SundialMessage::UPDATE_UNLOCK_REQUEST));
-		auto table_id = inputPiece.get_table_id();
-		auto partition_id = inputPiece.get_partition_id();
-		DCHECK(table_id == table.tableID());
-		DCHECK(partition_id == table.partitionID());
-		auto key_size = table.key_size();
-		auto value_size = table.value_size();
-
-		/*
-		 * The structure of a unlock request: (primary key, value, transaction_id, commit_ts, write key offset)
-		 */
-
-		auto stringPiece = inputPiece.toStringPiece();
-		uint32_t key_offset;
-		uint64_t transaction_id;
-		uint64_t commit_ts;
-
-		DCHECK(inputPiece.get_message_length() ==
-		       MessagePiece::get_header_size() + key_size + value_size + sizeof(transaction_id) + sizeof(commit_ts) + sizeof(key_offset));
-
-		// get row and offset
-		const void *key = stringPiece.data();
-		auto row = table.search(key);
-
-		stringPiece.remove_prefix(key_size);
-		const void *value = stringPiece.data();
-		stringPiece.remove_prefix(value_size);
-
-		star::Decoder dec(stringPiece);
-		dec >> transaction_id >> commit_ts >> key_offset;
-
-		DCHECK(dec.size() == 0);
-
-		SundialHelper::update_unlock(row, value, value_size, commit_ts, transaction_id);
-	}
-
 	static std::vector<std::function<void(MessagePiece, Message &, ITable &, Transaction *)> > get_message_handlers()
 	{
 		std::vector<std::function<void(MessagePiece, Message &, ITable &, Transaction *)> > v;
 		v.resize(static_cast<int>(ControlMessage::NFIELDS));
 		v.push_back(search_request_handler);
 		v.push_back(search_response_handler);
-		v.push_back(lock_request_handler);
-		v.push_back(lock_response_handler);
-		v.push_back(read_validation_request_handler);
-		v.push_back(read_validation_response_handler);
 		v.push_back(read_validation_and_redo_request_handler);
 		v.push_back(read_validation_and_redo_response_handler);
-		v.push_back(abort_request_handler);
 		v.push_back(write_request_handler);
 		v.push_back(write_response_handler);
 		v.push_back(replication_request_handler);
 		v.push_back(replication_response_handler);
-		v.push_back(release_lock_request_handler);
 		v.push_back(read_request_handler);
 		v.push_back(read_response_handler);
 		v.push_back(write_lock_request_handler);
