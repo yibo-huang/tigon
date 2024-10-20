@@ -205,7 +205,9 @@ template <class Database> class TwoPL {
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = insertKey.get_key();
-                                table->make_placeholder_valid(key);
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                CHECK(meta != 0);
+                                TwoPLHelper::mark_tuple_as_valid(*meta);
 			} else {
                                 // does not support remote insert & delete
                                 CHECK(0);

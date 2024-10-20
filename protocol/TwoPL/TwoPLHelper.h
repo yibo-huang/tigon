@@ -15,8 +15,10 @@ namespace star
 struct TwoPLMetadata {
         TwoPLMetadata()
                 : tid(0)
+                , is_valid(false)
         {
-                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+                // this spinlock will only be shared within a single process
+                pthread_spin_init(&latch, PTHREAD_PROCESS_PRIVATE);
         }
 
         void lock()
@@ -32,11 +34,15 @@ struct TwoPLMetadata {
         pthread_spinlock_t latch;
 
 	uint64_t tid{ 0 };
+
+        bool is_valid{ false };
 };
 
-uint64_t TwoPLMetadataInit()
+uint64_t TwoPLMetadataInit(bool is_tuple_valid = true)
 {
-	return reinterpret_cast<uint64_t>(new TwoPLMetadata());
+	auto lmeta = new TwoPLMetadata();
+        lmeta->is_valid = is_tuple_valid;
+        return reinterpret_cast<uint64_t>(lmeta);
 }
 
 class TwoPLHelper {
@@ -50,6 +56,7 @@ class TwoPLHelper {
                 uint64_t tid_ = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 void *src = std::get<1>(row);
                 std::memcpy(dest, src, size);
                 tid_ = lmeta->tid;
@@ -64,6 +71,7 @@ class TwoPLHelper {
                 TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
 
 		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 void *data_ptr = std::get<1>(row);
                 memcpy(data_ptr, value, value_size);
 		lmeta->unlock();
@@ -97,9 +105,14 @@ class TwoPLHelper {
 	static uint64_t read_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
                 TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
                 old_value = lmeta->tid;
 
                 // can we get the lock?
@@ -121,9 +134,14 @@ out_unlock_lmeta:
         static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
                 TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
                 old_value = lmeta->tid;
 
                 // can we get the lock?
@@ -160,9 +178,10 @@ out_unlock_lmeta:
 	static void read_lock_release(std::atomic<uint64_t> &meta)
 	{
                 TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 old_value = lmeta->tid;
                 DCHECK(is_read_locked(old_value));
                 DCHECK(!is_write_locked(old_value));
@@ -174,9 +193,10 @@ out_unlock_lmeta:
 	static void write_lock_release(std::atomic<uint64_t> &meta)
 	{
                 TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 old_value = lmeta->tid;
                 DCHECK(!is_read_locked(old_value));
                 DCHECK(is_write_locked(old_value));
@@ -188,9 +208,11 @@ out_unlock_lmeta:
 	static void write_lock_release(std::atomic<uint64_t> &meta, uint64_t new_value)
 	{
                 TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
-                uint64_t old_value;
+                uint64_t old_value = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
+
                 old_value = lmeta->tid;
                 DCHECK(!is_read_locked(old_value));
                 DCHECK(is_write_locked(old_value));
@@ -199,6 +221,16 @@ out_unlock_lmeta:
                 lmeta->tid = new_value;
                 lmeta->unlock();
 	}
+
+        static void mark_tuple_as_valid(std::atomic<uint64_t> &meta)
+        {
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+
+                lmeta->lock();
+                CHECK(lmeta->is_valid == false);
+                lmeta->is_valid = true;
+                lmeta->unlock();
+        }
 
 	static uint64_t remove_lock_bit(uint64_t value)
 	{

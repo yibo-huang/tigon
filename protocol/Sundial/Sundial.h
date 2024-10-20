@@ -187,7 +187,8 @@ template <class Database> class Sundial {
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = insertKey.get_key();
-                                table->make_placeholder_valid(key);
+                                auto row = table->search(key);
+                                SundialHelper::mark_tuple_as_valid(row);
 			} else {
                                 // does not support remote insert & delete
                                 CHECK(0);

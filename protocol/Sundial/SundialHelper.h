@@ -39,33 +39,20 @@ retry:
 	uint64_t rts{ 0 };
 	uint64_t owner{ 0 };
 	// std::list<LockWaiterMeta*> waitlist;
+
+        bool is_valid{ false };
 };
 
-uint64_t SundialMetadataInit()
+uint64_t SundialMetadataInit(bool is_tuple_valid = true)
 {
-	return reinterpret_cast<uint64_t>(new SundialMetadata());
+	auto lmeta = new SundialMetadata();
+        lmeta->is_valid = is_tuple_valid;
+        return reinterpret_cast<uint64_t>(lmeta);
 }
 
 class SundialHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
-
-	// static uint64_t read(const std::tuple<MetaDataType *, void *> &row,
-	//                      void *dest, std::size_t size) {
-
-	//   MetaDataType &tid = *std::get<0>(row);
-	//   void *src = std::get<1>(row);
-
-	//   // read from a consistent view. read the value even it's locked by others.
-	//   // abort in read validation phase
-	//   uint64_t tid_;
-	//   do {
-	//     tid_ = tid.load();
-	//     std::memcpy(dest, src, size);
-	//   } while (tid_ != tid.load());
-
-	//   return remove_lock_bit(tid_);
-	// }
 
 	static uint64_t get_or_install_meta(std::atomic<uint64_t> &ptr)
 	{
@@ -86,15 +73,14 @@ retry:
 	static std::pair<uint64_t, uint64_t> read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
-		DCHECK(smeta != nullptr);
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
 		void *src = std::get<1>(row);
 
-		smeta->lock();
-		auto rts = smeta->rts;
-		auto wts = smeta->wts;
+		lmeta->lock();
+		auto rts = lmeta->rts;
+		auto wts = lmeta->wts;
 		std::memcpy(dest, src, size);
-		smeta->unlock();
+		lmeta->unlock();
 
 		return std::make_pair(wts, rts);
 	}
@@ -103,93 +89,105 @@ retry:
 	static bool write_lock(const std::tuple<MetaDataType *, void *> &row, std::pair<uint64_t, uint64_t> &rwts, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
-
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
 		bool success = false;
-		smeta->lock();
-		rwts.first = smeta->wts;
-		rwts.second = smeta->rts;
-		if (smeta->owner == 0 || smeta->owner == transaction_id) {
-			success = true;
-			smeta->owner = transaction_id;
-		}
-		smeta->unlock();
 
+		lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        goto out_lmeta_unlock;
+                }
+		rwts.first = lmeta->wts;
+		rwts.second = lmeta->rts;
+		if (lmeta->owner == 0 || lmeta->owner == transaction_id) {
+			success = true;
+			lmeta->owner = transaction_id;
+		}
+
+out_lmeta_unlock:
+		lmeta->unlock();
 		return success;
 	}
 
 	static bool renew_lease(const std::tuple<MetaDataType *, void *> &row, uint64_t wts, uint64_t commit_ts)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
-
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
 		bool success = false;
-		smeta->lock();
-		if (wts != smeta->wts || (commit_ts > smeta->rts && smeta->owner != 0)) {
+
+		lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        goto out_lmeta_unlock;
+                }
+		if (wts != lmeta->wts || (commit_ts > lmeta->rts && lmeta->owner != 0)) {
 			success = false;
 		} else {
 			success = true;
-			smeta->rts = std::max(smeta->rts, commit_ts);
+			lmeta->rts = std::max(lmeta->rts, commit_ts);
 		}
-		smeta->unlock();
 
+out_lmeta_unlock:
+		lmeta->unlock();
 		return success;
 	}
 
 	static void replica_update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts)
 	{
-		MetaDataType &meta = *std::get<0>(row);
-		void *data_ptr = std::get<1>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
-
-		smeta->lock();
-		DCHECK(smeta->wts == smeta->rts);
-		if (commit_ts > smeta->wts) { // Thomas write rule
-			smeta->wts = smeta->rts = commit_ts;
-			memcpy(data_ptr, value, value_size);
-		}
-		smeta->unlock();
+		CHECK(0);
 	}
 
 	static void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 			   uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		void *data_ptr = std::get<1>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+                void *data_ptr = std::get<1>(row);
 
-		smeta->lock();
-		CHECK(smeta->owner == transaction_id);
+		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
+		CHECK(lmeta->owner == transaction_id);
 		memcpy(data_ptr, value, value_size);
-		smeta->wts = smeta->rts = commit_ts;
-		smeta->unlock();
+		lmeta->wts = lmeta->rts = commit_ts;
+		lmeta->unlock();
 	}
 
 	static void update_unlock(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size, uint64_t commit_ts,
 				  uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
 		void *data_ptr = std::get<1>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
 
-		smeta->lock();
-		CHECK(smeta->owner == transaction_id);
+		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
+		CHECK(lmeta->owner == transaction_id);
 		memcpy(data_ptr, value, value_size);
-		smeta->wts = smeta->rts = commit_ts;
-		smeta->owner = 0;
-		smeta->unlock();
+		lmeta->wts = lmeta->rts = commit_ts;
+		lmeta->owner = 0;
+		lmeta->unlock();
 	}
 
 	static void unlock(const std::tuple<MetaDataType *, void *> &row, uint64_t transaction_id)
 	{
 		MetaDataType &meta = *std::get<0>(row);
-		SundialMetadata *smeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(get_or_install_meta(meta));
 
-		smeta->lock();
-		CHECK(smeta->owner == transaction_id);
-		smeta->owner = 0;
-		smeta->unlock();
+		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
+		CHECK(lmeta->owner == transaction_id);
+		lmeta->owner = 0;
+		lmeta->unlock();
 	}
+
+        static void mark_tuple_as_valid(const std::tuple<MetaDataType *, void *> &row)
+        {
+                MetaDataType &meta = *std::get<0>(row);
+		SundialMetadata *lmeta = reinterpret_cast<SundialMetadata *>(meta.load());
+
+                lmeta->lock();
+                CHECK(lmeta->is_valid == false);
+                lmeta->is_valid = true;
+                lmeta->unlock();
+        }
 
 	static bool is_locked(uint64_t value)
 	{

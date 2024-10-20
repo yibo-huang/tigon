@@ -97,45 +97,45 @@ class ITable {
 
 class MetaInitFuncNothing {
     public:
-	uint64_t operator()()
+	uint64_t operator()(bool is_tuple_valid = true)
 	{
 		return 0;
 	}
 };
 
-extern uint64_t SundialMetadataInit();
+extern uint64_t SundialMetadataInit(bool is_tuple_valid);
 class MetaInitFuncSundial {
     public:
-	uint64_t operator()()
+	uint64_t operator()(bool is_tuple_valid = true)
 	{
-		return SundialMetadataInit();
+		return SundialMetadataInit(is_tuple_valid);
 	}
 };
 
-extern uint64_t SundialPashaMetadataLocalInit();
+extern uint64_t SundialPashaMetadataLocalInit(bool is_tuple_valid);
 class MetaInitFuncSundialPasha {
     public:
-	uint64_t operator()()
+	uint64_t operator()(bool is_tuple_valid = true)
 	{
-		return SundialPashaMetadataLocalInit();
+		return SundialPashaMetadataLocalInit(is_tuple_valid);
 	}
 };
 
-extern uint64_t TwoPLMetadataInit();
+extern uint64_t TwoPLMetadataInit(bool is_tuple_valid);
 class MetaInitFuncTwoPL {
     public:
-	uint64_t operator()()
+	uint64_t operator()(bool is_tuple_valid = true)
 	{
-		return TwoPLMetadataInit();
+		return TwoPLMetadataInit(is_tuple_valid);
 	}
 };
 
-extern uint64_t TwoPLPashaMetadataLocalInit();
+extern uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
 class MetaInitFuncTwoPLPasha {
     public:
-	uint64_t operator()()
+	uint64_t operator()(bool is_tuple_valid = true)
 	{
-		return TwoPLPashaMetadataLocalInit();
+		return TwoPLPashaMetadataLocalInit(is_tuple_valid);
 	}
 };
 
@@ -327,8 +327,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
         struct ValueStruct {
                 MetaDataType meta;     // the value is the pointer to the local metadata
                 ValueType data;
-
-                std::atomic<bool> is_valid{ false };
         };
 
         // std::atomic has implicitly deleted copy-constructor
@@ -386,12 +384,8 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, value);
 
                 if (success == true) {
-                        if (value.row->is_valid.load() == true) {
-                                MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&value.row->meta);
-                                return std::make_tuple(meta_ptr, &value.row->data);
-                        } else {
-                                return std::make_tuple(nullptr, nullptr);
-                        }
+                        MetaDataType *meta_ptr = reinterpret_cast<MetaDataType *>(&value.row->meta);
+                        return std::make_tuple(meta_ptr, &value.row->data);
                 } else {
                         return std::make_tuple(nullptr, nullptr);
                 }
@@ -406,11 +400,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, value);
 
                 if (success == true) {
-                        if (value.row->is_valid.load() == true) {
-                                return &value.row->data;
-                        } else {
-                                return nullptr;
-                        }
+                        return &value.row->data;
                 } else {
                         return nullptr;
                 }
@@ -425,11 +415,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, value);
 
                 if (success == true) {
-                        if (value.row->is_valid.load() == true) {
-                                return &value.row->meta;
-                        } else {
-                                return nullptr;
-                        }
+                        return &value.row->meta;
                 } else {
                         return nullptr;
                 }
@@ -444,11 +430,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 bool success = btree.lookup(k, value);
 
                 if (success) {
-                        if (value.row->is_valid.load() == true) {
-                                return true;
-                        } else {
-                                return false;
-                        }
+                        return true;
                 } else {
                         return false;
                 }
@@ -468,13 +450,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                         if (KeyComparator()(key, max_k) > 0)
                                 return true;
 
-                        if (value.row->is_valid.load() == true) {
-                                CHECK(KeyComparator()(key, min_k) >= 0);
-                                MetaDataType *meta_ptr = &value.row->meta;
-                                ValueType *data_ptr = &value.row->data;
-                                std::tuple<KeyType, MetaDataType *, void *> row_tuple(key, meta_ptr, data_ptr);
-                                results.push_back(row_tuple);
-                        }
+                        CHECK(KeyComparator()(key, min_k) >= 0);
+                        MetaDataType *meta_ptr = &value.row->meta;
+                        ValueType *data_ptr = &value.row->data;
+                        std::tuple<KeyType, MetaDataType *, void *> row_tuple(key, meta_ptr, data_ptr);
+                        results.push_back(row_tuple);
 
                         return false;
 		};
@@ -488,15 +468,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		const auto &k = *static_cast<const KeyType *>(key);
 		const auto &v = *static_cast<const ValueType *>(value);
 
+                bool is_tuple_valid = !is_placeholder;
+
                 // create value that will not be moved around
                 ValueStruct *row = new ValueStruct;
                 CHECK(row != nullptr);
-                row->meta = MetaInitFunc()();
+                row->meta = MetaInitFunc()(is_tuple_valid);
                 row->data = v;
-                if (is_placeholder == true)
-                        row->is_valid.store(false);
-                else
-                        row->is_valid.store(true);
 
                 // BTreeOLCValue will be moved around and thus only stores pointers to the actual value
                 BTreeOLCValue btree_value;
@@ -509,15 +487,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 
         void make_placeholder_valid(const void *key) override
         {
-                tid_check();
-		const auto &k = *static_cast<const KeyType *>(key);
-
-                BTreeOLCValue value;
-                bool success = btree.lookup(k, value);
-                CHECK(success == true);
-                CHECK(value.row->is_valid.load() == false);
-
-                value.row->is_valid.store(true);
+                CHECK(0);
         }
 
         bool remove(const void *key) override

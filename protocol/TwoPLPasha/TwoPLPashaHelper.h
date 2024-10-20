@@ -26,10 +26,12 @@ namespace star
 struct TwoPLPashaMetadataLocal {
         TwoPLPashaMetadataLocal()
                 : tid(0)
+                , is_valid(false)
                 , is_migrated(false)
                 , migrated_row(nullptr)
         {
-                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+                // this spinlock will only be shared within a single process
+                pthread_spin_init(&latch, PTHREAD_PROCESS_PRIVATE);
         }
 
         void lock()
@@ -46,6 +48,8 @@ struct TwoPLPashaMetadataLocal {
 
 	uint64_t tid{ 0 };
 
+        bool is_valid{ false };
+
         bool is_migrated{ false };
         char *migrated_row{ nullptr };
 };
@@ -57,6 +61,7 @@ struct TwoPLPashaMetadataShared {
                 , is_valid(false)
                 , scc_meta(0)
         {
+                // this spinlock will be shared between multiple processes
                 pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
         }
 
@@ -87,7 +92,7 @@ struct TwoPLPashaMetadataShared {
         bool is_next_key_real{ false };
 };
 
-uint64_t TwoPLPashaMetadataLocalInit();
+uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
 
 class TwoPLPashaHelper {
     public:
@@ -106,6 +111,7 @@ class TwoPLPashaHelper {
                 uint64_t tid_ = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
 		        void *src = std::get<1>(row);
 		        std::memcpy(dest, src, size);
@@ -148,6 +154,7 @@ class TwoPLPashaHelper {
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
 
 		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         void *data_ptr = std::get<1>(row);
                         memcpy(data_ptr, value, value_size);
@@ -201,9 +208,13 @@ class TwoPLPashaHelper {
 	static uint64_t read_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
                 if (lmeta->is_migrated == false) {
                         old_value = lmeta->tid;
 
@@ -247,7 +258,7 @@ out_unlock_lmeta:
         static uint64_t remote_read_lock(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
                 CHECK(smeta->is_valid == true);
@@ -275,9 +286,13 @@ out_unlock_lmeta:
 	static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
                 if (lmeta->is_migrated == false) {
                         old_value = lmeta->tid;
 
@@ -321,7 +336,7 @@ out_unlock_lmeta:
         static uint64_t remote_write_lock(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
                 CHECK(smeta->is_valid == true);
@@ -348,9 +363,10 @@ out_unlock_lmeta:
 	static void read_lock_release(std::atomic<uint64_t> &meta)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         old_value = lmeta->tid;
 			DCHECK(is_read_locked(old_value));
@@ -376,7 +392,7 @@ out_unlock_lmeta:
         static void remote_read_lock_release(char *row)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
                 CHECK(smeta->is_valid == true);
@@ -393,9 +409,10 @@ out_unlock_lmeta:
 	static void write_lock_release(std::atomic<uint64_t> &meta)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         old_value = lmeta->tid;
                         DCHECK(!is_read_locked(old_value));
@@ -421,7 +438,7 @@ out_unlock_lmeta:
         static void remote_write_lock_release(char *row)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                uint64_t old_value, new_value;
+                uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
                 CHECK(smeta->is_valid == true);
@@ -438,9 +455,10 @@ out_unlock_lmeta:
 	static void write_lock_release(std::atomic<uint64_t> &meta, uint64_t new_value)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                uint64_t old_value;
+                uint64_t old_value = 0;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         old_value = lmeta->tid;
                         DCHECK(!is_read_locked(old_value));
@@ -468,7 +486,7 @@ out_unlock_lmeta:
         static void remote_write_lock_release(char *row, uint64_t new_value)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                uint64_t old_value;
+                uint64_t old_value = 0;
 
 		smeta->lock();
                 CHECK(smeta->is_valid == true);
@@ -482,6 +500,20 @@ out_unlock_lmeta:
 
                 smeta->unlock();
 	}
+
+        static void mark_tuple_as_valid(std::atomic<uint64_t> &meta)
+        {
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+
+                lmeta->lock();
+                CHECK(lmeta->is_valid == false);
+                if (lmeta->is_migrated == false) {
+                        lmeta->is_valid = true;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
+        }
 
 	static uint64_t remove_lock_bit(uint64_t value)
 	{
@@ -640,6 +672,7 @@ out_unlock_lmeta:
                         // check if the current tuple is migrated
                         // if yes, do the migration and update the next-key information
                         lmeta->lock();
+                        CHECK(lmeta->is_valid = true);
                         if (lmeta->is_migrated == false) {
                                 // allocate the CXL row
                                 std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
@@ -751,6 +784,7 @@ out_unlock_lmeta:
                 bool ret = false;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid = true);
                 if (lmeta->is_migrated == true) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         char *migrated_row_value = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
@@ -822,6 +856,7 @@ out_unlock_lmeta:
                         // move the current tuple out
                         // note that here we only mark it as invalid without removing it from it CXL index
                         lmeta->lock();
+                        CHECK(lmeta->is_valid = true);
                         if (lmeta->is_migrated == true) {
                                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                                 char *migrated_row_value = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);

@@ -2,9 +2,11 @@
 
 namespace star {
 
-uint64_t SundialPashaMetadataLocalInit()
+uint64_t SundialPashaMetadataLocalInit(bool is_tuple_valid = true)
 {
-	return reinterpret_cast<uint64_t>(new SundialPashaMetadataLocal());
+	auto lmeta = new SundialPashaMetadataLocal();
+        lmeta->is_valid = is_tuple_valid;
+        return reinterpret_cast<uint64_t>(lmeta);
 }
 
 SundialPashaHelper *sundial_pasha_global_helper = nullptr;

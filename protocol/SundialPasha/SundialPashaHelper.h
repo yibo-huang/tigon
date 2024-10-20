@@ -50,6 +50,8 @@ retry:
 
         bool is_migrated{ false };
         char *migrated_row{ nullptr };
+
+        bool is_valid{ false };
 };
 
 struct SundialPashaMetadataShared {
@@ -91,7 +93,7 @@ retry:
         bool is_next_key_real{ false };
 };
 
-uint64_t SundialPashaMetadataLocalInit();
+uint64_t SundialPashaMetadataLocalInit(bool is_tuple_valid);
 
 /* 
  * lmeta means local metadata stored in local DRAM
@@ -164,6 +166,9 @@ class SundialPashaHelper {
 		bool success = false;
 
 		lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        goto out_lmeta_unlock;
+                }
                 if (lmeta->is_migrated == false) {
                         rwts.first = lmeta->wts;
                         rwts.second = lmeta->rts;
@@ -183,8 +188,9 @@ class SundialPashaHelper {
                         }
                         smeta->unlock();
                 }
-		lmeta->unlock();
 
+out_lmeta_unlock:
+		lmeta->unlock();
 		return success;
 	}
 
@@ -215,6 +221,9 @@ class SundialPashaHelper {
 		bool success = false;
 
 		lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        goto out_lmeta_unlock;
+                }
                 if (lmeta->is_migrated == false) {
                         if (wts != lmeta->wts || (commit_ts > lmeta->rts && lmeta->owner != 0)) {
                                 success = false;
@@ -234,8 +243,9 @@ class SundialPashaHelper {
                         }
                         smeta->unlock();
                 }
-		lmeta->unlock();
 
+out_lmeta_unlock:
+		lmeta->unlock();
 		return success;
 	}
 
@@ -275,6 +285,7 @@ class SundialPashaHelper {
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
 
 		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         void *data_ptr = std::get<1>(row);
                         CHECK(lmeta->owner == transaction_id);
@@ -314,6 +325,7 @@ class SundialPashaHelper {
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
 
 		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         CHECK(lmeta->owner == transaction_id);
 		        lmeta->owner = 0;
@@ -339,6 +351,21 @@ class SundialPashaHelper {
                 smeta->owner = 0;
                 smeta->unlock();
 	}
+
+        static void mark_tuple_as_valid(const std::tuple<MetaDataType *, void *> &row)
+        {
+                MetaDataType &meta = *std::get<0>(row);
+		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
+
+                lmeta->lock();
+                CHECK(lmeta->is_valid == false);
+                if (lmeta->is_migrated == false) {
+                        lmeta->is_valid = true;
+                } else {
+                        CHECK(0);
+                }
+                lmeta->unlock();
+        }
 
         void commit_pasha_metadata_init()
         {
@@ -393,6 +420,7 @@ class SundialPashaHelper {
                 bool ret = false;
 
 		lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         // allocate the CXL row
                         std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
@@ -484,6 +512,7 @@ class SundialPashaHelper {
                         // check if the current tuple is migrated
                         // if yes, do the migration and update the next-key information
                         lmeta->lock();
+                        CHECK(lmeta->is_valid == true);
                         if (lmeta->is_migrated == false) {
                                 // allocate the CXL row
                                 std::size_t row_total_size = sizeof(SundialPashaMetadataShared) + table->value_size();
@@ -597,6 +626,7 @@ class SundialPashaHelper {
                 bool ret = false;
 
                 lmeta->lock();
+                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == true) {
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                         char *migrated_row_value = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
@@ -670,6 +700,7 @@ class SundialPashaHelper {
                         // move the current tuple out
                         // note that here we only mark it as invalid without removing it from it CXL index
                         lmeta->lock();
+                        CHECK(lmeta->is_valid == true);
                         if (lmeta->is_migrated == true) {
                                 SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
                                 char *migrated_row_value = lmeta->migrated_row + sizeof(SundialPashaMetadataShared);
