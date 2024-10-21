@@ -30,6 +30,8 @@ class ITable {
 
         virtual uint64_t get_plain_key(const void *key) = 0;
 
+        virtual int compare_key(const void *a, const void *b) = 0;
+
 	virtual std::tuple<MetaDataType *, void *> search(const void *key) = 0;
 
 	virtual bool contains(const void *key)
@@ -137,7 +139,7 @@ class MetaInitFuncTwoPLPasha {
 	}
 };
 
-template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = MetaInitFuncNothing> class TableHashMap : public ITable {
+template <std::size_t N, class KeyType, class ValueType, class KeyComparator, class ValueComparator, class MetaInitFunc = MetaInitFuncNothing> class TableHashMap : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
@@ -154,6 +156,13 @@ template <std::size_t N, class KeyType, class ValueType, class MetaInitFunc = Me
                 tid_check();
                 const auto &k = *static_cast<const KeyType *>(key);
                 return k.get_plain_key();
+        }
+
+        int compare_key(const void *a, const void *b) override
+        {
+                const auto &k_a = *static_cast<const KeyType *>(a);
+                const auto &k_b = *static_cast<const KeyType *>(b);
+                return KeyComparator()(k_a, k_b);
         }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
@@ -366,6 +375,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 tid_check();
                 const auto &k = *static_cast<const KeyType *>(key);
                 return k.get_plain_key();
+        }
+
+        int compare_key(const void *a, const void *b) override
+        {
+                const auto &k_a = *static_cast<const KeyType *>(a);
+                const auto &k_b = *static_cast<const KeyType *>(b);
+                return KeyComparator()(k_a, k_b);
         }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
@@ -611,7 +627,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 	std::size_t partitionID_;
 };
 
-template <class KeyType, class ValueType> class HStoreTable : public ITable {
+template <class KeyType, class ValueType, class KeyComparator, class ValueComparator> class HStoreTable : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
@@ -628,6 +644,13 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
                 tid_check();
                 const auto &k = *static_cast<const KeyType *>(key);
                 return k.get_plain_key();
+        }
+
+        int compare_key(const void *a, const void *b) override
+        {
+                const auto &k_a = *static_cast<const KeyType *>(a);
+                const auto &k_b = *static_cast<const KeyType *>(b);
+                return KeyComparator()(k_a, k_b);
         }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override
@@ -754,7 +777,7 @@ template <class KeyType, class ValueType> class HStoreTable : public ITable {
 	std::size_t partitionID_;
 };
 
-template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : public ITable {
+template <std::size_t N, class KeyType, class ValueType, class KeyComparator, class ValueComparator> class HStoreCOWTable : public ITable {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
@@ -771,6 +794,13 @@ template <std::size_t N, class KeyType, class ValueType> class HStoreCOWTable : 
                 tid_check();
                 const auto &k = *static_cast<const KeyType *>(key);
                 return k.get_plain_key();
+        }
+
+        int compare_key(const void *a, const void *b) override
+        {
+                const auto &k_a = *static_cast<const KeyType *>(a);
+                const auto &k_b = *static_cast<const KeyType *>(b);
+                return KeyComparator()(k_a, k_b);
         }
 
 	std::tuple<MetaDataType *, void *> search(const void *key) override

@@ -111,14 +111,14 @@ class Database {
                                 tbl_ycsb_vec.push_back(
 					std::make_unique<TableBTreeOLC<ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator, MetaInitFuncTwoPLPasha> >(ycsbTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
+				tbl_ycsb_vec.push_back(std::make_unique<TableHashMap<997, ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator> >(ycsbTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
-					tbl_ycsb_vec.push_back(std::make_unique<HStoreCOWTable<997, ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
+					tbl_ycsb_vec.push_back(std::make_unique<HStoreCOWTable<997, ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator> >(ycsbTableID, partitionID));
 				} else {
-					tbl_ycsb_vec.push_back(std::make_unique<HStoreTable<ycsb::key, ycsb::value> >(ycsbTableID, partitionID));
+					tbl_ycsb_vec.push_back(std::make_unique<HStoreTable<ycsb::key, ycsb::value, ycsb::KeyComparator, ycsb::ValueComparator> >(ycsbTableID, partitionID));
 				}
 			}
 		}

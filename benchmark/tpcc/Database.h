@@ -172,104 +172,104 @@ class Database {
 			auto warehouseTableID = warehouse::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncSundial> >(warehouseTableID, partitionID));
+					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncSundial> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncSundialPasha> >(warehouseTableID, partitionID));
+					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncSundialPasha> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
                                 tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncTwoPL> >(warehouseTableID, partitionID));
+					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncTwoPL> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
                                 tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, MetaInitFuncTwoPLPasha> >(warehouseTableID, partitionID));
+					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncTwoPLPasha> >(warehouseTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_warehouse_vec.push_back(std::make_unique<TableHashMap<997, warehouse::key, warehouse::value> >(warehouseTableID, partitionID));
+				tbl_warehouse_vec.push_back(std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator> >(warehouseTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
 					tbl_warehouse_vec.push_back(
-						std::make_unique<HStoreCOWTable<997, warehouse::key, warehouse::value> >(warehouseTableID, partitionID));
+						std::make_unique<HStoreCOWTable<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator> >(warehouseTableID, partitionID));
 				} else {
 					tbl_warehouse_vec.push_back(
-						std::make_unique<HStoreTable<warehouse::key, warehouse::value> >(warehouseTableID, partitionID));
+						std::make_unique<HStoreTable<warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator> >(warehouseTableID, partitionID));
 				}
 			}
 
 			auto districtTableID = district::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncSundial> >(districtTableID, partitionID));
+					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncSundial> >(districtTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncSundialPasha> >(districtTableID, partitionID));
+					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncSundialPasha> >(districtTableID, partitionID));
 			} else if (context.protocol == "TwoPL") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncTwoPL> >(districtTableID, partitionID));
+					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncTwoPL> >(districtTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, MetaInitFuncTwoPLPasha> >(districtTableID, partitionID));
+					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncTwoPLPasha> >(districtTableID, partitionID));
                         } else if (context.protocol != "HStore") {
-				tbl_district_vec.push_back(std::make_unique<TableHashMap<997, district::key, district::value> >(districtTableID, partitionID));
+				tbl_district_vec.push_back(std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator> >(districtTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
 					tbl_district_vec.push_back(
-						std::make_unique<HStoreCOWTable<997, district::key, district::value> >(districtTableID, partitionID));
+						std::make_unique<HStoreCOWTable<997, district::key, district::value, district::KeyComparator, district::ValueComparator> >(districtTableID, partitionID));
 				} else {
 					tbl_district_vec.push_back(
-						std::make_unique<HStoreTable<district::key, district::value> >(districtTableID, partitionID));
+						std::make_unique<HStoreTable<district::key, district::value, district::KeyComparator, district::ValueComparator> >(districtTableID, partitionID));
 				}
 			}
 
 			auto customerTableID = customer::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_customer_vec.push_back(
-					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncSundial> >(customerTableID, partitionID));
+					std::make_unique<TableHashMap<997, customer::key, customer::value, customer::KeyComparator, customer::ValueComparator, MetaInitFuncSundial> >(customerTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_customer_vec.push_back(
-					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncSundialPasha> >(customerTableID, partitionID));
+					std::make_unique<TableHashMap<997, customer::key, customer::value, customer::KeyComparator, customer::ValueComparator, MetaInitFuncSundialPasha> >(customerTableID, partitionID));
 			} else if (context.protocol == "TwoPL") {
 				tbl_customer_vec.push_back(
-					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncTwoPL> >(customerTableID, partitionID));
+					std::make_unique<TableHashMap<997, customer::key, customer::value, customer::KeyComparator, customer::ValueComparator, MetaInitFuncTwoPL> >(customerTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
 				tbl_customer_vec.push_back(
-					std::make_unique<TableHashMap<997, customer::key, customer::value, MetaInitFuncTwoPLPasha> >(customerTableID, partitionID));
+					std::make_unique<TableHashMap<997, customer::key, customer::value, customer::KeyComparator, customer::ValueComparator, MetaInitFuncTwoPLPasha> >(customerTableID, partitionID));
                         } else if (context.protocol != "HStore") {
-				tbl_customer_vec.push_back(std::make_unique<TableHashMap<997, customer::key, customer::value> >(customerTableID, partitionID));
+				tbl_customer_vec.push_back(std::make_unique<TableHashMap<997, customer::key, customer::value, customer::KeyComparator, customer::ValueComparator> >(customerTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
 					tbl_customer_vec.push_back(
-						std::make_unique<HStoreCOWTable<997, customer::key, customer::value> >(customerTableID, partitionID));
+						std::make_unique<HStoreCOWTable<997, customer::key, customer::value, customer::KeyComparator, customer::ValueComparator> >(customerTableID, partitionID));
 				} else {
 					tbl_customer_vec.push_back(
-						std::make_unique<HStoreTable<customer::key, customer::value> >(customerTableID, partitionID));
+						std::make_unique<HStoreTable<customer::key, customer::value, customer::KeyComparator, customer::ValueComparator> >(customerTableID, partitionID));
 				}
 			}
 
 			auto customerNameIdxTableID = customer_name_idx::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_customer_name_idx_vec.push_back(
-					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncSundial> >(
+					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, customer_name_idx::KeyComparator, customer_name_idx::ValueComparator, MetaInitFuncSundial> >(
 						customerNameIdxTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_customer_name_idx_vec.push_back(
-					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncSundialPasha> >(
+					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, customer_name_idx::KeyComparator, customer_name_idx::ValueComparator, MetaInitFuncSundialPasha> >(
 						customerNameIdxTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
 				tbl_customer_name_idx_vec.push_back(
-					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncTwoPL> >(
+					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, customer_name_idx::KeyComparator, customer_name_idx::ValueComparator, MetaInitFuncTwoPL> >(
 						customerNameIdxTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
 				tbl_customer_name_idx_vec.push_back(
-					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, MetaInitFuncTwoPLPasha> >(
+					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, customer_name_idx::KeyComparator, customer_name_idx::ValueComparator, MetaInitFuncTwoPLPasha> >(
 						customerNameIdxTableID, partitionID));
 			} else {
 				tbl_customer_name_idx_vec.push_back(
-					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value> >(customerNameIdxTableID, partitionID));
+					std::make_unique<TableHashMap<997, customer_name_idx::key, customer_name_idx::value, customer_name_idx::KeyComparator, customer_name_idx::ValueComparator> >(customerNameIdxTableID, partitionID));
 			}
 
 			auto historyTableID = history::tableID;
@@ -293,9 +293,9 @@ class Database {
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
 					tbl_history_vec.push_back(
-						std::make_unique<HStoreCOWTable<997, history::key, history::value> >(historyTableID, partitionID));
+						std::make_unique<HStoreCOWTable<997, history::key, history::value, history::KeyComparator, history::ValueComparator> >(historyTableID, partitionID));
 				} else {
-					tbl_history_vec.push_back(std::make_unique<HStoreTable<history::key, history::value> >(historyTableID, partitionID));
+					tbl_history_vec.push_back(std::make_unique<HStoreTable<history::key, history::value, history::KeyComparator, history::ValueComparator> >(historyTableID, partitionID));
 				}
 			}
 
@@ -320,10 +320,10 @@ class Database {
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
 					tbl_new_order_vec.push_back(
-						std::make_unique<HStoreCOWTable<997, new_order::key, new_order::value> >(newOrderTableID, partitionID));
+						std::make_unique<HStoreCOWTable<997, new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator> >(newOrderTableID, partitionID));
 				} else {
 					tbl_new_order_vec.push_back(
-						std::make_unique<HStoreTable<new_order::key, new_order::value> >(newOrderTableID, partitionID));
+						std::make_unique<HStoreTable<new_order::key, new_order::value, new_order::KeyComparator, new_order::ValueComparator> >(newOrderTableID, partitionID));
 				}
 			}
 
@@ -347,9 +347,9 @@ class Database {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
-					tbl_order_vec.push_back(std::make_unique<HStoreCOWTable<997, order::key, order::value> >(orderTableID, partitionID));
+					tbl_order_vec.push_back(std::make_unique<HStoreCOWTable<997, order::key, order::value, order::KeyComparator, order::ValueComparator> >(orderTableID, partitionID));
 				} else {
-					tbl_order_vec.push_back(std::make_unique<HStoreTable<order::key, order::value> >(orderTableID, partitionID));
+					tbl_order_vec.push_back(std::make_unique<HStoreTable<order::key, order::value, order::KeyComparator, order::ValueComparator> >(orderTableID, partitionID));
 				}
 			}
 
@@ -373,9 +373,9 @@ class Database {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
-					tbl_order_cust_vec.push_back(std::make_unique<HStoreCOWTable<997, order_customer::key, order_customer::value> >(orderCustTableID, partitionID));
+					tbl_order_cust_vec.push_back(std::make_unique<HStoreCOWTable<997, order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator> >(orderCustTableID, partitionID));
 				} else {
-					tbl_order_cust_vec.push_back(std::make_unique<HStoreTable<order_customer::key, order_customer::value> >(orderCustTableID, partitionID));
+					tbl_order_cust_vec.push_back(std::make_unique<HStoreTable<order_customer::key, order_customer::value, order_customer::KeyComparator, order_customer::ValueComparator> >(orderCustTableID, partitionID));
 				}
 			}
 
@@ -400,56 +400,56 @@ class Database {
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
 					tbl_order_line_vec.push_back(
-						std::make_unique<HStoreCOWTable<997, order_line::key, order_line::value> >(orderLineTableID, partitionID));
+						std::make_unique<HStoreCOWTable<997, order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator> >(orderLineTableID, partitionID));
 				} else {
 					tbl_order_line_vec.push_back(
-						std::make_unique<HStoreTable<order_line::key, order_line::value> >(orderLineTableID, partitionID));
+						std::make_unique<HStoreTable<order_line::key, order_line::value, order_line::KeyComparator, order_line::ValueComparator> >(orderLineTableID, partitionID));
 				}
 			}
 
 			auto stockTableID = stock::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_stock_vec.push_back(
-					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncSundial> >(stockTableID, partitionID));
+					std::make_unique<TableHashMap<997, stock::key, stock::value, stock::KeyComparator, stock::ValueComparator, MetaInitFuncSundial> >(stockTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_stock_vec.push_back(
-					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncSundialPasha> >(stockTableID, partitionID));
+					std::make_unique<TableHashMap<997, stock::key, stock::value, stock::KeyComparator, stock::ValueComparator, MetaInitFuncSundialPasha> >(stockTableID, partitionID));
 			} else if (context.protocol == "TwoPL") {
 				tbl_stock_vec.push_back(
-					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncTwoPL> >(stockTableID, partitionID));
+					std::make_unique<TableHashMap<997, stock::key, stock::value, stock::KeyComparator, stock::ValueComparator, MetaInitFuncTwoPL> >(stockTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
 				tbl_stock_vec.push_back(
-					std::make_unique<TableHashMap<997, stock::key, stock::value, MetaInitFuncTwoPLPasha> >(stockTableID, partitionID));
+					std::make_unique<TableHashMap<997, stock::key, stock::value, stock::KeyComparator, stock::ValueComparator, MetaInitFuncTwoPLPasha> >(stockTableID, partitionID));
                         } else if (context.protocol != "HStore") {
-				tbl_stock_vec.push_back(std::make_unique<TableHashMap<997, stock::key, stock::value> >(stockTableID, partitionID));
+				tbl_stock_vec.push_back(std::make_unique<TableHashMap<997, stock::key, stock::value, stock::KeyComparator, stock::ValueComparator> >(stockTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
-					tbl_stock_vec.push_back(std::make_unique<HStoreCOWTable<997, stock::key, stock::value> >(stockTableID, partitionID));
+					tbl_stock_vec.push_back(std::make_unique<HStoreCOWTable<997, stock::key, stock::value, stock::KeyComparator, stock::ValueComparator> >(stockTableID, partitionID));
 				} else {
-					tbl_stock_vec.push_back(std::make_unique<HStoreTable<stock::key, stock::value> >(stockTableID, partitionID));
+					tbl_stock_vec.push_back(std::make_unique<HStoreTable<stock::key, stock::value, stock::KeyComparator, stock::ValueComparator> >(stockTableID, partitionID));
 				}
 			}
 		}
 
 		auto itemTableID = item::tableID;
 		if (context.protocol == "Sundial") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncSundial> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncSundial> >(itemTableID, 0));
                 } else if (context.protocol == "SundialPasha") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncSundialPasha> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncSundialPasha> >(itemTableID, 0));
                 } else if (context.protocol == "TwoPL") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncTwoPL> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncTwoPL> >(itemTableID, 0));
                 } else if (context.protocol == "TwoPLPasha") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, MetaInitFuncTwoPLPasha> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncTwoPLPasha> >(itemTableID, 0));
 		} else if (context.protocol != "HStore") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator> >(itemTableID, 0));
 		} else {
 			if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 			    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
-				tbl_item_vec.push_back(std::make_unique<HStoreCOWTable<997, item::key, item::value> >(itemTableID, 0));
+				tbl_item_vec.push_back(std::make_unique<HStoreCOWTable<997, item::key, item::value, item::KeyComparator, item::ValueComparator> >(itemTableID, 0));
 			} else {
-				tbl_item_vec.push_back(std::make_unique<HStoreTable<item::key, item::value> >(itemTableID, 0));
+				tbl_item_vec.push_back(std::make_unique<HStoreTable<item::key, item::value, item::KeyComparator, item::ValueComparator> >(itemTableID, 0));
 			}
 		}
 
