@@ -174,7 +174,21 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 			}
 
 			if (local_scan) {
-				table->scan(min_key, max_key, limit, results);
+                                uint64_t scan_size = 0;
+                                auto local_scan_pre_processor = [&](const void *key, void *meta, void *data) -> bool {
+                                        if (limit != 0 && scan_size == limit)
+                                                return true;
+
+                                        if (table->compare_key(key, max_key) > 0)
+                                                return true;
+
+                                        CHECK(table->compare_key(key, min_key) >= 0);
+                                        scan_size++;
+
+                                        return false;
+                                };
+
+				table->scan(min_key, max_key, limit, results, local_scan_pre_processor);
 			} else {
                                 CHECK(0);      // right now we only support local scan
 			}
