@@ -818,7 +818,7 @@ template <class Transaction> class Delivery : public Transaction {
                         auto newOrderTableID = new_order::tableID;
                         storage->min_new_order_key[D_ID - 1] = new_order::key(W_ID, D_ID, 0);
                         storage->max_new_order_key[D_ID - 1] = new_order::key(W_ID, D_ID, MAX_ORDER_ID);
-                        this->scan_for_read(newOrderTableID, W_ID - 1, storage->min_new_order_key[D_ID - 1], storage->max_new_order_key[D_ID - 1],
+                        this->scan_for_delete(newOrderTableID, W_ID - 1, storage->min_new_order_key[D_ID - 1], storage->max_new_order_key[D_ID - 1],
                                 1, &storage->new_order_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
 
                         t_local_work.end();
@@ -857,7 +857,7 @@ template <class Transaction> class Delivery : public Transaction {
                         storage->min_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, storage->oldest_undelivered_order_key.NO_O_ID, 1);
                         storage->max_order_line_key[D_ID - 1] = order_line::key(W_ID, D_ID, storage->oldest_undelivered_order_key.NO_O_ID, MAX_ORDER_LINE_PER_ORDER);
 
-                        this->scan_for_read(orderLineTableID, W_ID - 1, storage->min_order_line_key[D_ID - 1], storage->max_order_line_key[D_ID - 1],
+                        this->scan_for_update(orderLineTableID, W_ID - 1, storage->min_order_line_key[D_ID - 1], storage->max_order_line_key[D_ID - 1],
                                         0, &storage->order_line_scan_results[D_ID - 1], did_to_granule_id(D_ID, context));
 
                         t_local_work.end();
@@ -867,14 +867,6 @@ template <class Transaction> class Delivery : public Transaction {
                         t_local_work.reset();
 
                         storage->order_value[D_ID - 1].O_CARRIER_ID = query.O_CARRIER_ID;
-
-                        for (int i = 0; i < storage->order_line_scan_results[D_ID - 1].size(); i++) {
-                                auto order_line = storage->order_line_scan_results[D_ID - 1][i];
-                                const auto order_line_key = *reinterpret_cast<order_line::key *>(order_line.key);
-                                storage->order_line_keys[D_ID - 1][i] = order_line_key;
-                                this->search_for_update(orderLineTableID, W_ID - 1, storage->order_line_keys[D_ID - 1][i], storage->order_line_values[D_ID - 1][i], did_to_granule_id(D_ID, context));
-                                this->update(orderLineTableID, W_ID - 1, storage->order_line_keys[D_ID - 1][i], storage->order_line_values[D_ID - 1][i], did_to_granule_id(D_ID, context));
-                        }
 
                         // The row in the CUSTOMER table with matching C_W_ID (equals W_ID), C_D_ID (equals D_ID), and C_ID (equals O_C_ID) is selected and
                         // C_BALANCE is increased by the sum of all order-line amounts (OL_AMOUNT) previously retrieved. C_DELIVERY_CNT is incremented by 1.
