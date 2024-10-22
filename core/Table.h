@@ -26,6 +26,27 @@ class ITable {
 
 	using MetaDataType = std::atomic<uint64_t>;
 
+        class single_scan_result
+        {
+            public:
+                single_scan_result() = default;
+                single_scan_result(const void *key, uint64_t key_size, MetaDataType *meta, void *data, uint64_t row_size)
+                        : key_size(key_size)
+                        , meta(meta)
+                        , data(data)
+                        , row_size(row_size)
+                {
+                        memcpy(this->key, key, key_size);
+                }
+
+                static constexpr uint64_t max_key_size = 64;
+                char key[max_key_size];
+                uint64_t key_size;
+                MetaDataType *meta{ nullptr };
+                void *data{ nullptr };
+                uint64_t row_size;
+        };
+
 	virtual ~ITable() = default;
 
         virtual uint64_t get_plain_key(const void *key) = 0;
@@ -43,8 +64,7 @@ class ITable {
 
 	virtual MetaDataType *search_metadata(const void *key) = 0;
 
-        virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr,
-                std::function<bool(const void *key, void *meta, void *data)> pre_processor) = 0;
+        virtual void scan(const void *min_key, std::function<bool(const void *key, MetaDataType *meta, void *data)> scan_processor) = 0;
 
 	virtual bool insert(const void *key, const void *value, bool is_placeholder = false) = 0;
 
@@ -198,8 +218,7 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 		return map_.contains(k);
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr,
-                std::function<bool(const void *key, void *meta, void *data)> pre_processor) override
+        void scan(const void *min_key, std::function<bool(const void *key, MetaDataType *meta, void *data)> scan_processor) override
         {
                 // hash table does not support scan
                 CHECK(0);
@@ -447,23 +466,19 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 }
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr,
-                std::function<bool(const void *key, void *meta, void *data)> pre_processor) override
+        void scan(const void *min_key, std::function<bool(const void *key, MetaDataType *meta, void *data)> scan_processor) override
         {
                 tid_check();
                 const auto &min_k = *static_cast<const KeyType *>(min_key);
-                auto &results = *static_cast<std::vector<std::tuple<KeyType, std::atomic<uint64_t> *, void *> > *>(results_ptr);
 
                 auto processor = [&](const KeyType &key, BTreeOLCValue &value, bool) -> bool {
-                        bool should_end = pre_processor(&key, &value.row->meta, &value.row->data);
+                        MetaDataType *meta_ptr = &value.row->meta;
+                        ValueType *data_ptr = &value.row->data;
+
+                        bool should_end = scan_processor(&key, meta_ptr, data_ptr);
 
                         if (should_end == false) {
                                 CHECK(KeyComparator()(key, min_k) >= 0);
-                                MetaDataType *meta_ptr = &value.row->meta;
-                                ValueType *data_ptr = &value.row->data;
-                                std::tuple<KeyType, MetaDataType *, void *> row_tuple(key, meta_ptr, data_ptr);
-                                results.push_back(row_tuple);
-
                                 return false;
                         } else {
                                 return true;
@@ -682,8 +697,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		return map_.contains(k);
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr,
-                std::function<bool(const void *key, void *meta, void *data)> pre_processor) override
+        void scan(const void *min_key, std::function<bool(const void *key, MetaDataType *meta, void *data)> scan_processor) override
         {
                 // hash table does not support scan
                 CHECK(0);
@@ -833,8 +847,7 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 		return map_.contains(k);
 	}
 
-        void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr,
-                std::function<bool(const void *key, void *meta, void *data)> pre_processor) override
+        void scan(const void *min_key, std::function<bool(const void *key, MetaDataType *meta, void *data)> scan_processor) override
         {
                 // hash table does not support scan
                 CHECK(0);

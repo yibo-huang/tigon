@@ -697,7 +697,7 @@ template <class Transaction> class OrderStatus : public Transaction {
                 // get the last order's ID
                 CHECK(storage->order_customer_scan_results.size() > 0);
                 auto last_order = storage->order_customer_scan_results[storage->order_customer_scan_results.size() - 1];
-                const auto last_order_key = std::get<0>(last_order);
+                const auto last_order_key = *reinterpret_cast<order_customer::key *>(last_order.key);
                 auto last_order_id = last_order_key.O_ID;
 
                 // All rows in the ORDER-LINE table with matching OL_W_ID (equals O_W_ID), OL_D_ID (equals O_D_ID), and OL_O_ID (equals O_ID) are
@@ -835,7 +835,7 @@ template <class Transaction> class Delivery : public Transaction {
                         }
 
                         auto oldest_undelivered_order = storage->new_order_scan_results[D_ID - 1][0];
-                        storage->oldest_undelivered_order_key = std::get<0>(oldest_undelivered_order);
+                        storage->oldest_undelivered_order_key = *reinterpret_cast<new_order::key *>(oldest_undelivered_order.key);
 
                         // The selected row in the NEW-ORDER table is deleted.
 
@@ -870,7 +870,7 @@ template <class Transaction> class Delivery : public Transaction {
 
                         for (int i = 0; i < storage->order_line_scan_results[D_ID - 1].size(); i++) {
                                 auto order_line = storage->order_line_scan_results[D_ID - 1][i];
-                                const auto order_line_key = std::get<0>(order_line);
+                                const auto order_line_key = *reinterpret_cast<order_line::key *>(order_line.key);
                                 storage->order_line_keys[D_ID - 1][i] = order_line_key;
                                 this->search_for_update(orderLineTableID, W_ID - 1, storage->order_line_keys[D_ID - 1][i], storage->order_line_values[D_ID - 1][i], did_to_granule_id(D_ID, context));
                                 this->update(orderLineTableID, W_ID - 1, storage->order_line_keys[D_ID - 1][i], storage->order_line_values[D_ID - 1][i], did_to_granule_id(D_ID, context));
@@ -1025,7 +1025,7 @@ template <class Transaction> class StockLevel : public Transaction {
                 std::unordered_set<int32_t> item_id_set;
                 for (int i = 0; i < storage->order_line_scan_results[0].size(); i++) {
                         auto order_line = storage->order_line_scan_results[0][i];
-                        const auto order_line_value = *static_cast<const order_line::value *>(std::get<2>(order_line));
+                        const auto order_line_value = *reinterpret_cast<const order_line::value *>(order_line.data);
                         item_id_set.insert(order_line_value.OL_I_ID);
                 }
 

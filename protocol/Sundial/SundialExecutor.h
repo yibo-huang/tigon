@@ -89,6 +89,7 @@ class SundialExecutor : public Executor<Workload, Sundial<typename Workload::Dat
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
                                                 uint64_t limit, void *results) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
+                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(results);
                         auto value_size = table->value_size();
                         bool local_scan = false;
 
@@ -98,21 +99,32 @@ class SundialExecutor : public Executor<Workload, Sundial<typename Workload::Dat
 			}
 
 			if (local_scan) {
-				uint64_t scan_size = 0;
-                                auto local_scan_pre_processor = [&](const void *key, void *meta, void *data) -> bool {
-                                        if (limit != 0 && scan_size == limit)
-                                                return true;
+                                uint64_t scan_size = 0;
+                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                        CHECK(key != nullptr);
+                                        CHECK(meta_ptr != nullptr);
+                                        CHECK(data_ptr != nullptr);
 
-                                        if (table->compare_key(key, max_key) > 0)
+                                        if (limit != 0 && scan_size == limit) {
                                                 return true;
+                                        }
+
+                                        if (table->compare_key(key, max_key) > 0) {
+                                                return true;
+                                        }
 
                                         CHECK(table->compare_key(key, min_key) >= 0);
+
                                         scan_size++;
 
+                                        ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                        scan_results.push_back(cur_row);
+
+                                        // continue scan
                                         return false;
                                 };
 
-				table->scan(min_key, max_key, limit, results, local_scan_pre_processor);
+				table->scan(min_key, local_scan_processor);
 			} else {
                                 CHECK(0);      // right now we only support local scan
 			}
