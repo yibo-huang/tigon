@@ -141,7 +141,7 @@ template <class Database> class TwoPLPasha {
 			auto tableId = scanKey.get_table_id();
 			auto partitionId = scanKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
-                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(scanKey.get_scan_res_vec());
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
                         if (scan_results.size() == 0) {
                                 continue;
@@ -380,7 +380,7 @@ template <class Database> class TwoPLPasha {
 			auto tableId = scanKey.get_table_id();
 			auto partitionId = scanKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
-                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(scanKey.get_scan_res_vec());
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
 			// write
                         if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
@@ -456,7 +456,7 @@ template <class Database> class TwoPLPasha {
 			auto tableId = scanKey.get_table_id();
 			auto partitionId = scanKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
-                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(scanKey.get_scan_res_vec());
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
                         if (scan_results.size() == 0) {
                                 continue;

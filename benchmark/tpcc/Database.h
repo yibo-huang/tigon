@@ -1119,15 +1119,15 @@ class Database {
                         for (int j = 2101; j <= 3000; j++) {
                                 new_order::key min_key = new_order::key(partitionID + 1, i, 0);
                                 new_order::key max_key = new_order::key(partitionID + 1, i, MAX_ORDER_ID);
-                                std::vector<ITable::single_scan_result> new_order_scan_results;
+                                std::vector<ITable::row_entity> new_order_scan_results;
 
-                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         if (table->compare_key(key, &max_key) > 0)
                                                 return true;
 
                                         CHECK(table->compare_key(key, &min_key) >= 0);
 
-                                        ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                        ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                         new_order_scan_results.push_back(cur_row);
 
                                         return false;
@@ -1220,15 +1220,15 @@ class Database {
                         for (int j = 1; j <= CUSTOMER_PER_DISTRICT; j++) {
                                 order_customer::key min_order_customer_key = order_customer::key(partitionID + 1, i, j, 0);
                                 order_customer::key max_order_customer_key = order_customer::key(partitionID + 1, i, j, MAX_ORDER_ID);
-                                std::vector<ITable::single_scan_result> order_customer_scan_results;
+                                std::vector<ITable::row_entity> order_customer_scan_results;
 
-                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         if (table->compare_key(key, &max_order_customer_key) > 0)
                                                 return true;
 
                                         CHECK(table->compare_key(key, &min_order_customer_key) >= 0);
 
-                                        ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                        ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                         order_customer_scan_results.push_back(cur_row);
 
                                         return false;
@@ -1294,15 +1294,15 @@ class Database {
                         for (int j = 1; j <= ORDER_PER_DISTRICT; j++) {
                                 order_line::key min_order_line_key = order_line::key(partitionID + 1, i, j, 1);
                                 order_line::key max_order_line_key = order_line::key(partitionID + 1, i, j, MAX_ORDER_LINE_PER_ORDER);
-                                std::vector<ITable::single_scan_result> order_line_scan_results;
+                                std::vector<ITable::row_entity> order_line_scan_results;
 
-                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         if (table->compare_key(key, &max_order_line_key) > 0)
                                                 return true;
 
                                         CHECK(table->compare_key(key, &min_order_line_key) >= 0);
 
-                                        ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                        ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                         order_line_scan_results.push_back(cur_row);
 
                                         return false;

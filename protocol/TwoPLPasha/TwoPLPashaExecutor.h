@@ -165,7 +165,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
                                                 uint64_t limit, int type, void *results) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
-                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(results);
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(results);
                         auto value_size = table->value_size();
                         bool local_scan = false;
 
@@ -177,7 +177,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 			if (local_scan) {
                                 // we do the next-key locking logic inside this function
                                 bool scan_success = true;       // it is possible that the range is empty
-                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
                                         CHECK(data_ptr != nullptr);
@@ -211,7 +211,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                                         if (lock_success == true) {
                                                 // acquiring lock succeeds, push back the result
-                                                ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                                ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                                 scan_results.push_back(cur_row);
 
                                                 // continue scan

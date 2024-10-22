@@ -36,20 +36,20 @@ struct Storage {
         new_order::value new_order_value;
         new_order::key min_new_order_key[DISTRICT_PER_WAREHOUSE];
         new_order::key max_new_order_key[DISTRICT_PER_WAREHOUSE];
-        std::vector<ITable::single_scan_result> new_order_scan_results[DISTRICT_PER_WAREHOUSE];
+        std::vector<ITable::row_entity> new_order_scan_results[DISTRICT_PER_WAREHOUSE];
 
 	order::key order_key[DISTRICT_PER_WAREHOUSE];
 	order::value order_value[DISTRICT_PER_WAREHOUSE];
 
         order_customer::key min_order_customer_key;
         order_customer::key max_order_customer_key;
-        std::vector<ITable::single_scan_result> order_customer_scan_results;
+        std::vector<ITable::row_entity> order_customer_scan_results;
 
         order_line::key order_line_keys[DISTRICT_PER_WAREHOUSE][15];
 	order_line::value order_line_values[DISTRICT_PER_WAREHOUSE][15];
         order_line::key min_order_line_key[DISTRICT_PER_WAREHOUSE];
         order_line::key max_order_line_key[DISTRICT_PER_WAREHOUSE];
-        std::vector<ITable::single_scan_result> order_line_scan_results[DISTRICT_PER_WAREHOUSE];
+        std::vector<ITable::row_entity> order_line_scan_results[DISTRICT_PER_WAREHOUSE];
 
 	history::key history_key;
 	history::value history_value;

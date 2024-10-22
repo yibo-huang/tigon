@@ -173,7 +173,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
                                                 uint64_t limit, void *results) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
-                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(results);
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(results);
                         auto value_size = table->value_size();
                         bool local_scan = false;
 
@@ -183,7 +183,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 			}
 
 			if (local_scan) {
-                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
                                         CHECK(data_ptr != nullptr);
@@ -198,7 +198,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
 
                                         CHECK(table->compare_key(key, min_key) >= 0);
 
-                                        ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                        ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                         scan_results.push_back(cur_row);
 
                                         // continue scan
