@@ -15,6 +15,9 @@ namespace star
 
 class SundialRWKey {
     public:
+        // range query types
+        enum { SCAN_FOR_READ, SCAN_FOR_UPDATE, SCAN_FOR_DELETE };
+
 	// local index read bit
 
 	void set_local_index_read_bit()
@@ -208,12 +211,18 @@ class SundialRWKey {
                 return this->scan_results;
 	}
 
-        void set_scan_args(const void *min_key, const void *max_key, uint64_t limit, void *results)
+        int get_request_type() const
+	{
+                return this->type;
+	}
+
+        void set_scan_args(const void *min_key, const void *max_key, uint64_t limit, void *results, int type)
 	{
 		this->min_key = min_key;
                 this->max_key = max_key;
                 this->limit = limit;
                 this->scan_results = results;
+                this->type = type;
 	}
 
         // processed or not
@@ -253,6 +262,7 @@ class SundialRWKey {
         const void *max_key = nullptr;
         uint64_t limit = 0;
         void *scan_results = nullptr;
+        int type = 0;
 
         bool processed = false;
 
