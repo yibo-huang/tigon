@@ -99,13 +99,12 @@ class SundialExecutor : public Executor<Workload, Sundial<typename Workload::Dat
 			}
 
 			if (local_scan) {
-                                uint64_t scan_size = 0;
                                 auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
                                         CHECK(data_ptr != nullptr);
 
-                                        if (limit != 0 && scan_size == limit) {
+                                        if (limit != 0 && scan_results.size() == limit) {
                                                 return true;
                                         }
 
@@ -114,8 +113,6 @@ class SundialExecutor : public Executor<Workload, Sundial<typename Workload::Dat
                                         }
 
                                         CHECK(table->compare_key(key, min_key) >= 0);
-
-                                        scan_size++;
 
                                         ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                         scan_results.push_back(cur_row);
