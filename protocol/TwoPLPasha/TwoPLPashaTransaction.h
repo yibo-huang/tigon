@@ -369,7 +369,7 @@ class TwoPLPashaTransaction {
 
 			const TwoPLPashaRWKey &scanKey = scanSet[i];
 			bool success = scanRequestHandler(scanKey.get_table_id(), scanKey.get_partition_id(), i, scanKey.get_scan_min_key(), scanKey.get_scan_max_key(),
-                                        scanKey.get_scan_limit(), scanKey.get_scan_res_vec());
+                                        scanKey.get_scan_limit(), scanKey.get_request_type(), scanKey.get_scan_res_vec());
                         if (success == false) {
                                 ret = true;
                                 goto process_net_req_and_ret;
@@ -475,7 +475,7 @@ process_net_req_and_ret:
 	// success?, remote?
 	std::function<uint64_t(std::size_t, std::size_t, uint32_t, const void *, void *, bool, bool, bool &, bool &)> lock_request_handler;
         // table id, partition id, key_offset, min_key, max_key, results
-	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, void *)> scanRequestHandler;
+	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, int, void *)> scanRequestHandler;
         // table id, partition id, key_offset, key, value
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, void *)> insertRequestHandler;
         // table id, partition id, key_offset, key

@@ -163,7 +163,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 		};
 
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
-                                                uint64_t limit, void *results) -> bool {
+                                                uint64_t limit, int type, void *results) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(results);
                         auto value_size = table->value_size();
@@ -199,13 +199,19 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         // But we can ignore it for now because we never generate
                                         // transactions with duplicated or overlapped queries.
 
-                                        // try to acquire the read lock
-                                        // std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
-                                        // bool read_lock_success = TwoPLPashaHelper::read_lock(meta, read_lock_success);
+                                        // try to acquire the lock
+                                        std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
+                                        bool lock_success = false;
+                                        if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                TwoPLPashaHelper::read_lock(meta, lock_success);
+                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::write_lock(meta, lock_success);
+                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLPashaHelper::write_lock(meta, lock_success);
+                                        }
 
-                                        bool read_lock_success = true;
-                                        if (read_lock_success == true) {
-                                                // acquiring read lock succeeds
+                                        if (lock_success == true) {
+                                                // acquiring lock succeeds
                                                 scan_size++;
 
                                                 ITable::single_scan_result cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
@@ -222,11 +228,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
 				table->scan(min_key, local_scan_processor);
 
-                                if (scan_success == true) {
-                                        return true;
-                                } else {
-                                        return false;
-                                }
+                                return scan_success;
 			} else {
                                 CHECK(0);      // right now we only support local scan
 			}
@@ -267,21 +269,9 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 			}
 
 			if (local_delete) {
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                if (meta == nullptr) {
-                                        // someone else has deleted the row, so we abort
-                                        txn.abort_delete = true;
-                                        return 0;
-                                }
-
-                                bool success = false;
-                                TwoPLPashaHelper::write_lock(*meta, success);
-                                if (success) {
-                                        // do nothing
-                                } else {
-                                        txn.abort_delete = true;
-                                        return false;
-                                }
+                                // do nothing here
+                                // we assume all the deletes are "read and delete"
+                                // so the write locks should already been taken
 			} else {
                                 CHECK(0);      // right now we only support local delete
 			}

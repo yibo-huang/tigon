@@ -88,33 +88,15 @@ template <class Database> class TwoPLPasha {
 			}
 		}
 
-                // rollback deletes - just release the write locks
-                auto &deleteSet = txn.deleteSet;
-
-                for (auto i = 0u; i < deleteSet.size(); i++) {
-			auto &deleteKey = deleteSet[i];
-
-			if (deleteKey.get_processed() == false)
-				continue;
-
-			auto tableId = deleteKey.get_table_id();
-			auto partitionId = deleteKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-			if (partitioner.has_master_partition(partitionId)) {
-                                auto key = deleteKey.get_key();
-				std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
-				TwoPLPashaHelper::write_lock_release(*meta);
-			} else {
-                                // does not support remote insert & delete
-                                CHECK(0);
-			}
-		}
+                // rollback deletes - nothing needs to be done
+                // write locks will be released in writeSet and scanSet
 
 		// assume all writes are updates
 		auto &readSet = txn.readSet;
 
+                // release locks in the read/write set
 		for (auto i = 0u; i < readSet.size(); i++) {
+                        // release read locks in the readSet
 			auto &readKey = readSet[i];
 			auto tableId = readKey.get_table_id();
 			auto partitionId = readKey.get_partition_id();
@@ -133,6 +115,7 @@ template <class Database> class TwoPLPasha {
 				}
 			}
 
+                        // release write locks in the writeSet
 			if (readKey.get_write_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
@@ -147,6 +130,53 @@ template <class Database> class TwoPLPasha {
                                         TwoPLPashaHelper::remote_write_lock_release(migrated_row);
 				}
 			}
+		}
+
+                // release locks in the scan set
+                auto &scanSet = txn.scanSet;
+
+                for (auto i = 0u; i < scanSet.size(); i++) {
+                        // release read locks in the scanSet
+			auto &scanKey = scanSet[i];
+			auto tableId = scanKey.get_table_id();
+			auto partitionId = scanKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(scanKey.get_scan_res_vec());
+
+                        if (scan_results.size() == 0) {
+                                continue;
+                        }
+
+			if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                // release read locks
+				if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                                CHECK(meta != 0);
+                                                TwoPLPashaHelper::read_lock_release(*meta);
+                                        }
+				} else {
+                                        // remote scan not supported
+					CHECK(0);
+				}
+			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE ||
+                                scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                // release write locks
+				if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                                CHECK(meta != 0);
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        }
+				} else {
+                                        // remote scan not supported
+					CHECK(0);
+				}
+			} else {
+                                CHECK(0);
+                        }
 		}
 
                 // release migrated rows
@@ -259,6 +289,7 @@ template <class Database> class TwoPLPasha {
 	{
 		auto &readSet = txn.readSet;
 		auto &writeSet = txn.writeSet;
+                auto &scanSet = txn.scanSet;
 
 		auto logger = txn.get_logger();
 		bool wrote_local_log = false;
@@ -341,41 +372,31 @@ template <class Database> class TwoPLPasha {
                                 CHECK(migrated_row != nullptr);
                                 twopl_pasha_global_helper->remote_update(migrated_row, value, value_size);
 			}
+		}
 
-			// value replicate
+                // apply writes for "scan for update"
+                for (auto i = 0u; i < scanSet.size(); i++) {
+			auto &scanKey = scanSet[i];
+			auto tableId = scanKey.get_table_id();
+			auto partitionId = scanKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(scanKey.get_scan_res_vec());
 
-			std::size_t replicate_count = 0;
-
-			for (auto k = 0u; k < partitioner.total_coordinators(); k++) {
-				// k does not have this partition
-				if (!partitioner.is_partition_replicated_on(partitionId, k)) {
-					continue;
-				}
-
-				// already write
-				if (k == partitioner.master_coordinator(partitionId)) {
-					continue;
-				}
-
-				replicate_count++;
-
-				// local replicate
-				if (k == txn.coordinator_id) {
-					auto key = writeKey.get_key();
-					auto value = writeKey.get_value();
-					auto value_size = table->value_size();
-                                        auto row = table->search(key);
-                                        twopl_pasha_global_helper->update(row, value, value_size);
-				} else {
-					txn.pendingResponses++;
-					auto coordinatorID = k;
-					txn.network_size += MessageFactoryType::new_replication_message(*messages[coordinatorID], *table, writeKey.get_key(),
-													writeKey.get_value(), commit_tid,
-													persist_replication[i][k]);
-				}
-			}
-
-			DCHECK(replicate_count == partitioner.replica_num() - 1);
+			// write
+                        if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                auto value = scan_results[i].data;
+                                                auto value_size = table->value_size();
+                                                auto row = table->search(key);
+                                                twopl_pasha_global_helper->update(row, value, value_size);
+                                        }
+                                } else {
+                                        // remote scan not supported
+                                        CHECK(0);
+                                }
+                        }
 		}
 	}
 
@@ -406,6 +427,7 @@ template <class Database> class TwoPLPasha {
 
 		// release write lock
 		auto &writeSet = txn.writeSet;
+
 		for (auto i = 0u; i < writeSet.size(); i++) {
 			auto &writeKey = writeSet[i];
 			auto tableId = writeKey.get_table_id();
@@ -423,6 +445,55 @@ template <class Database> class TwoPLPasha {
                                 CHECK(migrated_row != nullptr);
                                 twopl_pasha_global_helper->remote_write_lock_release(migrated_row, commit_tid);
 			}
+		}
+
+                // release locks in the scan set
+                auto &scanSet = txn.scanSet;
+
+                for (auto i = 0u; i < scanSet.size(); i++) {
+                        // release read locks in the scanSet
+			auto &scanKey = scanSet[i];
+			auto tableId = scanKey.get_table_id();
+			auto partitionId = scanKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+                        std::vector<ITable::single_scan_result> &scan_results = *reinterpret_cast<std::vector<ITable::single_scan_result> *>(scanKey.get_scan_res_vec());
+
+                        if (scan_results.size() == 0) {
+                                continue;
+                        }
+
+			if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                // release read locks
+				if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                                CHECK(meta != 0);
+                                                TwoPLPashaHelper::read_lock_release(*meta);
+                                        }
+				} else {
+                                        // remote scan not supported
+					CHECK(0);
+				}
+			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                // release write locks for updates
+				if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                                CHECK(meta != 0);
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        }
+				} else {
+                                        // remote scan not supported
+					CHECK(0);
+				}
+			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                // no need to release write locks for tuples to be deleted
+                                // because they are already removed!
+                        } else {
+                                CHECK(0);
+                        }
 		}
 	}
 
