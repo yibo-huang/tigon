@@ -85,7 +85,7 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 		};
 
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
-                                                uint64_t limit, void *results) -> bool {
+                                                uint64_t limit, int type, void *results, ITable::row_entity &next_row_entity) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(results);
                         auto value_size = table->value_size();
@@ -98,34 +98,64 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 
                         if (local_scan) {
                                 // we do the next-key locking logic inside this function
+                                bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
                                 auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
                                         CHECK(data_ptr != nullptr);
 
-                                        if (limit != 0 && scan_results.size() == limit) {
-                                                return true;
-                                        }
+                                        bool locking_next_tuple = false;
 
-                                        if (table->compare_key(key, max_key) > 0) {
-                                                return true;
+                                        if (is_last_tuple == true) {
+                                                locking_next_tuple = true;
+                                        } else if (limit != 0 && scan_results.size() == limit) {
+                                                locking_next_tuple = true;
+                                        } else if (table->compare_key(key, max_key) > 0) {
+                                                locking_next_tuple = true;
                                         }
 
                                         CHECK(table->compare_key(key, min_key) >= 0);
 
-                                        ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
-                                        scan_results.push_back(cur_row);
+                                        // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
+                                        // But we can ignore it for now because we never generate
+                                        // transactions with duplicated or overlapped queries.
 
-                                        // continue scan
-                                        return false;
+                                        // try to acquire the lock
+                                        std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
+                                        bool lock_success = false;
+                                        if (type == TwoPLRWKey::SCAN_FOR_READ) {
+                                                TwoPLHelper::read_lock(meta, lock_success);
+                                        } else if (type == TwoPLRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLHelper::write_lock(meta, lock_success);
+                                        } else if (type == TwoPLRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLHelper::write_lock(meta, lock_success);
+                                        }
+
+                                        if (lock_success == true) {
+                                                // acquiring lock succeeds
+                                                ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                                if (locking_next_tuple == false) {
+                                                        scan_results.push_back(cur_row);
+                                                        // continue scan
+                                                        return false;
+                                                } else {
+                                                        // scan succeeds - store the next-tuple and quit
+                                                        next_row_entity = cur_row;
+                                                        scan_success = true;
+                                                        return true;
+                                                }
+                                        } else {
+                                                // stop and fail immediately if we fail to acquire a lock
+                                                scan_success = false;
+                                                return true;
+                                        }
                                 };
 
-				table->scan(min_key, local_scan_processor);
-			} else {
+                                table->scan(min_key, local_scan_processor);
+                                return scan_success;
+                        } else {
                                 CHECK(0);      // right now we only support local scan
-			}
-
-                        return true;
+                        }
 		};
 
                 txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value) -> bool {
@@ -163,21 +193,9 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 			}
 
 			if (local_delete) {
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                if (meta == nullptr) {
-                                        // someone else has deleted the row, so we abort
-                                        txn.abort_delete = true;
-                                        return false;
-                                }
-
-                                bool success = false;
-                                TwoPLHelper::write_lock(*meta, success);
-                                if (success) {
-                                        // do nothing
-                                } else {
-                                        txn.abort_delete = true;
-                                        return false;
-                                }
+                                // do nothing here
+                                // we assume all the deletes are "read and delete"
+                                // so the write locks should already been taken
 			} else {
                                 CHECK(0);      // right now we only support local delete
 			}

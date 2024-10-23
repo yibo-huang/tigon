@@ -10,6 +10,8 @@
 
 #include <glog/logging.h>
 
+#include "core/Table.h"
+
 namespace star
 {
 
@@ -241,6 +243,24 @@ class TwoPLRWKey {
                 this->type = type;
 	}
 
+        // next-tuple
+        ITable::row_entity get_next_row_entity() const
+        {
+                return this->next_row_entity;
+        }
+        void set_next_row_entity(ITable::row_entity &next_row_entity)
+        {
+                this->next_row_entity = next_row_entity;
+        }
+        bool get_next_row_locked() const
+	{
+                return this->is_next_row_locked;
+	}
+        void set_next_row_locked()
+	{
+                this->is_next_row_locked = true;
+	}
+
         // processed or not
         bool get_processed() const
 	{
@@ -280,6 +300,10 @@ class TwoPLRWKey {
         uint64_t limit = 0;
         void *scan_results = nullptr;
         int type = 0;
+
+        // next-tuple
+        ITable::row_entity next_row_entity;
+        bool is_next_row_locked = false;
 
         bool processed = false;
 
