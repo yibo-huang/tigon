@@ -163,7 +163,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 		};
 
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
-                                                uint64_t limit, int type, void *results) -> bool {
+                                                uint64_t limit, int type, void *results, ITable::row_entity &next_row_entity) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(results);
                         auto value_size = table->value_size();
@@ -176,20 +176,20 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
 			if (local_scan) {
                                 // we do the next-key locking logic inside this function
-                                bool scan_success = true;       // it is possible that the range is empty
+                                bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
                                 auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
                                         CHECK(data_ptr != nullptr);
 
-                                        if (limit != 0 && scan_results.size() == limit) {
-                                                scan_success = true;
-                                                return true;
-                                        }
+                                        bool locking_next_tuple = false;
 
-                                        if (table->compare_key(key, max_key) > 0) {
-                                                scan_success = true;
-                                                return true;
+                                        if (is_last_tuple == true) {
+                                                locking_next_tuple = true;
+                                        } else if (limit != 0 && scan_results.size() == limit) {
+                                                locking_next_tuple = true;
+                                        } else if (table->compare_key(key, max_key) > 0) {
+                                                locking_next_tuple = true;
                                         }
 
                                         CHECK(table->compare_key(key, min_key) >= 0);
@@ -210,12 +210,18 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         }
 
                                         if (lock_success == true) {
-                                                // acquiring lock succeeds, push back the result
+                                                // acquiring lock succeeds
                                                 ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
-                                                scan_results.push_back(cur_row);
-
-                                                // continue scan
-                                                return false;
+                                                if (locking_next_tuple == false) {
+                                                        scan_results.push_back(cur_row);
+                                                        // continue scan
+                                                        return false;
+                                                } else {
+                                                        // scan succeeds - store the next-tuple and quit
+                                                        next_row_entity = cur_row;
+                                                        scan_success = true;
+                                                        return true;
+                                                }
                                         } else {
                                                 // stop and fail immediately if we fail to acquire a lock
                                                 scan_success = false;
@@ -223,11 +229,11 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         }
                                 };
 
-				table->scan(min_key, local_scan_processor);
+                                table->scan(min_key, local_scan_processor);
                                 return scan_success;
-			} else {
+                        } else {
                                 CHECK(0);      // right now we only support local scan
-			}
+                        }
 		};
 
                 txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value) -> bool {

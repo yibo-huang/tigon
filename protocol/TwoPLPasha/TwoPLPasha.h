@@ -143,8 +143,21 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
-                        if (scan_results.size() == 0) {
-                                continue;
+                        // release the next row
+                        if (scanKey.get_next_row_locked() == true) {
+                                auto next_row_entity = scanKey.get_next_row_entity();
+                                auto key = reinterpret_cast<const void *>(next_row_entity.key);
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                CHECK(meta != 0);
+                                if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                        TwoPLPashaHelper::read_lock_release(*meta);
+                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                        TwoPLPashaHelper::write_lock_release(*meta);
+                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                        TwoPLPashaHelper::write_lock_release(*meta);
+                                } else {
+                                        CHECK(0);
+                                }
                         }
 
 			if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
@@ -458,8 +471,22 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
-                        if (scan_results.size() == 0) {
-                                continue;
+                        // release the next row
+                        CHECK(scanKey.get_next_row_locked() == true);
+                        if (scanKey.get_next_row_locked() == true) {
+                                auto next_row_entity = scanKey.get_next_row_entity();
+                                auto key = reinterpret_cast<const void *>(next_row_entity.key);
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                CHECK(meta != 0);
+                                if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                        TwoPLPashaHelper::read_lock_release(*meta);
+                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                        TwoPLPashaHelper::write_lock_release(*meta);
+                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                        TwoPLPashaHelper::write_lock_release(*meta);
+                                } else {
+                                        CHECK(0);
+                                }
                         }
 
 			if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
