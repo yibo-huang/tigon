@@ -317,6 +317,13 @@ class Database {
                                 CHECK(success == true);
 			}
 		}
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                ycsb::key max_key;
+                ycsb::value dummy_value;
+                max_key.Y_KEY = INT32_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
 	}
 
     public:

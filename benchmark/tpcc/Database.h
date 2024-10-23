@@ -1088,6 +1088,18 @@ class Database {
                                 CHECK(success == true);
 			}
 		}
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                history::key max_key;
+                history::value dummy_value;
+                max_key.H_W_ID = INT32_MAX;
+                max_key.H_D_ID = INT32_MAX;
+                max_key.H_C_W_ID = INT32_MAX;
+                max_key.H_C_D_ID = INT32_MAX;
+                max_key.H_C_ID = INT32_MAX;
+                max_key.H_DATE = INT64_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
 	}
 
 	void newOrderInit(std::size_t partitionID)
@@ -1140,6 +1152,15 @@ class Database {
                                 CHECK(oldest_undelivered_order_key.NO_O_ID == 2101);
                         }
                 }
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                new_order::key max_key;
+                new_order::value dummy_value;
+                max_key.NO_W_ID = INT32_MAX;
+                max_key.NO_D_ID = INT32_MAX;
+                max_key.NO_O_ID = INT32_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
 	}
 
 	void orderInit(std::size_t partitionID)
@@ -1181,6 +1202,15 @@ class Database {
                                 CHECK(success == true);
 			}
 		}
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                order::key max_key;
+                order::value dummy_value;
+                max_key.O_W_ID = INT32_MAX;
+                max_key.O_D_ID = INT32_MAX;
+                max_key.O_ID = INT32_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
 	}
 
         void orderCustInit(std::size_t partitionID)
@@ -1214,6 +1244,16 @@ class Database {
                                 CHECK(success == true);
                         }
                 }
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                order_customer::key max_key;
+                order::value dummy_value;
+                max_key.O_W_ID = INT32_MAX;
+                max_key.O_D_ID = INT32_MAX;
+                max_key.O_C_ID = INT32_MAX;
+                max_key.O_ID = INT32_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
 
                 // test correctness
                 for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
@@ -1289,6 +1329,16 @@ class Database {
 			}
 		}
 
+                // insert a max key that represents the upper bound (for next-key locking)
+                order_line::key max_key;
+                order_line::value dummy_value;
+                max_key.OL_W_ID = INT32_MAX;
+                max_key.OL_D_ID = INT32_MAX;
+                max_key.OL_O_ID = INT32_MAX;
+                max_key.OL_NUMBER = INT8_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
+
                 // test correctness
                 for (int i = 1; i <= DISTRICT_PER_WAREHOUSE; i++) {
                         for (int j = 1; j <= ORDER_PER_DISTRICT; j++) {
@@ -1352,6 +1402,13 @@ class Database {
 			bool success = table->insert(&key, &value);
                         CHECK(success == true);
 		}
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                item::key max_key;
+                item::value dummy_value;
+                max_key.I_ID = INT32_MAX;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
 	}
 
 	void stockInit(std::size_t partitionID)
