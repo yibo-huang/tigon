@@ -53,8 +53,8 @@ target_link_libraries(bench_tpcc misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_s
 add_executable(bench_ycsb bench_ycsb.cpp)
 target_link_libraries(bench_ycsb misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
 
-add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
-target_link_libraries(btreeolc_test gtest)
+# add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
+# target_link_libraries(btreeolc_test gtest glog gflags)
 
 # add_executable(btreeolc_cxl_test btreeolc_cxl_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc_cxl/BTreeOLC_CXL.cpp)
-# target_link_libraries(btreeolc_cxl_test gtest)
+# target_link_libraries(btreeolc_cxl_test gtest glog gflags)
