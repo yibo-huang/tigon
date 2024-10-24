@@ -157,7 +157,7 @@ class TwoPLPashaHelper {
                 CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
                         void *data_ptr = std::get<1>(row);
-                        memcpy(data_ptr, value, value_size);
+                        std::memcpy(data_ptr, value, value_size);
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         void *data_ptr = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
@@ -602,7 +602,7 @@ out_unlock_lmeta:
                         smeta->tid = lmeta->tid;
 
                         // copy data
-                        std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
+                        scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
 
                         // set the migrated row as valid
                         smeta->is_valid = true;
@@ -692,7 +692,7 @@ out_unlock_lmeta:
                                 smeta->tid = lmeta->tid;
 
                                 // copy data
-                                std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
+                                scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
 
                                 // set the migrated row as valid
                                 smeta->is_valid = true;

@@ -147,7 +147,7 @@ out_lmeta_unlock:
 		lmeta->lock();
                 CHECK(lmeta->is_valid == true);
 		CHECK(lmeta->owner == transaction_id);
-		memcpy(data_ptr, value, value_size);
+		std::memcpy(data_ptr, value, value_size);
 		lmeta->wts = lmeta->rts = commit_ts;
 		lmeta->unlock();
 	}
@@ -162,7 +162,7 @@ out_lmeta_unlock:
 		lmeta->lock();
                 CHECK(lmeta->is_valid == true);
 		CHECK(lmeta->owner == transaction_id);
-		memcpy(data_ptr, value, value_size);
+		std::memcpy(data_ptr, value, value_size);
 		lmeta->wts = lmeta->rts = commit_ts;
 		lmeta->owner = 0;
 		lmeta->unlock();

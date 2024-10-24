@@ -73,7 +73,7 @@ class TwoPLHelper {
 		lmeta->lock();
                 CHECK(lmeta->is_valid == true);
                 void *data_ptr = std::get<1>(row);
-                memcpy(data_ptr, value, value_size);
+                std::memcpy(data_ptr, value, value_size);
 		lmeta->unlock();
 	}
 

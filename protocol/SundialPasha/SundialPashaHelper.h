@@ -298,7 +298,7 @@ out_lmeta_unlock:
                 if (lmeta->is_migrated == false) {
                         void *data_ptr = std::get<1>(row);
                         CHECK(lmeta->owner == transaction_id);
-                        memcpy(data_ptr, value, value_size);
+                        std::memcpy(data_ptr, value, value_size);
                         lmeta->wts = lmeta->rts = commit_ts;
                 } else {
                         SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
@@ -451,7 +451,7 @@ out_lmeta_unlock:
                         smeta->owner = lmeta->owner;
 
                         // copy data
-                        std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
+                        scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
 
                         // set the migrated row as valid
                         smeta->is_valid = true;
@@ -543,7 +543,7 @@ out_lmeta_unlock:
                                 smeta->owner = lmeta->owner;
 
                                 // copy data
-                                std::memcpy(migrated_row_value_ptr, local_data, table->value_size());
+                                scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
 
                                 // set the migrated row as valid
                                 smeta->is_valid = true;
