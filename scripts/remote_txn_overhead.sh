@@ -38,7 +38,7 @@ function run_remote_txn_overhead_tpcc {
         typeset SCC_MECHANISM=$9
         typeset PRE_MIGRATE=${10}
 
-        typeset TIME_TO_RUN=30
+        typeset TIME_TO_RUN=20
         typeset TIME_TO_WARMUP=5
 
         typeset RESULT_FILE=$RESULT_DIR/tpcc-$PROTOCOL-$HOST_NUM-$WORKER_NUM-$USE_CXL_TRANS-$MIGRATION_POLICY-$WHEN_TO_MOVE_OUT-$MAX_MIGRATED_ROWS_SIZE-$SCC_MECHANISM-$PRE_MIGRATE.txt
@@ -68,7 +68,7 @@ function run_remote_txn_overhead_ycsb {
         typeset SCC_MECHANISM=${11}
         typeset PRE_MIGRATE=${12}
 
-        typeset TIME_TO_RUN=30
+        typeset TIME_TO_RUN=20
         typeset TIME_TO_WARMUP=5
 
         typeset RESULT_FILE=$RESULT_DIR/ycsb-$PROTOCOL-$HOST_NUM-$WORKER_NUM-$RW_RATIO-$ZIPF_THETA-$USE_CXL_TRANS-$MIGRATION_POLICY-$WHEN_TO_MOVE_OUT-$MAX_MIGRATED_ROWS_SIZE-$SCC_MECHANISM-$PRE_MIGRATE.txt
