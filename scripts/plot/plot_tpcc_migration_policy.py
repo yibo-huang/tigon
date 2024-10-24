@@ -58,10 +58,10 @@ ax = plt.subplot(111)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 # Create the line plot
-plt.plot(x, sundialpasha_cxl_nomoveout_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-HCC")
-plt.plot(x, sundialpasha_cxl_fifo_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-WT")
-plt.plot(x, twoplpasha_cxl_nomoveout_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-NT")
-plt.plot(x, twoplpasha_cxl_fifo_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL-HCC")
+plt.plot(x, sundialpasha_cxl_nomoveout_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-NoMoveOut")
+plt.plot(x, sundialpasha_cxl_fifo_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-FIFO")
+plt.plot(x, twoplpasha_cxl_nomoveout_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-NoMoveOut")
+plt.plot(x, twoplpasha_cxl_fifo_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL-FIFO")
 
 # Configure legend
 ax.legend(frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
