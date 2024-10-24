@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 if len(sys.argv) != 4:
-        print("Usage: ./plot-ycsb-remote-txn-overhead.py res_dir zipf_theta scc_mechanism")
+        print("Usage: ./plot-ycsb-remote-txn-overhead.py res_dir rw_ratio zipf_theta")
         sys.exit(-1)
 
 res_dir = sys.argv[1]
-zipf_theta = sys.argv[2]
-scc_mechanism = sys.argv[3]
+rw_ratio = sys.argv[2]
+zipf_theta = sys.argv[3]
 
 marker_size = 10.0
 marker_edge_width=1.6
@@ -27,7 +27,7 @@ plt.yticks(**basic_font)
 plt.grid(axis='y')
 
 ### plot TPCC ###
-res_csv = res_dir + "/ycsb-" + zipf_theta + "-" + scc_mechanism + ".csv"
+res_csv = res_dir + "/ycsb-remote-txn-overhead-" + rw_ratio + "-" + zipf_theta + ".csv"
 
 # Read the CSV file into a Pandas DataFrame
 res_df = pd.read_csv(res_csv)
@@ -36,6 +36,7 @@ res_df = pd.read_csv(res_csv)
 x = res_df["Remote_Ratio"]
 
 sundialpasha_cxl_y = res_df["SundialPasha-CXL"]
+twoplpasha_cxl_y = res_df["TwoPLPasha-CXL"]
 sundial_cxl_y = res_df["Sundial-CXL"]
 sundial_net_y = res_df["Sundial-NET"]
 twopl_cxl_y = res_df["TwoPL-CXL"]
@@ -47,6 +48,7 @@ plt.ylabel("Throughput (txns/sec)", **basic_font)
 # Configure axis range
 tmp_list = list()
 tmp_list.extend(sundialpasha_cxl_y)
+tmp_list.extend(twoplpasha_cxl_y)
 tmp_list.extend(sundial_cxl_y)
 tmp_list.extend(sundial_net_y)
 tmp_list.extend(twopl_cxl_y)
@@ -61,6 +63,7 @@ ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.forma
 
 # Create the line plot
 plt.plot(x, sundialpasha_cxl_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL")
+plt.plot(x, twoplpasha_cxl_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL")
 plt.plot(x, sundial_cxl_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Sundial-CXL")
 plt.plot(x, twopl_cxl_y, color="#62615d", marker=">", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPL-CXL")
 plt.plot(x, sundial_net_y, color="#CD5C5C", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Sundial-NET")
@@ -69,4 +72,4 @@ plt.plot(x, twopl_net_y, color="#4372c4", marker="s", markersize=marker_size, li
 # Configure legend
 ax.legend(loc='upper center', frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
 
-plt.savefig(res_dir + "ycsb-remote-txn-overhead-" + zipf_theta + "-" + scc_mechanism + ".pdf", format="pdf", bbox_inches="tight")
+plt.savefig(res_dir + "ycsb-remote-txn-overhead-" + rw_ratio + "-" + zipf_theta + ".pdf", format="pdf", bbox_inches="tight")

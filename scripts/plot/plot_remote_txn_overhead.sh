@@ -12,15 +12,9 @@ fi
 
 typeset RES_DIR=$1
 
-$SCRIPT_DIR/plot_tpcc_remote_txn_overhead.py $RES_DIR NoOP
-$SCRIPT_DIR/plot_tpcc_remote_txn_overhead.py $RES_DIR WriteThrough
-$SCRIPT_DIR/plot_tpcc_remote_txn_overhead.py $RES_DIR NonTemporal
+$SCRIPT_DIR/plot_tpcc_remote_txn_overhead.py $RES_DIR
 
-
-$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 0 NoOP
-$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 0 WriteThrough
-$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 0 NonTemporal
-
-$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 0.99 NoOP
-$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 0.99 WriteThrough
-$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 0.99 NonTemporal
+$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 50 0
+$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 50 0.99
+$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 90 0
+$SCRIPT_DIR/plot_ycsb_remote_txn_overhead.py $RES_DIR 90 0.99
