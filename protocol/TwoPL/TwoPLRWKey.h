@@ -261,6 +261,16 @@ class TwoPLRWKey {
                 this->is_next_row_locked = true;
 	}
 
+        bool get_require_lock_next_row() const
+	{
+                return this->require_lock_next_row;
+	}
+
+        void set_require_lock_next_row()
+	{
+                this->require_lock_next_row = true;
+	}
+
         // processed or not
         bool get_processed() const
 	{
@@ -303,6 +313,7 @@ class TwoPLRWKey {
 
         // next-tuple
         ITable::row_entity next_row_entity;
+        bool require_lock_next_row = false;
         bool is_next_row_locked = false;
 
         bool processed = false;
