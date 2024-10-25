@@ -214,7 +214,7 @@ template <class Transaction> class NewOrder : public Transaction {
                 auto newOrderTableID = new_order::tableID;
 		storage->new_order_key = new_order::key(W_ID, D_ID, D_NEXT_O_ID);
                 storage->new_order_value.NO_DUMMY = 0;
-                this->insert_row(newOrderTableID, W_ID - 1, storage->new_order_key, storage->new_order_value);
+                this->insert_row(newOrderTableID, W_ID - 1, storage->new_order_key, storage->new_order_value, true);
 
                 auto orderTableID = order::tableID;
 		storage->order_key[0] = order::key(W_ID, D_ID, D_NEXT_O_ID);
@@ -223,7 +223,7 @@ template <class Transaction> class NewOrder : public Transaction {
 		storage->order_value[0].O_OL_CNT = query.O_OL_CNT;
 		storage->order_value[0].O_C_ID = query.C_ID;
 		storage->order_value[0].O_ALL_LOCAL = !query.isRemote();
-                this->insert_row(orderTableID, W_ID - 1, storage->order_key[0], storage->order_value[0]);
+                this->insert_row(orderTableID, W_ID - 1, storage->order_key[0], storage->order_value[0], true);
 
 		float total_amount = 0;
 
@@ -321,7 +321,17 @@ template <class Transaction> class NewOrder : public Transaction {
 					break;
 				}
 
-                                this->insert_row(orderLineTableID, W_ID - 1, storage->order_line_keys[0][i], storage->order_line_values[0][i]);
+                                /* 
+                                 * Our current code does not correctly handle repeated access within a single transaction - repeated read/write, overlapped scan,
+                                 * and consecutive insert/delete.
+                                 * This is because we did not implement the ownership of locks or placeholders so we cannot check if a lock is already held by the
+                                 * same transaction or a placeholder is created by the same transaction.
+                                 * Right now, for consecutive inserts, we explicitly specify that we only lock the last key.
+                                 */
+                                if (i == query.O_OL_CNT - 1)
+                                        this->insert_row(orderLineTableID, W_ID - 1, storage->order_line_keys[0][i], storage->order_line_values[0][i], true);
+                                else
+                                        this->insert_row(orderLineTableID, W_ID - 1, storage->order_line_keys[0][i], storage->order_line_values[0][i], false);
 
 				total_amount += OL_AMOUNT * (1 - C_DISCOUNT) * (1 + W_TAX + D_TAX);
 			}
@@ -556,7 +566,7 @@ template <class Transaction> class Payment : public Transaction {
 			storage->history_value.H_AMOUNT = H_AMOUNT;
 			storage->history_value.H_DATA.assign(H_DATA, written);
 
-                        this->insert_row(historyTableID, W_ID - 1, storage->history_key, storage->history_value);
+                        this->insert_row(historyTableID, W_ID - 1, storage->history_key, storage->history_value, true);
 		}
 
                 t_local_work.end();

@@ -236,11 +236,11 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                         }
 		};
 
-                txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value) -> bool {
+                txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset,
+                                                        const void *key, void *value, bool require_lock_next_key, ITable::row_entity &next_row_entity) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         auto value_size = table->value_size();
                         bool local_insert = false;
-                        bool ret = true;
 
 			if (this->partitioner->has_master_partition(partition_id) ||
 			    (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
@@ -248,16 +248,39 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 			}
 
 			if (local_insert) {
-				bool success = table->insert(key, value, true);
-                                if (success == false) {
+                                auto local_next_key_processor = [&](const void *next_key, std::atomic<uint64_t> *meta_ptr, void *data_ptr) -> bool {
+                                        CHECK(key != nullptr);
+                                        CHECK(meta_ptr != nullptr);
+                                        CHECK(data_ptr != nullptr);
+
+                                        // try to acquire the read lock of the next key
+                                        std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
+                                        bool lock_success = false;
+                                        TwoPLPashaHelper::read_lock(meta, lock_success);
+                                        if (lock_success == true) {
+                                                ITable::row_entity next_row(next_key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                                next_row_entity = next_row;
+                                        }
+
+                                        return lock_success;
+                                };
+
+                                bool insert_success = false;
+                                if (require_lock_next_key == true) {
+				        insert_success = table->insert_lock_next_key(key, value, local_next_key_processor, true);
+                                } else {
+                                        insert_success = table->insert(key, value, true);
+                                }
+
+                                if (insert_success == false) {
                                         txn.abort_insert = true;
-                                        ret = false;
+                                        return false;
+                                } else {
+                                        return true;
                                 }
 			} else {
                                 CHECK(0);      // right now we only support local insert
 			}
-
-                        return ret;
 		};
 
                 txn.deleteRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key) -> bool {

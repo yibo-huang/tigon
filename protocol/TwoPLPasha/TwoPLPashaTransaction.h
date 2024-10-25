@@ -297,8 +297,13 @@ class TwoPLPashaTransaction {
 		add_to_scan_set(scanKey);
 	}
 
+        /* 
+         * The current code does not correctly handle repeated access within a single transaction - repeated read/write, overlapped scan, consecutive insert/delete.
+         * This is because we did not implement the ownership of locks so we cannot check if a lock is already held by a transaction.
+         * Right now, for consecutive inserts, we only lock the last key.
+         */
         template <class KeyType, class ValueType>
-	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, std::size_t granule_id = 0)
+	void insert_row(std::size_t table_id, std::size_t partition_id, const KeyType &key, ValueType &value, bool require_lock_next_key, std::size_t granule_id = 0)
 	{
 		TwoPLPashaRWKey insertKey;
 
@@ -307,6 +312,9 @@ class TwoPLPashaTransaction {
 
                 insertKey.set_key(&key);
                 insertKey.set_value(&value);
+
+                if (require_lock_next_key == true)
+                        insertKey.set_require_lock_next_row();
 
 		add_to_insert_set(insertKey);
 	}
@@ -388,10 +396,16 @@ class TwoPLPashaTransaction {
 			}
 
 			const TwoPLPashaRWKey &insertKey = insertSet[i];
-			bool success = insertRequestHandler(insertKey.get_table_id(), insertKey.get_partition_id(), i, insertKey.get_key(), insertKey.get_value());
+                        ITable::row_entity next_row_entity;
+			bool success = insertRequestHandler(insertKey.get_table_id(), insertKey.get_partition_id(), i, insertKey.get_key(), insertKey.get_value(),
+                                                        insertKey.get_require_lock_next_row(), next_row_entity);
                         if (success == false) {
                                 ret = true;
                                 goto process_net_req_and_ret;
+                        }
+                        if (insertKey.get_require_lock_next_row() == true) {
+                                insertSet[i].set_next_row_entity(next_row_entity);
+                                insertSet[i].set_next_row_locked();
                         }
                         insertSet[i].set_processed();
 		}
@@ -480,7 +494,7 @@ process_net_req_and_ret:
         // table id, partition id, key_offset, min_key, max_key, results
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, int, void *, ITable::row_entity &)> scanRequestHandler;
         // table id, partition id, key_offset, key, value
-	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, void *)> insertRequestHandler;
+	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, void *, bool, ITable::row_entity &)> insertRequestHandler;
         // table id, partition id, key_offset, key
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *)> deleteRequestHandler;
 	// processed a request?

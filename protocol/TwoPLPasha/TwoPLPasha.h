@@ -79,9 +79,19 @@ template <class Database> class TwoPLPasha {
 			auto partitionId = insertKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
+                                // remove the placeholder
 				auto key = insertKey.get_key();
                                 bool success = table->remove(key);
                                 CHECK(success == true);
+
+                                // release the read lock for the next row
+                                if (insertKey.get_next_row_locked() == true) {
+                                        auto next_row_entity = insertKey.get_next_row_entity();
+                                        auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
+                                        std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
+                                        CHECK(next_key_meta != nullptr);
+                                        TwoPLPashaHelper::read_lock_release(*next_key_meta);
+                                }
 			} else {
                                 // does not support remote insert & delete
                                 CHECK(0);
@@ -242,10 +252,20 @@ template <class Database> class TwoPLPasha {
 			auto partitionId = insertKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
+                                // make the placeholder valid
 				auto key = insertKey.get_key();
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                 CHECK(meta != 0);
                                 TwoPLPashaHelper::mark_tuple_as_valid(*meta);
+
+                                // release the read lock for the next row
+                                if (insertKey.get_next_row_locked() == true) {
+                                        auto next_row_entity = insertKey.get_next_row_entity();
+                                        auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
+                                        std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
+                                        CHECK(next_key_meta != nullptr);
+                                        TwoPLPashaHelper::read_lock_release(*next_key_meta);
+                                }
 			} else {
                                 // does not support remote insert & delete
                                 CHECK(0);

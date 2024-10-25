@@ -18,6 +18,8 @@
 
 #include "common/btree_olc/EBR.h"
 
+#include "glog/logging.h"
+
 namespace btreeolc
 {
 
@@ -1812,6 +1814,199 @@ restart:
 			success = leaf->insert(k, v, keyComp_);
 			node->writeUnlock();
 			// node->readUnlockOrRestart(versionParent, needRestart);
+			if (success) {
+				stats_.num_items++;
+			}
+			return success; // success
+		}
+	}
+
+        /**
+	 * return v if insert successful
+	 * otherwise return an existing value
+	 */
+	bool insert_lock_next_key(const KeyType &k, const ValueType &v, std::function<bool(const KeyType *, ValueType *)> next_key_processor)
+	{
+		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().enterCritical();
+		// btreeolc::DeferCode c([]() { EBR<UpdateThreshold, Deallocator>::getLocalThreadData().leaveCritical(); });
+		int restartCount = 0;
+restart:
+		// need yield CPU when come here at second time
+		if (restartCount++)
+			yield(restartCount, true);
+		bool needRestart = false;
+
+		// Current node
+		NodeBase *node = root_;
+		uint64_t versionNode = node->readLockOrRestart(needRestart);
+		if (needRestart || (node != root_)) {
+			node->readUnlockOrRestart(versionNode, needRestart);
+			goto restart;
+		}
+
+		// Parent of current node
+		BTreeInner *parent = nullptr;
+		uint64_t versionParent = 0;
+
+		while (node->getType() == NodeType::BTreeInner) {
+			auto inner = static_cast<BTreeInner *>(node);
+			// Split eagerly if full
+			if (inner->isFull()) {
+				// Lock
+				if (parent) {
+					parent->upgradeToWriteLockOrRestart(versionParent, needRestart);
+					if (needRestart)
+						goto restart;
+				}
+				node->upgradeToWriteLockOrRestart(versionNode, needRestart);
+				if (needRestart) {
+					if (parent)
+						parent->writeUnlock();
+					goto restart;
+				}
+				// parent is null and node isn't root
+				if (!parent && (node != root_)) {
+					// there's a new parent
+					node->writeUnlock();
+					goto restart;
+				}
+				// Split
+				KeyType sep;
+				BTreeInner *newInner = inner->split(sep);
+				stats_.inner_nodes++;
+				if (parent)
+					parent->insert(sep, newInner, keyComp_);
+				else
+					makeRoot(sep, inner, newInner);
+
+				// Unlock and restart
+				node->writeUnlock();
+				if (parent) {
+					parent->writeUnlock();
+				}
+				goto restart;
+			}
+
+			if (parent) {
+				parent->readUnlockOrRestart(versionParent, needRestart);
+				if (needRestart)
+					goto restart;
+			}
+
+			parent = inner;
+			versionParent = versionNode;
+
+			node = inner->childAt(inner->lowerBound(k, keyComp_));
+			// prefetch((char *)node, sizeof(NodeMetaData));
+			inner->checkOrRestart(versionNode, needRestart);
+			if (needRestart)
+				goto restart;
+
+			versionNode = node->readLockOrRestart(needRestart);
+			if (needRestart)
+				goto restart;
+		} // while
+
+		if (parent) {
+			parent->checkOrRestart(versionParent, needRestart);
+			if (needRestart) {
+				node->readUnlockOrRestart(versionNode, needRestart);
+				goto restart;
+			}
+		}
+		auto leaf = static_cast<BTreeLeaf *>(node);
+		ValueType insertRes;
+		bool success;
+
+		// Split leaf if full
+		if (leaf->getCount() == leaf->maxEntries) {
+			// Lock
+			if (parent) {
+				parent->upgradeToWriteLockOrRestart(versionParent, needRestart);
+				if (needRestart) {
+					goto restart;
+				}
+			}
+			node->upgradeToWriteLockOrRestart(versionNode, needRestart);
+			if (needRestart) {
+				if (parent)
+					parent->writeUnlock();
+				goto restart;
+			}
+			if (!parent && (node != root_)) {
+				// there's a new parent
+				node->writeUnlock();
+				goto restart;
+			}
+			// Split
+			KeyType sep;
+			BTreeLeaf *newLeaf = leaf->split(sep);
+			stats_.leaf_nodes++;
+
+			if (parent)
+				parent->insert(sep, newLeaf, keyComp_);
+			else
+				makeRoot(sep, leaf, newLeaf);
+			// Unlock and restart
+			node->writeUnlock();
+			if (parent)
+				parent->writeUnlock();
+
+			goto restart;
+		} else {
+			// only lock leaf node
+			node->upgradeToWriteLockOrRestart(versionNode, needRestart);
+			if (needRestart)
+				goto restart;
+			if (parent) {
+				parent->readUnlockOrRestart(versionParent, needRestart);
+				if (needRestart) {
+					node->writeUnlock();
+					goto restart;
+				}
+			}
+
+                        BTreeLeaf *nextLeaf = nullptr;
+                        const KeyType *next_key;
+                        ValueType *next_value;
+                        unsigned pos = -1;
+			pos = leaf->lowerBound(k, keyComp_);
+			if (pos < leaf->getCount() && keyComp_(leaf->keys_[pos], k) == 0) {
+				// already exists
+				success = false;
+                        } else {
+                                if (pos == leaf->getCount()) {
+                                        // the next tuple is within the next leaf
+                                        nextLeaf = leaf->next_;
+                                        CHECK(nextLeaf != nullptr);
+                                        nextLeaf->writeLockOrRestart(needRestart);
+                                        if (needRestart == true) {
+                                                node->writeUnlock();
+                                                goto restart;
+                                        }
+                                        next_key = &nextLeaf->keys_[0];
+                                        next_value = &nextLeaf->values_[0];
+                                } else {
+                                        next_key = &leaf->keys_[pos];
+                                        next_value = &leaf->values_[pos];
+                                }
+
+                                // lock the next_key
+                                bool lock_next_key_success = next_key_processor(next_key, next_value);
+                                if (lock_next_key_success == true) {
+                                        success = leaf->insert(k, v, keyComp_);
+                                        CHECK(success == true);
+                                } else {
+                                        success = false;
+                                }
+
+                                // unlock the next leaf if necessary
+                                if (nextLeaf != nullptr)
+                                        nextLeaf->writeUnlock();
+                        }
+
+                        node->writeUnlock();
+                        // node->readUnlockOrRestart(versionParent, needRestart);
 			if (success) {
 				stats_.num_items++;
 			}

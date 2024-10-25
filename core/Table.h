@@ -68,6 +68,8 @@ class ITable {
 
 	virtual bool insert(const void *key, const void *value, bool is_placeholder = false) = 0;
 
+        virtual bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) = 0;
+
         virtual bool remove(const void *key) = 0;
 
 	virtual void update(
@@ -238,6 +240,11 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 
                 return true;
 	}
+
+        bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
+        {
+                CHECK(0);
+        }
 
         bool remove(const void *key) override
         {
@@ -511,6 +518,38 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		return success;
 	}
 
+        bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+		const auto &v = *static_cast<const ValueType *>(value);
+
+                CHECK(is_placeholder == true);
+
+                auto processor = [&](const KeyType *key, BTreeOLCValue *value) -> bool {
+                        MetaDataType *meta_ptr = &value->row->meta;
+                        ValueType *data_ptr = &value->row->data;
+
+                        return next_key_processor(key, meta_ptr, data_ptr);
+		};
+
+                bool is_tuple_valid = !is_placeholder;
+
+                // create value that will not be moved around
+                ValueStruct *row = new ValueStruct;
+                CHECK(row != nullptr);
+                row->meta = MetaInitFunc()(is_tuple_valid);
+                row->data = v;
+
+                // BTreeOLCValue will be moved around and thus only stores pointers to the actual value
+                BTreeOLCValue btree_value;
+                btree_value.row = row;
+
+                // insert BTreeOLCValue to BTreeOLC
+		bool success = btree.insert_lock_next_key(k, btree_value, processor);
+		return success;
+	}
+
         bool remove(const void *key) override
         {
                 tid_check();
@@ -715,6 +754,11 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 return true;
 	}
 
+        bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
+        {
+                CHECK(0);
+        }
+
         bool remove(const void *key) override
         {
                 CHECK(0);
@@ -864,6 +908,11 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 
                 return true;
 	}
+
+        bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
+        {
+                CHECK(0);
+        }
 
         bool remove(const void *key) override
         {
