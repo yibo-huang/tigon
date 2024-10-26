@@ -252,8 +252,31 @@ template <class Database> class TwoPLPasha {
 			auto partitionId = insertKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
+                                auto key = insertKey.get_key();
+
+                                // update the next-key information for the previous key
+                                auto prev_key_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
+                                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
+                                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
+                                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+
+                                        // check if the previous key is migrated - if yes, update its next-key information
+                                        if (prev_lmeta != nullptr) {
+                                                prev_lmeta->lock();
+                                                if (prev_lmeta->is_migrated == true) {
+                                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                                        prev_smeta->lock();
+                                                        prev_smeta->is_next_key_real = false;   // mark it as false no matter what
+                                                        prev_smeta->unlock();
+                                                }
+                                                prev_lmeta->unlock();
+                                        }
+                                };
+
+                                bool update_next_key_success = table->search_and_update_next_key_info(key, prev_key_processor);
+                                CHECK(update_next_key_success == true);
+
                                 // make the placeholder valid
-				auto key = insertKey.get_key();
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                 CHECK(meta != 0);
                                 TwoPLPashaHelper::mark_tuple_as_valid(*meta);
@@ -283,6 +306,43 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = deleteKey.get_key();
+
+                                // update the next-key information for the previous key
+                                auto prev_key_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
+                                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
+                                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
+                                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+
+                                        bool is_next_key_migrated = false;
+
+                                        // check if the next tuple is migrated
+                                        if (next_lmeta != nullptr) {
+                                                next_lmeta->lock();
+                                                if (next_lmeta->is_migrated == true) {
+                                                        is_next_key_migrated = true;
+                                                }
+                                                next_lmeta->unlock();
+                                        } else {
+                                                is_next_key_migrated = true;
+                                        }
+
+                                        // check if the previous key is migrated - if yes, update its next-key information
+                                        if (prev_lmeta != nullptr) {
+                                                prev_lmeta->lock();
+                                                if (prev_lmeta->is_migrated == true) {
+                                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                                        prev_smeta->lock();
+                                                        if (is_next_key_migrated == true) {
+                                                                prev_smeta->is_next_key_real = true;
+                                                        } else {
+                                                                prev_smeta->is_next_key_real = false;
+                                                        }
+                                                        prev_smeta->unlock();
+                                                }
+                                                prev_lmeta->unlock();
+                                        }
+                                };
+
                                 bool success = table->remove(key);
                                 CHECK(success == true);
 			} else {
