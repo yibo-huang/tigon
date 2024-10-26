@@ -13,10 +13,14 @@ namespace star
 namespace ycsb
 {
 
+enum class YCSBWorkloadType { RMW, MIXED };
+
 enum class PartitionStrategy { RANGE, ROUND_ROBIN };
 
 class Context : public star::Context {
     public:
+        YCSBWorkloadType workloadType = YCSBWorkloadType::RMW;
+
 	std::size_t getPartitionID(std::size_t key) const
 	{
 		DCHECK(key >= 0 && key < partition_num * keysPerPartition);

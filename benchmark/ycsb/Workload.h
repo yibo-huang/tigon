@@ -44,18 +44,24 @@ template <class Transaction> class Workload {
 
 	std::unique_ptr<TransactionType> next_transaction(ContextType &context, std::size_t partition_id, std::size_t worker_id, std::size_t granule_id = 0)
 	{
-		// const static uint32_t num_workers_per_node = context.partition_num / context.coordinator_num;
-		// int cluster_worker_id = coordinator_id * num_workers_per_node + worker_id;
-		// if (cluster_worker_id == 1) {
-		//   context.crossPartitionProbability = 100;
-		// }
+		int x = random.uniform_dist(1, 100);
+                std::unique_ptr<TransactionType> p;
 
 		static std::atomic<uint64_t> tid_cnt(0);
 		long long transactionId = tid_cnt.fetch_add(1);
 		auto random_seed = Time::now();
+
+                std::string transactionType;
 		random.set_seed(random_seed);
-		std::unique_ptr<TransactionType> p =
-			std::make_unique<ReadModifyWrite<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                if (context.workloadType == YCSBWorkloadType::MIXED) {
+                        if (x <= 60) {
+                                p = std::make_unique<ReadModifyWrite<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                        } else {
+                                p = std::make_unique<Scan<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                        }
+                } else if (context.workloadType == YCSBWorkloadType::RMW) {
+                        p = std::make_unique<ReadModifyWrite<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                }
 		p->txn_random_seed_start = random_seed;
 		p->transaction_id = next_transaction_id(coordinator_id, worker_id);
 		return p;

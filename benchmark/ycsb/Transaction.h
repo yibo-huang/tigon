@@ -55,9 +55,15 @@ template <class Transaction> class ReadModifyWrite : public Transaction {
 		, random(random)
 		, partition_id(partition_id)
 		, granule_id(granule_id)
-		, query(makeYCSBQuery<keys_num>()(context, partition_id, granule_id, random, partitioner))
+		, query(makeRMWQuery<keys_num>()(context, partition_id, granule_id, random, partitioner))
 	{
 		storage = get_storage();
+	}
+
+        virtual ~ReadModifyWrite()
+	{
+		put_storage(storage);
+		storage = nullptr;
 	}
 
 	virtual int32_t get_partition_count() override
@@ -74,6 +80,7 @@ template <class Transaction> class ReadModifyWrite : public Transaction {
 	{
 		return query.get_part_granule_count(ith_partition);
 	}
+
 	// A ycsb transaction accesses only one granule per partition.
 	virtual int32_t get_granule(int ith_partition, int j) override
 	{
@@ -83,12 +90,6 @@ template <class Transaction> class ReadModifyWrite : public Transaction {
 	virtual bool is_single_partition() override
 	{
 		return query.number_of_parts() == 1;
-	}
-
-	virtual ~ReadModifyWrite()
-	{
-		put_storage(storage);
-		storage = nullptr;
 	}
 
 	virtual const std::string serialize(std::size_t ith_replica = 0) override
@@ -112,6 +113,7 @@ template <class Transaction> class ReadModifyWrite : public Transaction {
 
 	TransactionResult execute(std::size_t worker_id) override
 	{
+                storage->cleanup();
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
 		DCHECK(context.keysPerTransaction == keys_num);
 
@@ -197,7 +199,7 @@ template <class Transaction> class ReadModifyWrite : public Transaction {
 
 	void reset_query() override
 	{
-		query = makeYCSBQuery<keys_num>()(context, partition_id, granule_id, random, this->partitioner);
+		query = makeRMWQuery<keys_num>()(context, partition_id, granule_id, random, this->partitioner);
 	}
 
     private:
@@ -206,8 +208,122 @@ template <class Transaction> class ReadModifyWrite : public Transaction {
 	RandomType random;
 	Storage *storage = nullptr;
 	std::size_t partition_id, granule_id;
-	YCSBQuery<keys_num> query;
+	RMWQuery<keys_num> query;
 };
+
+template <class Transaction> class Scan : public Transaction {
+    public:
+	using DatabaseType = Database;
+	using ContextType = typename DatabaseType::ContextType;
+	using RandomType = typename DatabaseType::RandomType;
+	using StorageType = Storage;
+
+	static constexpr std::size_t scan_num = 1;
+
+	Scan(std::size_t coordinator_id, std::size_t partition_id, std::size_t granule_id, DatabaseType &db, const ContextType &context,
+			RandomType &random, Partitioner &partitioner, std::size_t ith_replica = 0)
+		: Transaction(coordinator_id, partition_id, partitioner, ith_replica)
+		, db(db)
+		, context(context)
+		, random(random)
+		, partition_id(partition_id)
+		, granule_id(granule_id)
+		, query(makeScanQuery<scan_num>()(context, partition_id, granule_id, random, partitioner))
+	{
+		storage = get_storage();
+	}
+
+        virtual ~Scan()
+	{
+		put_storage(storage);
+		storage = nullptr;
+	}
+
+	virtual int32_t get_partition_count() override
+	{
+		return query.number_of_parts();
+	}
+
+	virtual int32_t get_partition(int ith_partition) override
+	{
+		return query.get_part(ith_partition);
+	}
+
+	virtual int32_t get_partition_granule_count(int ith_partition) override
+	{
+		return query.get_part_granule_count(ith_partition);
+	}
+
+	// A ycsb transaction accesses only one granule per partition.
+	virtual int32_t get_granule(int ith_partition, int j) override
+	{
+		return query.get_granule(ith_partition, j);
+	}
+
+	virtual bool is_single_partition() override
+	{
+		return query.number_of_parts() == 1;
+	}
+
+	virtual const std::string serialize(std::size_t ith_replica = 0) override
+	{
+		std::string res;
+		Encoder encoder(res);
+		encoder << this->transaction_id << this->straggler_wait_time << ith_replica << this->txn_random_seed_start << partition_id << granule_id;
+		encoder << get_partition_count();
+		// int granules_count = 0;
+		// for (int32_t i = 0; i < get_partition_count(); ++i)
+		//   granules_count += get_partition_granule_count(i);
+		// for (int32_t i = 0; i < get_partition_count(); ++i)
+		//   encoder << get_partition(i);
+		// encoder << granules_count;
+		// for (int32_t i = 0; i < get_partition_count(); ++i)
+		//   for (int32_t j = 0; j < get_partition_granule_count(i); ++j)
+		//     encoder << get_granule(i, j);
+		Transaction::serialize_lock_status(encoder);
+		return res;
+	}
+
+	TransactionResult execute(std::size_t worker_id) override
+	{
+                storage->cleanup();
+		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
+
+                uint64_t scan_len = query.scan_len;
+
+		int ycsbTableID = ycsb::tableID;
+		DCHECK(ycsbTableID < 1);
+                for (auto i = 0u; i < scan_num; i++) {
+			auto key = query.Y_KEY[i];
+			storage->ycsb_scan_min_keys[i].Y_KEY = key;
+                        storage->ycsb_scan_max_keys[i].Y_KEY = INT32_MAX;
+                        this->scan_for_read(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[i], storage->ycsb_scan_max_keys[i],
+                                scan_len, &storage->ycsb_scan_results[i], context.getGranule(key));
+		}
+
+		t_local_work.end();
+		if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+		t_local_work.reset();
+
+		return TransactionResult::READY_TO_COMMIT;
+	}
+
+	void reset_query() override
+	{
+		query = makeScanQuery<scan_num>()(context, partition_id, granule_id, random, this->partitioner);
+	}
+
+    private:
+	DatabaseType &db;
+	const ContextType &context;
+	RandomType random;
+	Storage *storage = nullptr;
+	std::size_t partition_id, granule_id;
+	ScanQuery<scan_num> query;
+};
+
 } // namespace ycsb
 
 } // namespace star
