@@ -1981,7 +1981,7 @@ restart:
                                         CHECK(nextLeaf != nullptr);
                                         nextLeaf->writeLockOrRestart(needRestart);
                                         if (needRestart == true) {
-                                                node->writeUnlock();
+                                                leaf->writeUnlock();
                                                 goto restart;
                                         }
                                         next_key = &nextLeaf->keys_[0];
