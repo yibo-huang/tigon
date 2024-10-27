@@ -90,6 +90,7 @@ struct TwoPLPashaMetadataShared {
         uint64_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
 
         bool is_next_key_real{ false };
+        bool is_prev_key_real{ false };
 };
 
 uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
@@ -657,16 +658,36 @@ out_unlock_lmeta:
                         CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
                         bool is_next_key_migrated = false;
+                        bool is_prev_key_migrated = false;
 
                         // check if the next tuple is migrated
+                        // and update its prev-key information
                         if (next_lmeta != nullptr) {
                                 next_lmeta->lock();
                                 if (next_lmeta->is_migrated == true) {
+                                        TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                        next_smeta->lock();
+                                        next_smeta->is_prev_key_real = true;
+                                        next_smeta->unlock();
+
                                         is_next_key_migrated = true;
                                 }
                                 next_lmeta->unlock();
-                        } else {
-                                is_next_key_migrated = true;
+                        }
+
+                        // check if the previous tuple is migrated
+                        // and update its next-key information
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->lock();
+                                if (prev_lmeta->is_migrated == true) {
+                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                        prev_smeta->lock();
+                                        prev_smeta->is_next_key_real = true;
+                                        prev_smeta->unlock();
+
+                                        is_prev_key_migrated = true;
+                                }
+                                prev_lmeta->unlock();
                         }
 
                         // check if the current tuple is migrated
@@ -707,6 +728,13 @@ out_unlock_lmeta:
                                         smeta->is_next_key_real = false;
                                 }
 
+                                // update the prev-key information
+                                if (is_prev_key_migrated == true) {
+                                        smeta->is_prev_key_real = true;
+                                } else {
+                                        smeta->is_prev_key_real = false;
+                                }
+
                                 // insert into the corresponding CXL table
                                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
                                 ret = target_cxl_table->insert(key, migrated_row_ptr);
@@ -732,20 +760,6 @@ out_unlock_lmeta:
                                 move_in_success = false;
                         }
                         lmeta->unlock();
-
-                        if (move_in_success == true) {
-                                // update the next-key information for the previous tuple
-                                if (prev_lmeta != nullptr) {
-                                        prev_lmeta->lock();
-                                        if (prev_lmeta->is_migrated == true) {
-                                                auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                prev_smeta->lock();
-                                                prev_smeta->is_next_key_real = true;
-                                                prev_smeta->unlock();
-                                        }
-                                        prev_lmeta->unlock();
-                                }
-                        }
 		};
 
                 // update next-key information
@@ -853,8 +867,30 @@ out_unlock_lmeta:
 
                         CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
-                        // move the current tuple out
-                        // note that here we only mark it as invalid without removing it from it CXL index
+                        // update the next-key information for the previous tuple
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->lock();
+                                if (prev_lmeta->is_migrated == true) {
+                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                        prev_smeta->lock();
+                                        prev_smeta->is_next_key_real = false;
+                                        prev_smeta->unlock();
+                                }
+                                prev_lmeta->unlock();
+                        }
+
+                        // update the prev-key information for the next tuple
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->lock();
+                                if (next_lmeta->is_migrated == true) {
+                                        auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                        next_smeta->lock();
+                                        next_smeta->is_prev_key_real = false;
+                                        next_smeta->unlock();
+                                }
+                                next_lmeta->unlock();
+                        }
+
                         lmeta->lock();
                         CHECK(lmeta->is_valid = true);
                         if (lmeta->is_migrated == true) {
@@ -906,18 +942,6 @@ out_unlock_lmeta:
                                 CHECK(0);
                         }
                         lmeta->unlock();
-
-                        // update the next-key information for the previous tuple
-                        if (prev_lmeta != nullptr) {
-                                prev_lmeta->lock();
-                                if (prev_lmeta->is_migrated == true) {
-                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                        prev_smeta->lock();
-                                        prev_smeta->is_next_key_real = false;
-                                        prev_smeta->unlock();
-                                }
-                                prev_lmeta->unlock();
-                        }
 
                         move_out_success = true;
 		};

@@ -254,27 +254,38 @@ template <class Database> class TwoPLPasha {
 			if (partitioner.has_master_partition(partitionId)) {
                                 auto key = insertKey.get_key();
 
-                                // update the next-key information for the previous key
-                                auto prev_key_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
+                                auto key_info_updater = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
                                         auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
                                         auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
                                         auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
 
-                                        // check if the previous key is migrated - if yes, update its next-key information
+                                        // update the next-key information for the previous key
                                         if (prev_lmeta != nullptr) {
                                                 prev_lmeta->lock();
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                         prev_smeta->lock();
-                                                        prev_smeta->is_next_key_real = false;   // mark it as false no matter what
+                                                        prev_smeta->is_next_key_real = false;
                                                         prev_smeta->unlock();
                                                 }
                                                 prev_lmeta->unlock();
                                         }
+
+                                        // update the prev-key information for the next key
+                                        if (next_lmeta != nullptr) {
+                                                next_lmeta->lock();
+                                                if (next_lmeta->is_migrated == true) {
+                                                        auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                                        next_smeta->lock();
+                                                        next_smeta->is_prev_key_real = false;
+                                                        next_smeta->unlock();
+                                                }
+                                                next_lmeta->unlock();
+                                        }
                                 };
 
-                                bool update_next_key_success = table->search_and_update_next_key_info(key, prev_key_processor);
-                                CHECK(update_next_key_success == true);
+                                bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
+                                CHECK(update_key_info_success == true);
 
                                 // make the placeholder valid
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
@@ -307,41 +318,64 @@ template <class Database> class TwoPLPasha {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = deleteKey.get_key();
 
-                                // update the next-key information for the previous key
-                                auto prev_key_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
+                                auto key_info_updater = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
                                         auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
                                         auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
                                         auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
 
                                         bool is_next_key_migrated = false;
+                                        bool is_prev_key_migrated = false;
 
-                                        // check if the next tuple is migrated
-                                        if (next_lmeta != nullptr) {
-                                                next_lmeta->lock();
-                                                if (next_lmeta->is_migrated == true) {
-                                                        is_next_key_migrated = true;
-                                                }
-                                                next_lmeta->unlock();
-                                        } else {
-                                                is_next_key_migrated = true;
-                                        }
-
-                                        // check if the previous key is migrated - if yes, update its next-key information
+                                        // take the latches of the previous and the next keys
                                         if (prev_lmeta != nullptr) {
                                                 prev_lmeta->lock();
+                                        }
+                                        if (next_lmeta != nullptr) {
+                                                next_lmeta->lock();
+                                        }
+
+                                        // update the next-key information for the previous key
+                                        if (prev_lmeta != nullptr) {
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                         prev_smeta->lock();
-                                                        if (is_next_key_migrated == true) {
-                                                                prev_smeta->is_next_key_real = true;
-                                                        } else {
+                                                        if (next_lmeta->is_migrated == false) {
                                                                 prev_smeta->is_next_key_real = false;
+                                                        } else {
+                                                                prev_smeta->is_next_key_real = true;
                                                         }
                                                         prev_smeta->unlock();
+
                                                 }
                                                 prev_lmeta->unlock();
                                         }
+
+                                        // update the prev-key information for next key
+                                        if (next_lmeta != nullptr) {
+                                                if (next_lmeta->is_migrated == true) {
+                                                        auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                                        next_smeta->lock();
+                                                        if (prev_lmeta->is_migrated == false) {
+                                                                next_smeta->is_prev_key_real = false;
+                                                        } else {
+                                                                next_smeta->is_prev_key_real = true;
+                                                        }
+                                                        next_smeta->unlock();
+                                                }
+                                                next_lmeta->unlock();
+                                        }
+
+                                        // release the latches of the previous and the next keys
+                                        if (prev_lmeta != nullptr) {
+                                                prev_lmeta->unlock();
+                                        }
+                                        if (next_lmeta != nullptr) {
+                                                next_lmeta->unlock();
+                                        }
                                 };
+
+                                bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
+                                CHECK(update_key_info_success == true);
 
                                 bool success = table->remove(key);
                                 CHECK(success == true);
