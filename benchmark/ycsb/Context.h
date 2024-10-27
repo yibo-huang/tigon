@@ -13,7 +13,7 @@ namespace star
 namespace ycsb
 {
 
-enum class YCSBWorkloadType { RMW, MIXED };
+enum class YCSBWorkloadType { RMW, SCAN, MIXED };
 
 enum class PartitionStrategy { RANGE, ROUND_ROBIN };
 

@@ -218,7 +218,7 @@ template <class Transaction> class Scan : public Transaction {
 	using RandomType = typename DatabaseType::RandomType;
 	using StorageType = Storage;
 
-	static constexpr std::size_t scan_num = 1;
+	static constexpr std::size_t scan_num = 2;
 
 	Scan(std::size_t coordinator_id, std::size_t partition_id, std::size_t granule_id, DatabaseType &db, const ContextType &context,
 			RandomType &random, Partitioner &partitioner, std::size_t ith_replica = 0)

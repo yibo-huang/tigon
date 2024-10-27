@@ -61,6 +61,10 @@ template <class Transaction> class Workload {
                         }
                 } else if (context.workloadType == YCSBWorkloadType::RMW) {
                         p = std::make_unique<ReadModifyWrite<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                } else if (context.workloadType == YCSBWorkloadType::SCAN) {
+                        p = std::make_unique<Scan<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                } else {
+                        CHECK(0);
                 }
 		p->txn_random_seed_start = random_seed;
 		p->transaction_id = next_transaction_id(coordinator_id, worker_id);

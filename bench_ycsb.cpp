@@ -4,7 +4,7 @@
 #include "common/WALLogger.h"
 #include "common/CXLMemory.h"
 
-DEFINE_string(query, "rmw", "ycsb query, mixed, rmw");
+DEFINE_string(query, "rmw", "ycsb query, mixed, rmw, scan");
 DEFINE_bool(lotus_sp_parallel_exec_commit, false, "parallel execution and commit for Lotus");
 DEFINE_int32(read_write_ratio, 80, "read write ratio");
 DEFINE_int32(read_only_ratio, 0, "read only transaction ratio");
@@ -41,6 +41,8 @@ int main(int argc, char *argv[])
 		context.workloadType = star::ycsb::YCSBWorkloadType::MIXED;
 	} else if (FLAGS_query == "rmw") {
 		context.workloadType = star::ycsb::YCSBWorkloadType::RMW;
+        } else if (FLAGS_query == "scan") {
+		context.workloadType = star::ycsb::YCSBWorkloadType::SCAN;
 	} else {
 		CHECK(false);
 	}
