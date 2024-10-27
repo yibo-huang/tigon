@@ -155,18 +155,33 @@ template <class Database> class TwoPLPasha {
 
                         // release the next row
                         if (scanKey.get_next_row_locked() == true) {
-                                auto next_row_entity = scanKey.get_next_row_entity();
-                                auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
-                                if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                        TwoPLPashaHelper::read_lock_release(*meta);
-                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                        TwoPLPashaHelper::write_lock_release(*meta);
-                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                        TwoPLPashaHelper::write_lock_release(*meta);
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto next_row_entity = scanKey.get_next_row_entity();
+                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
+                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+                                        if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                TwoPLPashaHelper::read_lock_release(*meta);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        } else {
+                                                CHECK(0);
+                                        }
                                 } else {
-                                        CHECK(0);
+                                        auto next_row_entity = scanKey.get_next_row_entity();
+                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                        CHECK(cxl_row != nullptr);
+                                        if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                TwoPLPashaHelper::remote_read_lock_release(cxl_row);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        } else {
+                                                CHECK(0);
+                                        }
                                 }
                         }
 
@@ -180,8 +195,11 @@ template <class Database> class TwoPLPasha {
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         }
 				} else {
-                                        // remote scan not supported
-					CHECK(0);
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::remote_read_lock_release(cxl_row);
+                                        }
 				}
 			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE ||
                                 scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
@@ -194,8 +212,11 @@ template <class Database> class TwoPLPasha {
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         }
 				} else {
-                                        // remote scan not supported
-					CHECK(0);
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        }
 				}
 			} else {
                                 CHECK(0);
@@ -520,8 +541,12 @@ template <class Database> class TwoPLPasha {
                                                 twopl_pasha_global_helper->update(row, value, value_size);
                                         }
                                 } else {
-                                        // remote scan not supported
-                                        CHECK(0);
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                auto value = cxl_row + sizeof(TwoPLPashaMetadataShared);
+                                                auto value_size = table->value_size();
+                                                twopl_pasha_global_helper->remote_update(cxl_row, value, value_size);
+                                        }
                                 }
                         }
 		}
@@ -588,48 +613,70 @@ template <class Database> class TwoPLPasha {
                         // release the next row
                         CHECK(scanKey.get_next_row_locked() == true);
                         if (scanKey.get_next_row_locked() == true) {
-                                auto next_row_entity = scanKey.get_next_row_entity();
-                                auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
-                                if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                        TwoPLPashaHelper::read_lock_release(*meta);
-                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                        TwoPLPashaHelper::write_lock_release(*meta);
-                                } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                        TwoPLPashaHelper::write_lock_release(*meta);
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto next_row_entity = scanKey.get_next_row_entity();
+                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
+                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+                                        if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                TwoPLPashaHelper::read_lock_release(*meta);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        } else {
+                                                CHECK(0);
+                                        }
                                 } else {
-                                        CHECK(0);
+                                        CHECK(scanKey.get_next_row_locked() == true);
+                                        auto next_row_entity = scanKey.get_next_row_entity();
+                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                        CHECK(cxl_row != nullptr);
+                                        if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                TwoPLPashaHelper::remote_read_lock_release(cxl_row);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        } else {
+                                                CHECK(0);
+                                        }
                                 }
                         }
 
-			if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                        if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                 // release read locks
-				if (partitioner.has_master_partition(partitionId)) {
+                                if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
                                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                                 CHECK(meta != 0);
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         }
-				} else {
-                                        // remote scan not supported
-					CHECK(0);
-				}
-			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                } else {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::remote_read_lock_release(cxl_row);
+                                        }
+                                }
+                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                 // release write locks for updates
-				if (partitioner.has_master_partition(partitionId)) {
+                                if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
                                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                                 CHECK(meta != 0);
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         }
-				} else {
-                                        // remote scan not supported
-					CHECK(0);
-				}
-			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                } else {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        }
+                                }
+                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                 // no need to release write locks for tuples to be deleted
                                 // because they are already removed!
                         } else {

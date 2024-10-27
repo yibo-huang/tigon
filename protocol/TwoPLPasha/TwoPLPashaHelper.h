@@ -541,6 +541,11 @@ out_unlock_lmeta:
                 while (init_finished.load(std::memory_order_acquire) == 0);
         }
 
+        CXLTableBase *get_cxl_table(std::size_t table_id, std::size_t partition_id)
+        {
+                return cxl_tbl_vecs[table_id][partition_id];
+        }
+
         char *get_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key, bool inc_ref_cnt)
         {
                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
@@ -657,23 +662,8 @@ out_unlock_lmeta:
 
                         CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
-                        bool is_next_key_migrated = false;
-                        bool is_prev_key_migrated = false;
-
-                        // check if the next tuple is migrated
-                        // and update its prev-key information
-                        if (next_lmeta != nullptr) {
-                                next_lmeta->lock();
-                                if (next_lmeta->is_migrated == true) {
-                                        TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                        next_smeta->lock();
-                                        next_smeta->is_prev_key_real = true;
-                                        next_smeta->unlock();
-
-                                        is_next_key_migrated = true;
-                                }
-                                next_lmeta->unlock();
-                        }
+                        bool is_next_key_migrated = false, next_key_exist = false;
+                        bool is_prev_key_migrated = false, prev_key_exist = false;
 
                         // check if the previous tuple is migrated
                         // and update its next-key information
@@ -688,6 +678,23 @@ out_unlock_lmeta:
                                         is_prev_key_migrated = true;
                                 }
                                 prev_lmeta->unlock();
+                                prev_key_exist = true;
+                        }
+
+                        // check if the next tuple is migrated
+                        // and update its prev-key information
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->lock();
+                                if (next_lmeta->is_migrated == true) {
+                                        TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                        next_smeta->lock();
+                                        next_smeta->is_prev_key_real = true;
+                                        next_smeta->unlock();
+
+                                        is_next_key_migrated = true;
+                                }
+                                next_lmeta->unlock();
+                                next_key_exist = true;
                         }
 
                         // check if the current tuple is migrated
@@ -722,14 +729,14 @@ out_unlock_lmeta:
                                 smeta->ref_cnt++;
 
                                 // update the next-key information
-                                if (is_next_key_migrated == true) {
+                                if (is_next_key_migrated == true || next_key_exist == false) {
                                         smeta->is_next_key_real = true;
                                 } else {
                                         smeta->is_next_key_real = false;
                                 }
 
                                 // update the prev-key information
-                                if (is_prev_key_migrated == true) {
+                                if (is_prev_key_migrated == true || prev_key_exist == false) {
                                         smeta->is_prev_key_real = true;
                                 } else {
                                         smeta->is_prev_key_real = false;

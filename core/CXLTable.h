@@ -18,7 +18,7 @@ class CXLTableBase {
 
 	virtual void *search(const void *key) = 0;
 
-        virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) = 0;
+        virtual void scan(const void *min_key, std::function<bool(const void *, void *, bool)> scan_processor) = 0;
 
 	virtual bool insert(const void *key, void *row, bool is_placeholder = false) = 0;
 
@@ -46,7 +46,7 @@ template <class KeyType> class CXLTableHashMap : public CXLTableBase {
                 return cxl_hashtable_->search(k.get_plain_key());
         }
 
-        virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) override
+        virtual void scan(const void *min_key, std::function<bool(const void *, void *, bool)> scan_processor) override
         {
                 CHECK(0);
         }
@@ -144,26 +144,19 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
                 }
         }
 
-        virtual void scan(const void *min_key, const void *max_key, uint64_t limit, void *results_ptr) override
+        virtual void scan(const void *min_key, std::function<bool(const void *, void *, bool)> scan_processor) override
         {
                 const auto &min_k = *static_cast<const KeyType *>(min_key);
-                const auto &max_k = *static_cast<const KeyType *>(max_key);
-                auto &results = *static_cast<std::vector<std::tuple<KeyType, void *> > *>(results_ptr);
 
-                auto processor = [&](const KeyType &key, BTreeOLCValue &value, bool) -> bool {
-                        if (limit != 0 && results.size() == limit)
-                                return true;
+                auto processor = [&](const KeyType &key, BTreeOLCValue &value, bool is_last_tuple) -> bool {
+                        bool should_end = scan_processor(&key, value.row.get(), is_last_tuple);
 
-                        if (KeyComparator()(key, max_k) > 0)
-                                return true;
-
-                        if (value.is_valid.load() == true) {
+                        if (should_end == false) {
                                 CHECK(KeyComparator()(key, min_k) >= 0);
-                                std::tuple<KeyType, void *> row_tuple(key, value.row.get());
-                                results.push_back(row_tuple);
+                                return false;
+                        } else {
+                                return true;
                         }
-
-                        return false;
 		};
 
                 cxl_btree_->scanForUpdate(min_k, processor);

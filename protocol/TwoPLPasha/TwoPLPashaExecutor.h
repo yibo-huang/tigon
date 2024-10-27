@@ -232,7 +232,69 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 table->scan(min_key, local_scan_processor);
                                 return scan_success;
                         } else {
-                                CHECK(0);      // right now we only support local scan
+                                // we do the next-key locking logic inside this function
+                                bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
+                                auto remote_scan_processor = [&](const void *key, void *cxl_row, bool is_last_tuple) -> bool {
+                                        CHECK(key != nullptr);
+                                        CHECK(cxl_row != nullptr);
+
+                                        bool locking_next_tuple = false;
+
+                                        if (is_last_tuple == true) {
+                                                locking_next_tuple = true;
+                                        } else if (limit != 0 && scan_results.size() == limit) {
+                                                locking_next_tuple = true;
+                                        } else if (table->compare_key(key, max_key) > 0) {
+                                                locking_next_tuple = true;
+                                        }
+
+                                        CHECK(table->compare_key(key, min_key) >= 0);
+
+                                        // check if the previous key and the next key are real
+                                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
+                                        smeta->lock();
+                                        CHECK(smeta->is_next_key_real == true);
+                                        CHECK(smeta->is_prev_key_real == true);
+                                        smeta->unlock();
+
+                                        // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
+                                        // But we can ignore it for now because we never generate
+                                        // transactions with duplicated or overlapped queries.
+
+                                        // try to acquire the lock
+                                        bool lock_success = false;
+                                        if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                TwoPLPashaHelper::remote_read_lock(reinterpret_cast<char *>(cxl_row), lock_success);
+                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::remote_write_lock(reinterpret_cast<char *>(cxl_row), lock_success);
+                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                TwoPLPashaHelper::remote_write_lock(reinterpret_cast<char *>(cxl_row), lock_success);
+                                        }
+
+                                        if (lock_success == true) {
+                                                // acquiring lock succeeds
+                                                ITable::row_entity cur_row(key, table->key_size(), nullptr, cxl_row, table->value_size());
+                                                if (locking_next_tuple == false) {
+                                                        scan_results.push_back(cur_row);
+                                                        // continue scan
+                                                        return false;
+                                                } else {
+                                                        // scan succeeds - store the next-tuple and quit
+                                                        next_row_entity = cur_row;
+                                                        scan_success = true;
+                                                        return true;
+                                                }
+                                        } else {
+                                                // stop and fail immediately if we fail to acquire a lock
+                                                scan_success = false;
+                                                return true;
+                                        }
+                                };
+
+                                CXLTableBase *target_cxl_table = twopl_pasha_global_helper->get_cxl_table(table_id, partition_id);
+                                target_cxl_table->scan(min_key, remote_scan_processor);
+                                CHECK(scan_success == true);
+                                return scan_success;
                         }
 		};
 
