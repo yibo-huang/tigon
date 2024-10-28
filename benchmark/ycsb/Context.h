@@ -114,7 +114,7 @@ class Context : public star::Context {
 
 	bool isUniform = true;
 
-	PartitionStrategy strategy = PartitionStrategy::ROUND_ROBIN;
+	PartitionStrategy strategy = PartitionStrategy::RANGE;
 };
 bool Context::tested = false;
 } // namespace ycsb
