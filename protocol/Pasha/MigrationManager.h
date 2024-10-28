@@ -19,7 +19,7 @@ class MigrationManager {
                 Reactive
         };
 
-        MigrationManager(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region,
+        MigrationManager(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool)> move_from_partition_to_shared_region,
                          std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                          const std::string when_to_move_out_str)
         : move_from_partition_to_shared_region(move_from_partition_to_shared_region)
@@ -55,11 +55,11 @@ class MigrationManager {
                 std::tuple<MetaDataType *, void *> local_row;
         };
 
-        virtual bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row) = 0;
+        virtual bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) = 0;
         virtual bool move_row_out() = 0;
 
         // user-provided functions
-        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_partition_to_shared_region;
+        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt)> move_from_partition_to_shared_region;
         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition;
 
         // when to move out

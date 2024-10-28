@@ -420,7 +420,7 @@ out_lmeta_unlock:
                 smeta->unlock();
         }
 
-        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
@@ -457,7 +457,9 @@ out_lmeta_unlock:
                         smeta->is_valid = true;
 
                         // increase the reference count for the requesting host
-                        smeta->ref_cnt++;
+                        if (inc_ref_cnt == true) {
+                                smeta->ref_cnt++;
+                        }
 
                         // insert into the corresponding CXL table
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
@@ -475,14 +477,14 @@ out_lmeta_unlock:
 
                         move_in_success = true;
                 } else {
-                        // increase the reference count for the requesting host, even if it is already migrated
-                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
-
-                        smeta->lock();
-                        CHECK(smeta->is_valid == true);
-                        smeta->ref_cnt++;
-                        smeta->unlock();
-
+                        if (inc_ref_cnt == true) {
+                                // increase the reference count for the requesting host, even if it is already migrated
+                                SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                                smeta->lock();
+                                CHECK(smeta->is_valid == true);
+                                smeta->ref_cnt++;
+                                smeta->unlock();
+                        }
                         move_in_success = false;
                 }
 		lmeta->unlock();
@@ -490,7 +492,7 @@ out_lmeta_unlock:
 		return move_in_success;
 	}
 
-        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
@@ -549,7 +551,9 @@ out_lmeta_unlock:
                                 smeta->is_valid = true;
 
                                 // increase the reference count for the requesting host
-                                smeta->ref_cnt++;
+                                if (inc_ref_cnt == true) {
+                                        smeta->ref_cnt++;
+                                }
 
                                 // update the next-key information
                                 if (is_next_key_migrated == true) {
@@ -572,14 +576,14 @@ out_lmeta_unlock:
 
                                 move_in_success = true;
                         } else {
-                                // increase the reference count for the requesting host, even if it is already migrated
-                                SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
-
-                                smeta->lock();
-                                CHECK(smeta->is_valid == true);
-                                smeta->ref_cnt++;
-                                smeta->unlock();
-
+                                if (inc_ref_cnt == true) {
+                                        // increase the reference count for the requesting host, even if it is already migrated
+                                        SundialPashaMetadataShared *smeta = reinterpret_cast<SundialPashaMetadataShared *>(lmeta->migrated_row);
+                                        smeta->lock();
+                                        CHECK(smeta->is_valid == true);
+                                        smeta->ref_cnt++;
+                                        smeta->unlock();
+                                }
                                 move_in_success = false;
                         }
                         lmeta->unlock();
@@ -606,14 +610,14 @@ out_lmeta_unlock:
 		return move_in_success;
 	}
 
-        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
 	{
                 bool move_in_success = false;
 
                 if (table->tableType() == ITable::HASHMAP) {
-                        move_in_success = move_from_hashmap_to_shared_region(table, key, row);
+                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt);
                 } else if (table->tableType() == ITable::BTREE) {
-                        move_in_success = move_from_btree_to_shared_region(table, key, row);
+                        move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt);
                 } else {
                         CHECK(0);
                 }

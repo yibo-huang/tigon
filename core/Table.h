@@ -112,7 +112,7 @@ class ITable {
 		return []() {};
 	}
 
-        virtual void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func)
+        virtual void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
         {
                 CHECK(0);
         }
@@ -327,13 +327,13 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
                 return HASHMAP;
         }
 
-        void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
+        void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func) override
         {
                 auto processor = [&](const KeyType &key, std::tuple<MetaDataType, ValueType> &row) {
                         MetaDataType *meta_ptr = &std::get<0>(row);
                         ValueType *data_ptr = &std::get<1>(row);
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
-			bool ret = move_in_func(this, &key, row_tuple);
+			bool ret = move_in_func(this, &key, row_tuple, false);
                         CHECK(ret == true);
 		};
 
@@ -660,13 +660,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 return BTREE;
         }
 
-        void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &)> move_in_func) override
+        void move_all_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func) override
         {
                 auto processor = [&](const KeyType &key, BTreeOLCValue &value, bool) -> bool {
                         MetaDataType *meta_ptr = &value.row->meta;
                         ValueType *data_ptr = &value.row->data;
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
-			bool ret = move_in_func(this, &key, row_tuple);
+			bool ret = move_in_func(this, &key, row_tuple, false);
                         CHECK(ret == true);
                         return false;
 		};

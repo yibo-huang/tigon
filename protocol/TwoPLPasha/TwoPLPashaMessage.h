@@ -111,7 +111,7 @@ class TwoPLPashaMessageHandler {
 
                 // move the tuple to the shared region if it is not currently there
                 // the return value does not matter
-                migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row);
+                migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row, true);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
