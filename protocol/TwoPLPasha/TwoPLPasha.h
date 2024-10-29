@@ -687,9 +687,8 @@ template <class Database> class TwoPLPasha {
 
         void release_migrated_rows(TransactionType &txn)
         {
+                // release rows in the read set
                 auto &readSet = txn.readSet;
-
-                // release rows that are read but not written
 		for (auto i = 0u; i < readSet.size(); ++i) {
 			auto &readKey = readSet[i];
                         auto tableId = readKey.get_table_id();
@@ -702,6 +701,33 @@ template <class Database> class TwoPLPasha {
                                 twopl_pasha_global_helper->release_migrated_row(tableId, partitionId, key);
                         }
 		}
+
+                // release rows in the scan set
+                auto &scanSet = txn.scanSet;
+		for (auto i = 0u; i < scanSet.size(); i++) {
+                        // release read locks in the scanSet
+			auto &scanKey = scanSet[i];
+			auto tableId = scanKey.get_table_id();
+			auto partitionId = scanKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
+
+                        if (partitioner.has_master_partition(partitionId) == false) {
+                                // release the next row
+                                if (scanKey.get_next_row_locked() == true) {
+                                        auto next_row_entity = scanKey.get_next_row_entity();
+                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                        CHECK(cxl_row != nullptr);
+                                        TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                }
+
+                                for (auto i = 0u; i < scan_results.size(); i++) {
+                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                        CHECK(cxl_row != nullptr);
+                                        TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                }
+                        }
+                }
         }
 
 	void sync_messages(TransactionType &txn, bool wait_response = true)

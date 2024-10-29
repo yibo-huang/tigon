@@ -163,7 +163,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 		};
 
                 txn.scanRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *min_key, const void *max_key,
-                                                uint64_t limit, int type, void *results, ITable::row_entity &next_row_entity) -> bool {
+                                                uint64_t limit, int type, void *results, ITable::row_entity &next_row_entity, bool &migration_required) -> bool {
 			ITable *table = this->db.find_table(table_id, partition_id);
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(results);
                         auto value_size = table->value_size();
@@ -230,6 +230,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 };
 
                                 table->scan(min_key, local_scan_processor);
+                                migration_required = false;     // local scan does not require data migration
                                 return scan_success;
                         } else {
                                 // we do the next-key locking logic inside this function
@@ -253,22 +254,43 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         // check if the previous key and the next key are real
                                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
                                         smeta->lock();
-                                        CHECK(smeta->is_next_key_real == true);
-                                        CHECK(smeta->is_prev_key_real == true);
+                                        if (table->compare_key(key, min_key) == 0) {
+                                                // if the first key matches the min_key, then we do not care about the previous key
+                                                CHECK(scan_results.size() == 0);
+                                                if (smeta->is_next_key_real == false) {
+                                                        migration_required = true;
+                                                }
+                                        } else if (scan_results.size() == limit) {
+                                                // we do not care about the next key of the next key
+                                                if (smeta->is_prev_key_real == false) {
+                                                        migration_required = true;
+                                                }
+                                        } else {
+                                                // for intermediate keys, we care about both the next and previous keys
+                                                if (smeta->is_next_key_real == false || smeta->is_prev_key_real == false) {
+                                                        migration_required = true;
+                                                }
+                                        }
                                         smeta->unlock();
+
+                                        // stop immediately if data migration is needed
+                                        if (migration_required == true) {
+                                                scan_success = false;
+                                                return true;
+                                        }
 
                                         // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
                                         // But we can ignore it for now because we never generate
                                         // transactions with duplicated or overlapped queries.
 
-                                        // try to acquire the lock
+                                        // try to acquire the lock and increase the reference count if locking succeeds
                                         bool lock_success = false;
                                         if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                                TwoPLPashaHelper::remote_read_lock(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                                TwoPLPashaHelper::remote_write_lock(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                                TwoPLPashaHelper::remote_write_lock(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                                         }
 
                                         if (lock_success == true) {
@@ -293,7 +315,36 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                                 CXLTableBase *target_cxl_table = twopl_pasha_global_helper->get_cxl_table(table_id, partition_id);
                                 target_cxl_table->scan(min_key, remote_scan_processor);
-                                CHECK(scan_success == true);
+
+                                // we assume that every scan will return at least one value - similar to our assumption on point queries
+                                // so if the results are none, we need to do data migration!
+                                if (scan_results.size() == 0) {
+                                        migration_required = true;
+                                }
+
+                                if (migration_required == true) {
+                                        CHECK(scan_success == false);
+                                        // data is not in the shared region
+                                        // ask the remote host to do the data migration
+                                        auto coordinatorID = this->partitioner->master_coordinator(partition_id);
+                                        txn.network_size += MessageFactoryType::new_data_migration_message_for_scan(*(this->messages[coordinatorID]), *table, min_key, max_key, limit, txn.transaction_id, key_offset);
+                                        txn.pendingResponses++;
+
+                                        // release locks
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto cxl_row = scan_results[i].data;
+                                                if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                                        TwoPLPashaHelper::remote_read_lock_release(reinterpret_cast<char *>(cxl_row));
+                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                        TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
+                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                                        TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
+                                                }
+                                                TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                        }
+
+                                        scan_results.clear();
+                                }
                                 return scan_success;
                         }
 		};

@@ -377,14 +377,22 @@ class TwoPLPashaTransaction {
 
 			const TwoPLPashaRWKey &scanKey = scanSet[i];
                         ITable::row_entity next_row_entity;
+                        bool migration_required = false;
 			bool success = scanRequestHandler(scanKey.get_table_id(), scanKey.get_partition_id(), i, scanKey.get_scan_min_key(), scanKey.get_scan_max_key(),
-                                        scanKey.get_scan_limit(), scanKey.get_request_type(), scanKey.get_scan_res_vec(), next_row_entity);
-                        if (success == false) {
-                                ret = true;
-                                goto process_net_req_and_ret;
+                                        scanKey.get_scan_limit(), scanKey.get_request_type(), scanKey.get_scan_res_vec(), next_row_entity, migration_required);
+                        if (migration_required == false) {
+                                if (success == false) {
+                                        // we fail because of failing to get locks
+                                        this->abort_lock = true;
+                                        ret = true;
+                                        goto process_net_req_and_ret;
+                                }
+                                // scan succeeds
+                                scanSet[i].set_next_row_entity(next_row_entity);
+                                scanSet[i].set_next_row_locked();
+                        } else {
+                                // do nothing
                         }
-                        scanSet[i].set_next_row_entity(next_row_entity);
-                        scanSet[i].set_next_row_locked();
                         scanSet[i].set_processed();
 		}
 
@@ -492,7 +500,7 @@ process_net_req_and_ret:
 	// success?, remote?
 	std::function<uint64_t(std::size_t, std::size_t, uint32_t, const void *, void *, bool, bool, bool &, bool &)> lock_request_handler;
         // table id, partition id, key_offset, min_key, max_key, results
-	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, int, void *, ITable::row_entity &)> scanRequestHandler;
+	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, int, void *, ITable::row_entity &, bool &)> scanRequestHandler;
         // table id, partition id, key_offset, key, value
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, void *, bool, ITable::row_entity &)> insertRequestHandler;
         // table id, partition id, key_offset, key

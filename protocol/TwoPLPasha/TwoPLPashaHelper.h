@@ -262,6 +262,9 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
+
+                // because this function is only called by remote point queries
+                // so this assertion should always succeed
                 CHECK(smeta->is_valid == true);
 
                 old_value = smeta->tid;
@@ -283,6 +286,39 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
+        static uint64_t remote_read_lock_and_inc_ref_cnt(char *row, bool &success)
+	{
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value = 0, new_value = 0;
+
+		smeta->lock();
+                if (smeta->is_valid == false) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                old_value = smeta->tid;
+
+                // can we get the lock?
+                if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+                success = true;
+
+                // increase reference counting only if we get the lock
+                smeta->ref_cnt++;
+
+                smeta->unlock();
+
+		return remove_lock_bit(old_value);
+	}
 
 	static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
@@ -340,6 +376,9 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
+
+                // because this function is only called by remote point queries
+                // so this assertion should always succeed
                 CHECK(smeta->is_valid == true);
 
                 old_value = smeta->tid;
@@ -355,6 +394,40 @@ out_unlock_lmeta:
                 new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
                 smeta->tid = new_value;
                 success = true;
+
+                smeta->unlock();
+
+		return remove_lock_bit(old_value);
+	}
+
+        static uint64_t remote_write_lock_and_inc_ref_cnt(char *row, bool &success)
+	{
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                uint64_t old_value = 0, new_value = 0;
+
+		smeta->lock();
+                if (smeta->is_valid == false) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                old_value = smeta->tid;
+
+                // can we get the lock?
+                if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+                success = true;
+
+                // increase reference counting only if we get the lock
+                smeta->ref_cnt++;
 
                 smeta->unlock();
 
@@ -546,6 +619,7 @@ out_unlock_lmeta:
                 return cxl_tbl_vecs[table_id][partition_id];
         }
 
+        // used for remote point queries
         char *get_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key, bool inc_ref_cnt)
         {
                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
@@ -566,6 +640,7 @@ out_unlock_lmeta:
                 return migrated_row;
         }
 
+        // used for remote point queries
         void release_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key)
         {
                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
@@ -573,6 +648,17 @@ out_unlock_lmeta:
                 CHECK(migrated_row != nullptr);
 
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
+                smeta->lock();
+                CHECK(smeta->is_valid == true);
+                CHECK(smeta->ref_cnt > 0);
+                smeta->ref_cnt--;
+                smeta->unlock();
+        }
+
+        // used for remote scan
+        static void decrease_reference_count_via_ptr(void *cxl_row)
+        {
+                TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
                 smeta->lock();
                 CHECK(smeta->is_valid == true);
                 CHECK(smeta->ref_cnt > 0);

@@ -20,6 +20,8 @@ namespace star
 enum class TwoPLPashaMessage {
 	DATA_MIGRATION_REQUEST = static_cast<int>(ControlMessage::NFIELDS),
         DATA_MIGRATION_RESPONSE,
+        DATA_MIGRATION_REQUEST_FOR_SCAN,
+        DATA_MIGRATION_RESPONSE_FOR_SCAN,
         DATA_MOVEOUT_HINT,
         REPLICATION_REQUEST,
 	REPLICATION_RESPONSE,
@@ -43,6 +45,30 @@ class TwoPLPashaMessageFactory {
 		Encoder encoder(message.data);
 		encoder << message_piece_header;
 		encoder.write_n_bytes(key, key_size);
+		encoder << transaction_id;
+		encoder << key_offset;
+		message.flush();
+		message.set_gen_time(Time::now());
+		return message_size;
+	}
+
+        static std::size_t new_data_migration_message_for_scan(Message &message, ITable &table, const void *min_key, const void *max_key, uint64_t limit, uint64_t transaction_id, uint32_t key_offset)
+	{
+		/*
+		 * The structure of a data migration request: (min_key, max_key, limit, transaction_id, key_offset)
+		 */
+
+		auto key_size = table.key_size();
+
+		auto message_size = MessagePiece::get_header_size() + key_size + key_size + sizeof(limit) + sizeof(transaction_id) + sizeof(key_offset);
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(TwoPLPashaMessage::DATA_MIGRATION_REQUEST_FOR_SCAN),
+                                                                                         message_size, table.tableID(), table.partitionID());
+
+		Encoder encoder(message.data);
+		encoder << message_piece_header;
+		encoder.write_n_bytes(min_key, key_size);
+                encoder.write_n_bytes(max_key, key_size);
+                encoder << limit;
 		encoder << transaction_id;
 		encoder << key_offset;
 		message.flush();
@@ -189,6 +215,233 @@ class TwoPLPashaMessageHandler {
                 txn->pendingResponses--;
 	}
 
+        static void data_migration_request_for_scan_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	{
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(TwoPLPashaMessage::DATA_MIGRATION_REQUEST_FOR_SCAN));
+		auto table_id = inputPiece.get_table_id();
+		auto partition_id = inputPiece.get_partition_id();
+		DCHECK(table_id == table.tableID());
+		DCHECK(partition_id == table.partitionID());
+		auto key_size = table.key_size();
+		auto value_size = table.value_size();
+
+		/*
+		 * The structure of a data migration request: (min_key, max_key, limit, transaction_id, key_offset)
+		 * The structure of a data migration response: (success, key_offset)
+		 */
+
+		auto stringPiece = inputPiece.toStringPiece();
+                uint64_t limit;
+		uint64_t transaction_id;
+		uint32_t key_offset;
+                bool success = false;
+
+		DCHECK(inputPiece.get_message_length() ==
+		       MessagePiece::get_header_size() + key_size + sizeof(transaction_id) + sizeof(key_offset));
+
+		// get min_key
+		const void *min_key = stringPiece.data();
+		stringPiece.remove_prefix(key_size);
+
+                // get max_key
+                const void *max_key = stringPiece.data();
+		stringPiece.remove_prefix(key_size);
+
+                // get limit, transaction_id, and key_offset
+		star::Decoder dec(stringPiece);
+		dec >> limit >> transaction_id >> key_offset;
+
+		DCHECK(dec.size() == 0);
+
+                // do a scan to find all the tuples within the range plus the next tuple
+                std::vector<ITable::row_entity> scan_results;
+                auto scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
+                        CHECK(key != nullptr);
+                        CHECK(meta_ptr != nullptr);
+                        CHECK(data_ptr != nullptr);
+
+                        bool migrating_next_key = false;
+
+                        if (limit != 0 && scan_results.size() == limit) {
+                                migrating_next_key = true;
+                        } else if (table.compare_key(key, max_key) > 0) {
+                                migrating_next_key = true;
+                        }
+
+                        CHECK(table.compare_key(key, min_key) >= 0);
+
+                        // record the current row in scan_results
+                        // we do not care about the return value of move_row_in
+                        ITable::row_entity cur_row(key, table.key_size(), meta_ptr, data_ptr, table.value_size());
+                        scan_results.push_back(cur_row);
+
+                        if (migrating_next_key == true) {
+                                return true;
+                        } else {
+                                return false;
+                        }
+                };
+                table.scan(min_key, scan_processor);
+
+                // move in every tuple - the return value does not matter
+                // note that we do NOT increase reference count here!
+                for (int i = 0; i < scan_results.size(); i++) {
+                        std::tuple<std::atomic<uint64_t> *, void *> row_tuple(scan_results[i].meta, scan_results[i].data);
+                        migration_manager->move_row_in(&table, scan_results[i].key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row_tuple, false);
+                }
+
+		// prepare response message header
+		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(TwoPLPashaMessage::DATA_MIGRATION_RESPONSE_FOR_SCAN), message_size,
+                                                                                         table_id, partition_id);
+
+		star::Encoder encoder(responseMessage.data);
+		encoder << message_piece_header;
+                encoder << success << key_offset;
+		responseMessage.flush();
+	}
+
+        static void data_migration_response_for_scan_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	{
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(TwoPLPashaMessage::DATA_MIGRATION_RESPONSE_FOR_SCAN));
+		auto table_id = inputPiece.get_table_id();
+		auto partition_id = inputPiece.get_partition_id();
+		DCHECK(table_id == table.tableID());
+		DCHECK(partition_id == table.partitionID());
+		auto key_size = table.key_size();
+		auto value_size = table.value_size();
+
+		/*
+		 * The structure of a data migration request: (key, transaction_id, key_offset)
+		 * The structure of a data migration response: (success, key_offset)
+		 */
+
+		auto stringPiece = inputPiece.toStringPiece();
+		uint32_t key_offset;
+		bool success;
+
+		DCHECK(inputPiece.get_message_length() ==
+		       MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset));
+
+		Decoder dec(stringPiece);
+		dec >> success >> key_offset;
+                DCHECK(success == true);
+
+		TwoPLPashaRWKey &scanKey = txn->scanSet[key_offset];
+                uint64_t tid = 0;
+
+                const void *min_key = scanKey.get_scan_min_key();
+                const void *max_key = scanKey.get_scan_max_key();
+                uint64_t limit = scanKey.get_scan_limit();
+                int type = scanKey.get_request_type();
+                std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
+
+                // we do the next-key locking logic inside this function
+                bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
+                bool migration_required = false;
+                auto remote_scan_processor = [&](const void *key, void *cxl_row, bool is_last_tuple) -> bool {
+                        CHECK(key != nullptr);
+                        CHECK(cxl_row != nullptr);
+                        CHECK(scan_results.size() <= limit);
+
+                        bool locking_next_tuple = false;
+
+                        if (is_last_tuple == true) {
+                                locking_next_tuple = true;
+                        } else if (limit != 0 && scan_results.size() == limit) {
+                                locking_next_tuple = true;
+                        } else if (table.compare_key(key, max_key) > 0) {
+                                locking_next_tuple = true;
+                        }
+
+                        CHECK(table.compare_key(key, min_key) >= 0);
+
+                        // check if the previous key and the next key are real
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
+                        smeta->lock();
+                        if (table.compare_key(key, min_key) == 0) {
+                                // if the first key matches the min_key, then we do not care about the previous key
+                                CHECK(scan_results.size() == 0);
+                                if (smeta->is_next_key_real == false) {
+                                        migration_required = true;
+                                }
+                        } else if (scan_results.size() == limit) {
+                                // we do not care about the next key of the next key
+                                if (smeta->is_prev_key_real == false) {
+                                        migration_required = true;
+                                }
+                        } else {
+                                // for intermediate keys, we care about both the next and previous keys
+                                if (smeta->is_next_key_real == false || smeta->is_prev_key_real == false) {
+                                        migration_required = true;
+                                }
+                        }
+                        smeta->unlock();
+
+                        // stop immediately if data migration is needed
+                        if (migration_required == true) {
+                                scan_success = false;
+                                return true;
+                        }
+
+                        // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
+                        // But we can ignore it for now because we never generate
+                        // transactions with duplicated or overlapped queries.
+
+                        // try to acquire the lock and increase the reference count if locking succeeds
+                        bool lock_success = false;
+                        if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
+                                TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                        }
+
+                        if (lock_success == true) {
+                                // acquiring lock succeeds
+                                ITable::row_entity cur_row(key, table.key_size(), nullptr, cxl_row, table.value_size());
+                                if (locking_next_tuple == false) {
+                                        scan_results.push_back(cur_row);
+                                        // continue scan
+                                        return false;
+                                } else {
+                                        // scan succeeds - store the next-tuple and quit
+                                        scanKey.set_next_row_entity(cur_row);
+                                        scanKey.set_next_row_locked();
+                                        scan_success = true;
+                                        return true;
+                                }
+                        } else {
+                                // stop and fail immediately if we fail to acquire a lock
+                                scan_success = false;
+                                return true;
+                        }
+                };
+
+                CXLTableBase *target_cxl_table = twopl_pasha_global_helper->get_cxl_table(table_id, partition_id);
+                target_cxl_table->scan(min_key, remote_scan_processor);
+
+                if (migration_required == true) {
+                        // if race condition happens, we abort and try again later
+                        // race condition example: the row is moved out before we access it
+                        CHECK(scan_success == false);
+                        txn->abort_lock = true;
+                } else {
+                        if (scan_success == false) {
+                                txn->abort_lock = true;
+                        } else {
+                                // remote scan succeed!
+                                // do nothing
+                        }
+                }
+
+                // mark it as reference counted so that we know if we need to release it upon commit/abort
+                scanKey.set_reference_counted();
+
+                txn->pendingResponses--;
+	}
+
         static void data_move_out_hint_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
                 migration_manager->move_row_out();
@@ -211,6 +464,8 @@ class TwoPLPashaMessageHandler {
 		v.resize(static_cast<int>(ControlMessage::NFIELDS));
 		v.push_back(data_migration_request_handler);
 		v.push_back(data_migration_response_handler);
+		v.push_back(data_migration_request_for_scan_handler);
+		v.push_back(data_migration_response_for_scan_handler);
                 v.push_back(data_move_out_hint_handler);
                 // replication is not supported
                 // v.push_back(replication_request_handler);
