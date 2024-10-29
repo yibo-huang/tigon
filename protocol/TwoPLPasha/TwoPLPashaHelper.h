@@ -672,11 +672,6 @@ out_unlock_lmeta:
                         if (prev_lmeta != nullptr) {
                                 prev_lmeta->lock();
                                 if (prev_lmeta->is_migrated == true) {
-                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                        prev_smeta->lock();
-                                        prev_smeta->is_next_key_real = true;
-                                        prev_smeta->unlock();
-
                                         is_prev_key_migrated = true;
                                 }
                                 prev_lmeta->unlock();
@@ -688,11 +683,6 @@ out_unlock_lmeta:
                         if (next_lmeta != nullptr) {
                                 next_lmeta->lock();
                                 if (next_lmeta->is_migrated == true) {
-                                        TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                        next_smeta->lock();
-                                        next_smeta->is_prev_key_real = true;
-                                        next_smeta->unlock();
-
                                         is_next_key_migrated = true;
                                 }
                                 next_lmeta->unlock();
@@ -758,6 +748,30 @@ out_unlock_lmeta:
                                 // release the CXL latch
                                 smeta->unlock();
 
+                                // lazily update the next-key information for the previous key
+                                if (prev_lmeta != nullptr) {
+                                        prev_lmeta->lock();
+                                        if (prev_lmeta->is_migrated == true) {
+                                                auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                                prev_smeta->lock();
+                                                prev_smeta->is_next_key_real = true;
+                                                prev_smeta->unlock();
+                                        }
+                                        prev_lmeta->unlock();
+                                }
+
+                                // lazily update the next-key information for the previous key
+                                if (next_lmeta != nullptr) {
+                                        next_lmeta->lock();
+                                        if (next_lmeta->is_migrated == true) {
+                                                TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                                next_smeta->lock();
+                                                next_smeta->is_prev_key_real = true;
+                                                next_smeta->unlock();
+                                        }
+                                        next_lmeta->unlock();
+                                }
+
                                 move_in_success = true;
                         } else {
                                 if (inc_ref_cnt == true) {
@@ -769,6 +783,8 @@ out_unlock_lmeta:
                                         smeta->unlock();
                                 }
                                 move_in_success = false;
+
+                                // the next-key information should already been updated
                         }
                         lmeta->unlock();
 		};
@@ -878,7 +894,7 @@ out_unlock_lmeta:
 
                         CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
-                        // update the next-key information for the previous tuple
+                        // eagerly update the next-key information for the previous tuple
                         if (prev_lmeta != nullptr) {
                                 prev_lmeta->lock();
                                 if (prev_lmeta->is_migrated == true) {
@@ -890,7 +906,7 @@ out_unlock_lmeta:
                                 prev_lmeta->unlock();
                         }
 
-                        // update the prev-key information for the next tuple
+                        // eagerly update the prev-key information for the next tuple
                         if (next_lmeta != nullptr) {
                                 next_lmeta->lock();
                                 if (next_lmeta->is_migrated == true) {
@@ -931,12 +947,6 @@ out_unlock_lmeta:
                                 // set the migrated row as invalid
                                 smeta->is_valid = false;
 
-                                // remove the current-key from the CXL index
-                                // it is safe to do so because there is no concurrent data move in/out
-                                CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                                ret = target_cxl_table->remove(key, nullptr);
-                                CHECK(ret == true);
-
                                 // mark the local row as not migrated
                                 lmeta->migrated_row = nullptr;
                                 lmeta->is_migrated = false;
@@ -949,6 +959,12 @@ out_unlock_lmeta:
 
                                 // release the CXL latch
                                 smeta->unlock();
+
+                                // remove the current-key from the CXL index
+                                // it is safe to do so because there is no concurrent data move in/out
+                                CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
+                                ret = target_cxl_table->remove(key, nullptr);
+                                CHECK(ret == true);
                         } else {
                                 CHECK(0);
                         }
