@@ -14,6 +14,8 @@ class MigrationManager {
     public:
         using MetaDataType = std::atomic<uint64_t>;
 
+        static constexpr uint64_t migration_policy_meta_size = 128;        // in bytes
+
         enum {
                 OnDemand,
                 Reactive
@@ -55,8 +57,16 @@ class MigrationManager {
                 std::tuple<MetaDataType *, void *> local_row;
         };
 
+        virtual void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
+        {
+        }
+
+        virtual void access_row(void *migration_policy_meta, uint64_t partition_id)
+        {
+        }
+
         virtual bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) = 0;
-        virtual bool move_row_out() = 0;
+        virtual bool move_row_out(uint64_t partition_id) = 0;
 
         // user-provided functions
         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt)> move_from_partition_to_shared_region;

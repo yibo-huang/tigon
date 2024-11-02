@@ -48,8 +48,8 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         CHECK(sundial_pasha_global_helper != nullptr);
 
                         // init migration manager
-                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy,
-                                context.when_to_move_out, context.max_migrated_rows_size);
+                        migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy, context.coordinator_id,
+                                context.partition_num, context.when_to_move_out, context.max_migrated_rows_size);
 
                         // init software cache-coherence manager
                         scc_manager = SCCManagerFactory::create_scc_manager(context.scc_mechanism);

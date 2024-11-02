@@ -86,6 +86,9 @@ struct TwoPLPashaMetadataShared {
         // a migrated tuple can be invalid if it is deleted or migrated out
         bool is_valid{ false };
 
+        // migration policy metadata
+        char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
+
         // software cache-coherence metadata
         uint64_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
 
@@ -624,6 +627,7 @@ out_unlock_lmeta:
         {
                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
                 char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(key));
+                void *migration_policy_meta = nullptr;
 
                 if (migrated_row != nullptr) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
@@ -631,11 +635,16 @@ out_unlock_lmeta:
                         if (smeta->is_valid == true) {
                                 if (inc_ref_cnt == true) {
                                         smeta->ref_cnt++;
+                                        migration_policy_meta = &smeta->migration_policy_meta;
                                 }
                         } else {
                                 migrated_row = nullptr;
                         }
                         smeta->unlock();
+                }
+
+                if (migration_policy_meta != nullptr) {
+                        migration_manager->access_row(migration_policy_meta, partition_id);
                 }
 
                 return migrated_row;
@@ -671,6 +680,7 @@ out_unlock_lmeta:
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                TwoPLPashaMetadataShared *smeta_export = nullptr;
                 void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
@@ -684,6 +694,9 @@ out_unlock_lmeta:
                         char *migrated_row_value_ptr = migrated_row_ptr + sizeof(TwoPLPashaMetadataShared);
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
                         new(smeta) TwoPLPashaMetadataShared();
+
+                        // init migration policy metadata
+                        migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
 
                         // init software cache-coherence metadata
                         scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
@@ -719,6 +732,8 @@ out_unlock_lmeta:
 
                         // LOG(INFO) << "moved in a row with key " << key << " from table " << table->tableID();
 
+                        smeta_export = smeta;
+
                         move_in_success = true;
                 } else {
                         if (inc_ref_cnt == true) {
@@ -733,6 +748,12 @@ out_unlock_lmeta:
                 }
 		lmeta->unlock();
 
+                if (move_in_success == true) {
+                        // track row for LRU
+                        CHECK(smeta_export != nullptr);
+                        migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
+                }
+
 		return move_in_success;
 	}
 
@@ -740,6 +761,7 @@ out_unlock_lmeta:
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                TwoPLPashaMetadataShared *smeta_export = nullptr;
                 void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
@@ -789,6 +811,9 @@ out_unlock_lmeta:
                                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
                                 new(smeta) TwoPLPashaMetadataShared();
 
+                                // init migration policy metadata
+                                migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+
                                 // init software cache-coherence metadata
                                 scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
 
@@ -831,6 +856,8 @@ out_unlock_lmeta:
                                 // mark the local row as migrated
                                 lmeta->migrated_row = migrated_row_ptr;
                                 lmeta->is_migrated = true;
+
+                                smeta_export = smeta;
 
                                 // release the CXL latch
                                 smeta->unlock();
@@ -879,6 +906,13 @@ out_unlock_lmeta:
                 // update next-key information
                 ret = table->search_and_update_next_key_info(key, move_in_processor);
                 CHECK(ret == true);
+
+
+                if (move_in_success == true) {
+                        // track row for LRU
+                        CHECK(smeta_export != nullptr);
+                        migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
+                }
 
 		return move_in_success;
 	}

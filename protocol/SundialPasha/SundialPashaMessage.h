@@ -127,7 +127,7 @@ class SundialPashaMessageHandler {
 
                 if (migration_manager->when_to_move_out == MigrationManager::OnDemand) {
                         // after moving in the tuple, we move out tuples
-                        migration_manager->move_row_out();
+                        migration_manager->move_row_out(table.partitionID());
                 }
 	}
 
@@ -191,7 +191,7 @@ class SundialPashaMessageHandler {
 
         static void data_move_out_hint_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-                migration_manager->move_row_out();
+                migration_manager->move_row_out(table.partitionID());
 	}
 
         static void replication_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)

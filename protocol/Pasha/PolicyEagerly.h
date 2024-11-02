@@ -24,7 +24,7 @@ class PolicyEagerly : public MigrationManager {
         , max_migrated_rows_size(max_migrated_rows_size)
         {}
 
-        bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 bool ret = false;
 
@@ -38,7 +38,7 @@ class PolicyEagerly : public MigrationManager {
                 return ret;
         }
 
-        bool move_row_out()
+        bool move_row_out(uint64_t partition_id) override
         {
                 std::list<migrated_row_entity>::iterator it;
                 bool ret = false;
