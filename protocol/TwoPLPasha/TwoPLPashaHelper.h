@@ -627,16 +627,17 @@ out_unlock_lmeta:
 
                 if (migrated_row != nullptr) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
-                        if (inc_ref_cnt == true) {
-                                smeta->lock();
-                                if (smeta->is_valid == true) {
+                        smeta->lock();
+                        if (smeta->is_valid == true) {
+                                if (inc_ref_cnt == true) {
                                         smeta->ref_cnt++;
-                                } else {
-                                        migrated_row = nullptr;
                                 }
-                                smeta->unlock();
+                        } else {
+                                migrated_row = nullptr;
                         }
+                        smeta->unlock();
                 }
+
                 return migrated_row;
         }
 

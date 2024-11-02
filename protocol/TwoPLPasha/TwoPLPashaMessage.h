@@ -299,6 +299,11 @@ class TwoPLPashaMessageHandler {
 		encoder << message_piece_header;
                 encoder << success << key_offset;
 		responseMessage.flush();
+
+                if (migration_manager->when_to_move_out == MigrationManager::OnDemand) {
+                        // after moving in the tuple, we move out tuples
+                        migration_manager->move_row_out();
+                }
 	}
 
         static void data_migration_response_for_scan_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
