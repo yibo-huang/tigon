@@ -43,6 +43,10 @@ int main(int argc, char *argv[])
 		context.workloadType = star::ycsb::YCSBWorkloadType::RMW;
         } else if (FLAGS_query == "scan") {
 		context.workloadType = star::ycsb::YCSBWorkloadType::SCAN;
+        } else if (FLAGS_query == "insert") {
+		context.workloadType = star::ycsb::YCSBWorkloadType::INSERT;
+        } else if (FLAGS_query == "delete") {
+		context.workloadType = star::ycsb::YCSBWorkloadType::DELETE;
 	} else {
 		CHECK(false);
 	}
