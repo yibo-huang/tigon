@@ -366,9 +366,7 @@ template <class Database> class TwoPLPasha {
                                                                 prev_smeta->is_next_key_real = true;
                                                         }
                                                         prev_smeta->unlock();
-
                                                 }
-                                                prev_lmeta->unlock();
                                         }
 
                                         // update the prev-key information for next key
@@ -383,7 +381,6 @@ template <class Database> class TwoPLPasha {
                                                         }
                                                         next_smeta->unlock();
                                                 }
-                                                next_lmeta->unlock();
                                         }
 
                                         // release the latches of the previous and the next keys

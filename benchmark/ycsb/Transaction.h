@@ -324,7 +324,7 @@ template <class Transaction> class Scan : public Transaction {
 	ScanQuery<scan_num> query;
 };
 
-
+// The Insert transaction scans a range and tries to fill the first hole by inserting the missing tuple
 template <class Transaction> class Insert : public Transaction {
     public:
 	using DatabaseType = Database;
@@ -438,6 +438,7 @@ template <class Transaction> class Insert : public Transaction {
 	InsertQuery<scan_num> query;
 };
 
+// The Delete transaction scans a range and deletes the first tuple within that range
 template <class Transaction> class Delete : public Transaction {
     public:
 	using DatabaseType = Database;
@@ -445,7 +446,7 @@ template <class Transaction> class Delete : public Transaction {
 	using RandomType = typename DatabaseType::RandomType;
 	using StorageType = Storage;
 
-	static constexpr std::size_t scan_num = 2;
+	static constexpr std::size_t delete_num = 1;
 
 	Delete(std::size_t coordinator_id, std::size_t partition_id, std::size_t granule_id, DatabaseType &db, const ContextType &context,
 			RandomType &random, Partitioner &partitioner, std::size_t ith_replica = 0)
@@ -455,7 +456,7 @@ template <class Transaction> class Delete : public Transaction {
 		, random(random)
 		, partition_id(partition_id)
 		, granule_id(granule_id)
-		, query(makeDeleteQuery<scan_num>()(context, partition_id, granule_id, random, partitioner))
+		, query(makeDeleteQuery<delete_num>()(context, partition_id, granule_id, random, partitioner))
 	{
 		storage = get_storage();
 	}
@@ -517,16 +518,15 @@ template <class Transaction> class Delete : public Transaction {
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
 
                 uint64_t scan_len = query.scan_len;
+		CHECK(delete_num == 1);
+                CHECK(scan_len == 1);
 
 		int ycsbTableID = ycsb::tableID;
-		DCHECK(ycsbTableID < 1);
-                for (auto i = 0u; i < scan_num; i++) {
-			auto key = query.Y_KEY[i];
-			storage->ycsb_scan_min_keys[i].Y_KEY = key;
-                        storage->ycsb_scan_max_keys[i].Y_KEY = INT32_MAX;
-                        this->scan_for_read(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[i], storage->ycsb_scan_max_keys[i],
-                                scan_len, &storage->ycsb_scan_results[i], context.getGranule(key));
-		}
+                auto key = query.Y_KEY[0];
+                storage->ycsb_scan_min_keys[0].Y_KEY = key;
+                storage->ycsb_scan_max_keys[0].Y_KEY = INT32_MAX;
+                this->scan_for_delete(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[0], storage->ycsb_scan_max_keys[0],
+                        scan_len, &storage->ycsb_scan_results[0], context.getGranule(key));
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
@@ -534,12 +534,29 @@ template <class Transaction> class Delete : public Transaction {
 		}
 		t_local_work.reset();
 
-		return TransactionResult::READY_TO_COMMIT;
+                if (storage->ycsb_scan_results[0].size() > 0) {
+                        CHECK(storage->ycsb_scan_results[0].size() == scan_len);
+                        // delete the first tuple
+                        auto first_tuple = storage->ycsb_scan_results[0][0];
+                        storage->ycsb_keys[0] = *reinterpret_cast<ycsb::key *>(first_tuple.key);
+                        this->delete_row(ycsbTableID, context.getPartitionID(storage->ycsb_keys[0].Y_KEY), storage->ycsb_keys[0]);
+                } else {
+                        // abort no retry
+                        return TransactionResult::ABORT_NORETRY;
+                }
+
+                t_local_work.end();
+		if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+		t_local_work.reset();
+
+                return TransactionResult::READY_TO_COMMIT;
 	}
 
 	void reset_query() override
 	{
-		query = makeDeleteQuery<scan_num>()(context, partition_id, granule_id, random, this->partitioner);
+		query = makeDeleteQuery<delete_num>()(context, partition_id, granule_id, random, this->partitioner);
 	}
 
     private:
@@ -548,7 +565,7 @@ template <class Transaction> class Delete : public Transaction {
 	RandomType random;
 	Storage *storage = nullptr;
 	std::size_t partition_id, granule_id;
-	DeleteQuery<scan_num> query;
+	DeleteQuery<delete_num> query;
 };
 
 } // namespace ycsb
