@@ -683,6 +683,8 @@ class BPlusTree {
 			}
 			this->setCount(this->getCount() + sibling->getCount());
 			this->next_ = sibling->next_.get();
+                        if (this->next_.get())
+                                sibling->next_->pre_ = this;
 			assert(((uint64_t)sibling) != 0xffffffffffffffffull);
 			EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(sibling);
 		}
