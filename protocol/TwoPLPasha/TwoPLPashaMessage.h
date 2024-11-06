@@ -137,7 +137,7 @@ class TwoPLPashaMessageHandler {
 
                 // move the tuple to the shared region if it is not currently there
                 // the return value does not matter
-                migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row, true);
+                migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row, false);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
@@ -186,31 +186,33 @@ class TwoPLPashaMessageHandler {
 
                 // search cxl table and get the data
                 char *migrated_row = twopl_pasha_global_helper->get_migrated_row(table_id, partition_id, readKey.get_key(), false);
-                CHECK(migrated_row != nullptr);
-
-                // perform execution phase operations
-                if (readKey.get_write_lock_request_bit()) {
-                        tid = TwoPLPashaHelper::remote_write_lock(migrated_row, success);
-                } else {
-                        tid = TwoPLPashaHelper::remote_read_lock(migrated_row, success);
-                }
-
-                if (success) {
-                        readKey.set_tid(tid);
-                        CHECK(readKey.get_local_index_read_bit() == 0);
-                        if (readKey.get_read_lock_request_bit()) {
-                                readKey.set_read_lock_bit();
-                        }
-                        if (readKey.get_write_lock_request_bit()) {
-                                readKey.set_write_lock_bit();
-                        }
-                        twopl_pasha_global_helper->remote_read(migrated_row, readKey.get_value(), value_size);
-                } else {
+                if (migrated_row == nullptr) {
                         txn->abort_lock = true;
-                }
+                } else {
+                        // perform execution phase operations
+                        if (readKey.get_write_lock_request_bit()) {
+                                tid = TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(migrated_row, success);
+                        } else {
+                                tid = TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(migrated_row, success);
+                        }
 
-                // mark it as reference counted so that we know if we need to release it upon commit/abort
-                readKey.set_reference_counted();
+                        if (success) {
+                                readKey.set_tid(tid);
+                                CHECK(readKey.get_local_index_read_bit() == 0);
+                                if (readKey.get_read_lock_request_bit()) {
+                                        readKey.set_read_lock_bit();
+                                }
+                                if (readKey.get_write_lock_request_bit()) {
+                                        readKey.set_write_lock_bit();
+                                }
+                                twopl_pasha_global_helper->remote_read(migrated_row, readKey.get_value(), value_size);
+
+                                // mark it as reference counted so that we know if we need to release it upon commit/abort
+                                readKey.set_reference_counted();
+                        } else {
+                                txn->abort_lock = true;
+                        }
+                }
 
                 txn->pendingResponses--;
 	}
