@@ -31,7 +31,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt);
                 if (ret == true) {
                         queue_mutex.lock();
-                        fifo_queue.push_back(migrated_row_entity(table, key, table->key_size(), table->value_size(), row));
+                        fifo_queue.push_back(migrated_row_entity(table, key, row));
                         cur_size += table->value_size();
                         queue_mutex.unlock();
                 }
@@ -55,7 +55,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 while (it != fifo_queue.end()) {
                         ret = move_from_shared_region_to_partition(it->table, it->key, it->local_row);
                         if (ret == true) {
-                                cur_size -= it->row_size;
+                                cur_size -= it->table->value_size();
                                 it = fifo_queue.erase(it);
                                 if (cur_size < max_migrated_rows_size)
                                         break;

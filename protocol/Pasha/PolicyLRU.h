@@ -167,7 +167,7 @@ class PolicyLRU : public MigrationManager {
         {
                 LRUMeta *lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
                 new(lru_meta) LRUMeta();
-                lru_meta->row_entity = MigrationManager::migrated_row_entity(table, key, table->key_size(), table->value_size(), row);
+                lru_meta->row_entity = MigrationManager::migrated_row_entity(table, key, row);
         }
 
         void access_row(void *migration_policy_meta, uint64_t partition_id) override
@@ -183,7 +183,7 @@ class PolicyLRU : public MigrationManager {
                         // not tracked, init it and push it back
                         lru_tracker.track(lru_meta);
 
-                        cur_size += lru_meta->row_entity.row_size;
+                        cur_size += lru_meta->row_entity.table->value_size();
                 } else {
                         // already tracked, promote it
                         lru_tracker.promote(lru_meta);
@@ -222,7 +222,7 @@ class PolicyLRU : public MigrationManager {
                                 if (move_out_success == true) {
                                         lru_tracker.untrack(victim);
                                         lru_tracker.reset_cur_victim();
-                                        cur_size -= victim_row_entity.row_size;
+                                        cur_size -= victim_row_entity.table->value_size();
                                         if (cur_size < max_migrated_rows_size) {
                                                 ret = true;
                                                 break;

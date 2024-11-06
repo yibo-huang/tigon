@@ -40,20 +40,16 @@ class MigrationManager {
         {
             public:
                 migrated_row_entity() = default;
-                migrated_row_entity(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> row)
+                migrated_row_entity(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> row)
                         : table(table)
-                        , key_size(key_size)
-                        , row_size(row_size)
                         , local_row(row)
                 {
-                        memcpy(this->key, key, key_size);
+                        memcpy(this->key, key, table->key_size());
                 }
 
                 static constexpr uint64_t max_key_size = 64;
                 ITable *table;
                 char key[max_key_size];
-                uint64_t key_size;
-                uint64_t row_size;
                 std::tuple<MetaDataType *, void *> local_row;
         };
 
