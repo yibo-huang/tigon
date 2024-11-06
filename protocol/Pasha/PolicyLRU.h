@@ -191,7 +191,7 @@ class PolicyLRU : public MigrationManager {
                 lru_tracker.unlock();
         }
 
-        bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
+        bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 // the data_move_in function will call access_row to track the row
                 return move_from_partition_to_shared_region(table, key, row, inc_ref_cnt);

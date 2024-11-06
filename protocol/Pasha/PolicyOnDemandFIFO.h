@@ -24,15 +24,15 @@ class PolicyOnDemandFIFO : public MigrationManager {
         , max_migrated_rows_size(max_migrated_rows_size)
         {}
 
-        bool move_row_in(ITable *table, const void *key, uint64_t key_size, uint64_t row_size, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
+        bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 bool ret = false;
 
                 ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt);
                 if (ret == true) {
                         queue_mutex.lock();
-                        fifo_queue.push_back(migrated_row_entity(table, key, key_size, row_size, row));
-                        cur_size += row_size;
+                        fifo_queue.push_back(migrated_row_entity(table, key, table->key_size(), table->value_size(), row));
+                        cur_size += table->value_size();
                         queue_mutex.unlock();
                 }
                 return ret;

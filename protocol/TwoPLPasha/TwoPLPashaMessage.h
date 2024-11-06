@@ -137,7 +137,7 @@ class TwoPLPashaMessageHandler {
 
                 // move the tuple to the shared region if it is not currently there
                 // the return value does not matter
-                migration_manager->move_row_in(&table, key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row, false);
+                migration_manager->move_row_in(&table, key, row, false);
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
@@ -289,7 +289,7 @@ class TwoPLPashaMessageHandler {
                 // note that we do NOT increase reference count here!
                 for (int i = 0; i < scan_results.size(); i++) {
                         std::tuple<std::atomic<uint64_t> *, void *> row_tuple(scan_results[i].meta, scan_results[i].data);
-                        migration_manager->move_row_in(&table, scan_results[i].key, table.key_size(), sizeof(TwoPLPashaMetadataShared) + table.value_size(), row_tuple, false);
+                        migration_manager->move_row_in(&table, scan_results[i].key, row_tuple, false);
                 }
 
 		// prepare response message header
