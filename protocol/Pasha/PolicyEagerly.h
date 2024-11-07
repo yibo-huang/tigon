@@ -66,6 +66,32 @@ class PolicyEagerly : public MigrationManager {
                 return true;
         }
 
+        bool move_row_out_without_copyback(ITable *table, const void *key, void *migration_policy_meta) override
+        {
+                std::list<migrated_row_entity>::iterator it;
+                bool ret = false;
+
+                queue_mutex.lock();
+                ret = twopl_pasha_global_helper->remove_migrated_row(table->tableID(), table->partitionID(), key);
+                if (ret == true) {
+                        bool deleted = false;
+                        it = fifo_queue.begin();
+                        while (it != fifo_queue.end()) {
+                                if (it->table->tableID() == table->tableID() && std::memcmp(it->key, key, table->key_size()) == 0) {
+                                        fifo_queue.erase(it);
+                                        deleted = true;
+                                        break;
+                                } else {
+                                        it++;
+                                }
+                        }
+                        CHECK(deleted == true);
+                }
+                queue_mutex.unlock();
+
+                return ret;
+        }
+
     private:
         uint64_t max_migrated_rows_size;
         uint64_t cur_size{ 0 };

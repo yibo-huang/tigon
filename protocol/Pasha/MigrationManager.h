@@ -63,6 +63,7 @@ class MigrationManager {
 
         virtual bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) = 0;
         virtual bool move_row_out(uint64_t partition_id) = 0;
+        virtual bool move_row_out_without_copyback(ITable *table, const void *key, void *migration_policy_meta) = 0;
 
         // user-provided functions
         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt)> move_from_partition_to_shared_region;

@@ -31,6 +31,11 @@ class PolicyNoMoveOut : public MigrationManager {
         {
                 return true;
         }
+
+        bool move_row_out_without_copyback(ITable *table, const void *key, void *migration_policy_meta) override
+        {
+                return twopl_pasha_global_helper->remove_migrated_row(table->tableID(), table->partitionID(), key);
+        }
 };
 
 } // namespace star

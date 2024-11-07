@@ -524,10 +524,10 @@ out_lmeta_unlock:
                 bool move_in_success = false;
                 bool ret = false;
 
-                auto move_in_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
-                        auto prev_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(prev_value);
-                        auto cur_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(cur_value);
-                        auto next_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(next_value);
+                auto move_in_processor = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                        auto prev_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(prev_meta);
+                        auto cur_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(cur_meta);
+                        auto next_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(next_meta);
 
                         CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
@@ -736,10 +736,10 @@ out_lmeta_unlock:
                 bool move_out_success = false;
                 bool ret = false;
 
-                auto move_out_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
-                        auto prev_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(prev_value);
-                        auto cur_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(cur_value);
-                        auto next_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(next_value);
+                auto move_out_processor = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                        auto prev_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(prev_meta);
+                        auto cur_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(cur_meta);
+                        auto next_lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(next_meta);
 
                         bool is_cur_tuple_moved_out = false;
 

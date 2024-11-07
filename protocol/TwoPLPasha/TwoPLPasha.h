@@ -275,10 +275,10 @@ template <class Database> class TwoPLPasha {
 			if (partitioner.has_master_partition(partitionId)) {
                                 auto key = insertKey.get_key();
 
-                                auto key_info_updater = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
-                                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
-                                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
-                                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+                                auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
+                                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
+                                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
 
                                         // update the next-key information for the previous key
                                         if (prev_lmeta != nullptr) {
@@ -339,10 +339,10 @@ template <class Database> class TwoPLPasha {
 			if (partitioner.has_master_partition(partitionId)) {
 				auto key = deleteKey.get_key();
 
-                                auto key_info_updater = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
-                                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
-                                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
-                                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+                                auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
+                                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
+                                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
 
                                         bool is_next_key_migrated = false;
                                         bool is_prev_key_migrated = false;
@@ -360,10 +360,12 @@ template <class Database> class TwoPLPasha {
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                         prev_smeta->lock();
-                                                        if (next_lmeta->is_migrated == false) {
+                                                        if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
                                                                 prev_smeta->is_next_key_real = false;
-                                                        } else {
+                                                        } else if (next_lmeta != nullptr && next_lmeta->is_migrated == true) {
                                                                 prev_smeta->is_next_key_real = true;
+                                                        } else {
+                                                                prev_smeta->is_next_key_real = false;
                                                         }
                                                         prev_smeta->unlock();
                                                 }
@@ -374,10 +376,12 @@ template <class Database> class TwoPLPasha {
                                                 if (next_lmeta->is_migrated == true) {
                                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                                         next_smeta->lock();
-                                                        if (prev_lmeta->is_migrated == false) {
+                                                        if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
                                                                 next_smeta->is_prev_key_real = false;
-                                                        } else {
+                                                        } else if (prev_lmeta != nullptr && prev_lmeta->is_migrated == true) {
                                                                 next_smeta->is_prev_key_real = true;
+                                                        } else {
+                                                                next_smeta->is_prev_key_real = false;
                                                         }
                                                         next_smeta->unlock();
                                                 }
@@ -390,11 +394,30 @@ template <class Database> class TwoPLPasha {
                                         if (next_lmeta != nullptr) {
                                                 next_lmeta->unlock();
                                         }
+
+                                        // mark both the local and the migrated tuples as invalid
+                                        CHECK(cur_lmeta != nullptr);
+                                        cur_lmeta->lock();
+                                        if (cur_lmeta->is_migrated == true) {
+                                                auto cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
+                                                cur_smeta->lock();
+                                                cur_smeta->is_valid = false;
+                                                cur_smeta->unlock();
+
+                                                // remove the migrated row
+                                                // we call this function here to avoid racing with concurrent data move out
+                                                bool remove_success = migration_manager->move_row_out_without_copyback(table, key, &cur_smeta->migration_policy_meta);
+                                                CHECK(remove_success == true);
+                                        }
+                                        cur_lmeta->is_valid = false;
+                                        cur_lmeta->unlock();
                                 };
 
+                                // update next key info, mark both the local and the migrated tuples as invalid, and remove the migrated tuple
                                 bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
                                 CHECK(update_key_info_success == true);
 
+                                // remove the local tuple
                                 bool success = table->remove(key);
                                 CHECK(success == true);
 			} else {

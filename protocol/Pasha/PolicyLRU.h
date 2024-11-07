@@ -180,7 +180,7 @@ class PolicyLRU : public MigrationManager {
                         CHECK(lru_meta->next == nullptr);
                         CHECK(lru_meta->prev == nullptr);
 
-                        // not tracked, init it and push it back
+                        // not tracked, push it to the back
                         lru_tracker.track(lru_meta);
 
                         cur_size += lru_meta->row_entity.table->value_size();
@@ -231,6 +231,24 @@ class PolicyLRU : public MigrationManager {
                         }
                 }
                 lru_tracker.reset_cur_victim();
+                lru_tracker.unlock();
+
+                return ret;
+        }
+
+        bool move_row_out_without_copyback(ITable *table, const void *key, void *migration_policy_meta) override
+        {
+                // key is unused
+                LRUTracker &lru_tracker = lru_trackers[table->partitionID()];
+                LRUMeta *lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
+                bool ret = false;
+
+                lru_tracker.lock();
+                CHECK(lru_meta->is_tracked == true);
+                ret = twopl_pasha_global_helper->remove_migrated_row(table->tableID(), table->partitionID(), key);
+                if (ret == true) {
+                        lru_tracker.untrack(lru_meta);
+                }
                 lru_tracker.unlock();
 
                 return ret;

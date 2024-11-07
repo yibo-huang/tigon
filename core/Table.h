@@ -76,7 +76,7 @@ class ITable {
 		const void *key, const void *value, std::function<void(const void *, const void *)> on_update = [](const void *, const void *) {}) = 0;
 
         virtual bool search_and_update_next_key_info(const void *key,
-                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) = 0;
+                std::function<void(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> update_processor) = 0;
 
 	virtual void deserialize_value(const void *key, StringPiece stringPiece) = 0;
 
@@ -262,7 +262,7 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 	}
 
         bool search_and_update_next_key_info(const void *key,
-                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+                std::function<void(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> update_processor) override
         {
                 // no need to maintain next-key information for unordered tables
                 return true;
@@ -576,17 +576,24 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 	}
 
         bool search_and_update_next_key_info(const void *key,
-                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+                std::function<void(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> update_processor) override
         {
                 auto processor = [&](const KeyType *prev_key, BTreeOLCValue *prev_value, const KeyType *cur_key, BTreeOLCValue *cur_value, const KeyType *next_key, BTreeOLCValue *next_value) {
                         void *prev_meta = nullptr, *cur_meta = nullptr, *next_meta = nullptr;
-                        if (prev_value != nullptr)
+                        void *prev_data = nullptr, *cur_data = nullptr, *next_data = nullptr;
+                        if (prev_value != nullptr) {
                                 prev_meta = reinterpret_cast<void *>(prev_value->row->meta.load());
-                        if (cur_value != nullptr)
+                                prev_data = &prev_value->row->data;
+                        }
+                        if (cur_value != nullptr) {
                                 cur_meta = reinterpret_cast<void *>(cur_value->row->meta.load());
-                        if (next_value != nullptr)
+                                cur_data = &cur_value->row->data;
+                        }
+                        if (next_value != nullptr) {
                                 next_meta = reinterpret_cast<void *>(next_value->row->meta.load());
-                        update_processor(prev_key, prev_meta, cur_key, cur_meta, next_key, next_meta);
+                                next_data = &next_value->row->data;
+                        }
+                        update_processor(prev_key, prev_meta, prev_data, cur_key, cur_meta, cur_data, next_key, next_meta, next_data);
 		};
 
                 const auto &k = *static_cast<const KeyType *>(key);
@@ -774,7 +781,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 	}
 
         bool search_and_update_next_key_info(const void *key,
-                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+                std::function<void(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> update_processor) override
         {
                 // no need to maintain next-key information for unordered tables
                 return true;
@@ -935,7 +942,7 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 	}
 
         bool search_and_update_next_key_info(const void *key,
-                std::function<void(const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value)> update_processor) override
+                std::function<void(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> update_processor) override
         {
                 // no need to maintain next-key information for unordered tables
                 return true;

@@ -58,9 +58,9 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                         if (context.pre_migrate == "None") {
                                 // do nothing
                         } else if (context.pre_migrate == "All") {
-                                db.move_all_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                                db.move_all_tables_into_cxl(std::bind(&MigrationManager::move_row_in, migration_manager, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         } else if (context.pre_migrate == "NonPart") {
-                                db.move_non_part_tables_into_cxl(std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                                db.move_non_part_tables_into_cxl(std::bind(&MigrationManager::move_row_in, migration_manager, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         } else {
                                 CHECK(0);
                         }

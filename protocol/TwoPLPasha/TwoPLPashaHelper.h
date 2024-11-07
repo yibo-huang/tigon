@@ -676,6 +676,13 @@ out_unlock_lmeta:
                 smeta->unlock();
         }
 
+        // used for remote point queries
+        bool remove_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key)
+        {
+                CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                return target_cxl_table->remove(key, nullptr);
+        }
+
         bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
 	{
                 MetaDataType &meta = *std::get<0>(row);
@@ -766,10 +773,10 @@ out_unlock_lmeta:
                 bool move_in_success = false;
                 bool ret = false;
 
-                auto move_in_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
-                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
-                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
-                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+                auto move_in_processor = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
+                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
+                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
 
                         CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
@@ -1006,10 +1013,10 @@ out_unlock_lmeta:
                 bool move_out_success = false;
                 bool ret = false;
 
-                auto move_out_processor = [&](const void *prev_key, void *prev_value, const void *cur_key, void *cur_value, const void *next_key, void *next_value) {
-                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_value);
-                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_value);
-                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_value);
+                auto move_out_processor = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
+                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
+                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
 
                         bool is_cur_tuple_moved_out = false;
 
