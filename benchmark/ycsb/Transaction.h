@@ -524,7 +524,7 @@ template <class Transaction> class Delete : public Transaction {
 		int ycsbTableID = ycsb::tableID;
                 auto key = query.Y_KEY[0];
                 storage->ycsb_scan_min_keys[0].Y_KEY = key;
-                storage->ycsb_scan_max_keys[0].Y_KEY = INT32_MAX;
+                storage->ycsb_scan_max_keys[0].Y_KEY = INT32_MAX - 1;   // otherwise the max key placeholder will be included
                 this->scan_for_delete(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[0], storage->ycsb_scan_max_keys[0],
                         scan_len, &storage->ycsb_scan_results[0], context.getGranule(key));
 
@@ -539,6 +539,7 @@ template <class Transaction> class Delete : public Transaction {
                         // delete the first tuple
                         auto first_tuple = storage->ycsb_scan_results[0][0];
                         storage->ycsb_keys[0] = *reinterpret_cast<ycsb::key *>(first_tuple.key);
+                        CHECK(context.getPartitionID(storage->ycsb_keys[0].Y_KEY) == context.getPartitionID(key));
                         this->delete_row(ycsbTableID, context.getPartitionID(storage->ycsb_keys[0].Y_KEY), storage->ycsb_keys[0]);
                 } else {
                         // abort no retry
