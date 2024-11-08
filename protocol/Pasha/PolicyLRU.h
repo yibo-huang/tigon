@@ -129,6 +129,25 @@ class PolicyLRU : public MigrationManager {
                         cur_victim = nullptr;
                 }
 
+                void debug_print()
+                {
+                        LRUMeta *cur_node = head.get();
+                        uint64_t i = 0;
+
+                        LOG(INFO) << "LRU list status:";
+                        while (true) {
+                                if (cur_node == nullptr) {
+                                        break;
+                                } else {
+                                        ITable *table = cur_node->row_entity.table;
+                                        const void *key = cur_node->row_entity.key;
+                                        LOG(INFO) << "ID = " << i << " key = " << table->get_plain_key(key);
+                                }
+                                i++;
+                                cur_node = cur_node->next.get();
+                        }
+                }
+
             private:
                 boost::interprocess::offset_ptr<LRUMeta> head{ nullptr };
                 boost::interprocess::offset_ptr<LRUMeta> tail{ nullptr };
@@ -248,6 +267,7 @@ class PolicyLRU : public MigrationManager {
                 ret = twopl_pasha_global_helper->remove_migrated_row(table->tableID(), table->partitionID(), key);
                 if (ret == true) {
                         lru_tracker.untrack(lru_meta);
+                        cur_size -= lru_meta->row_entity.table->value_size();
                 }
                 lru_tracker.unlock();
 
