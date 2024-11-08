@@ -311,7 +311,7 @@ template <class Database> class TwoPLPasha {
                                 // make the placeholder valid
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                 CHECK(meta != 0);
-                                TwoPLPashaHelper::mark_tuple_as_valid(*meta);
+                                TwoPLPashaHelper::modify_tuple_valid_bit(*meta, true);
 
                                 // release the read lock for the next row
                                 if (insertKey.get_next_row_locked() == true) {
@@ -341,6 +341,7 @@ template <class Database> class TwoPLPasha {
 			auto partitionId = scanKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
+                        CHECK(scan_results.size() > 0);
 
                         if (partitioner.has_master_partition(partitionId)) {
                                 auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
@@ -429,7 +430,13 @@ template <class Database> class TwoPLPasha {
                                         CHECK(success == true);
                                 }
 			} else {
-                                CHECK(0);
+                                auto coordinatorID = partitioner.master_coordinator(partitionId);
+                                for (auto i = 0u; i < scan_results.size(); i++) {
+                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                        CHECK(cxl_row != nullptr);
+                                        TwoPLPashaHelper::remote_modify_tuple_valid_bit(cxl_row, false);
+                                        txn.network_size += MessageFactoryType::new_remote_delete_message(*messages[coordinatorID], *table, scan_results[i].key);
+                                }
 			}
 		}
 

@@ -597,10 +597,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		};
 
                 const auto &k = *static_cast<const KeyType *>(key);
-                bool success = btree.lookupForNextKeyUpdate(k, processor);
-                CHECK(success == true);
-
-                return success;
+                return btree.lookupForNextKeyUpdate(k, processor);
         }
 
 	void deserialize_value(const void *key, StringPiece stringPiece) override

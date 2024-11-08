@@ -215,11 +215,12 @@ class TwoPLPashaHelper {
                 uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
-                if (lmeta->is_valid == false) {
-                        success = false;
-                        goto out_unlock_lmeta;
-                }
                 if (lmeta->is_migrated == false) {
+                        if (lmeta->is_valid == false) {
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
                         old_value = lmeta->tid;
 
                         // can we get the lock?
@@ -235,7 +236,12 @@ class TwoPLPashaHelper {
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+
+                        if (smeta->is_valid == false) {
+                                smeta->unlock();
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
 
                         old_value = smeta->tid;
 
@@ -266,8 +272,9 @@ out_unlock_lmeta:
 
 		smeta->lock();
 
-                // because this function is only called by remote point queries
-                // so this assertion should always succeed
+                // because this function is only called by remote point queries,
+                // which are assumed to always succeed,
+                // so this assertion should always hold
                 CHECK(smeta->is_valid == true);
 
                 old_value = smeta->tid;
@@ -329,11 +336,12 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
-                if (lmeta->is_valid == false) {
-                        success = false;
-                        goto out_unlock_lmeta;
-                }
                 if (lmeta->is_migrated == false) {
+                        if (lmeta->is_valid == false) {
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
                         old_value = lmeta->tid;
 
                         // can we get the lock?
@@ -349,7 +357,11 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+                        if (smeta->is_valid == false) {
+                                smeta->unlock();
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
 
                         old_value = smeta->tid;
 
@@ -380,8 +392,9 @@ out_unlock_lmeta:
 
 		smeta->lock();
 
-                // because this function is only called by remote point queries
-                // so this assertion should always succeed
+                // because this function is only called by remote point queries,
+                // which are assumed to always succeed,
+                // so this assertion should always hold
                 CHECK(smeta->is_valid == true);
 
                 old_value = smeta->tid;
@@ -578,18 +591,32 @@ out_unlock_lmeta:
                 smeta->unlock();
 	}
 
-        static void mark_tuple_as_valid(std::atomic<uint64_t> &meta)
+        static void modify_tuple_valid_bit(std::atomic<uint64_t> &meta, bool is_valid)
         {
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
 
                 lmeta->lock();
-                CHECK(lmeta->is_valid == false);
-                if (lmeta->is_migrated == false) {
-                        lmeta->is_valid = true;
+                if (lmeta->is_migrated == true) {
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
+                        smeta->lock();
+                        CHECK(smeta->is_valid == !is_valid);
+                        smeta->is_valid = is_valid;
+                        smeta->unlock();
                 } else {
-                        CHECK(0);
+                        CHECK(lmeta->is_valid == !is_valid);
+                        lmeta->is_valid = is_valid;
                 }
                 lmeta->unlock();
+        }
+
+        static void remote_modify_tuple_valid_bit(char *row, bool is_valid)
+        {
+                TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+
+		smeta->lock();
+                CHECK(smeta->is_valid == !is_valid);
+                smeta->is_valid = is_valid;
+                smeta->unlock();
         }
 
 	static uint64_t remove_lock_bit(uint64_t value)
@@ -670,7 +697,6 @@ out_unlock_lmeta:
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
                 smeta->lock();
-                CHECK(smeta->is_valid == true);
                 CHECK(smeta->ref_cnt > 0);
                 smeta->ref_cnt--;
                 smeta->unlock();
@@ -712,13 +738,11 @@ out_unlock_lmeta:
                         smeta->lock();
 
                         // copy metadata
+                        smeta->is_valid = lmeta->is_valid;
                         smeta->tid = lmeta->tid;
 
                         // copy data
                         scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
-
-                        // set the migrated row as valid
-                        smeta->is_valid = true;
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
@@ -747,7 +771,6 @@ out_unlock_lmeta:
                                 // increase the reference count for the requesting host, even if it is already migrated
                                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                                 smeta->lock();
-                                CHECK(smeta->is_valid == true);
                                 smeta->ref_cnt++;
                                 smeta->unlock();
                         }
@@ -828,13 +851,11 @@ out_unlock_lmeta:
                                 smeta->lock();
 
                                 // copy metadata
+                                smeta->is_valid = lmeta->is_valid;
                                 smeta->tid = lmeta->tid;
 
                                 // copy data
                                 scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
-
-                                // set the migrated row as valid
-                                smeta->is_valid = true;
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
@@ -842,14 +863,14 @@ out_unlock_lmeta:
                                 }
 
                                 // update the next-key information
-                                if (is_next_key_migrated == true || next_key_exist == false) {
+                                if (is_next_key_migrated == true) {
                                         smeta->is_next_key_real = true;
                                 } else {
                                         smeta->is_next_key_real = false;
                                 }
 
                                 // update the prev-key information
-                                if (is_prev_key_migrated == true || prev_key_exist == false) {
+                                if (is_prev_key_migrated == true) {
                                         smeta->is_prev_key_real = true;
                                 } else {
                                         smeta->is_prev_key_real = false;
@@ -899,7 +920,6 @@ out_unlock_lmeta:
                                         // increase the reference count for the requesting host, even if it is already migrated
                                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                                         smeta->lock();
-                                        CHECK(smeta->is_valid == true);
                                         smeta->ref_cnt++;
                                         smeta->unlock();
                                 }
@@ -912,16 +932,18 @@ out_unlock_lmeta:
 
                 // update next-key information
                 ret = table->search_and_update_next_key_info(key, move_in_processor);
-                CHECK(ret == true);
 
-
-                if (move_in_success == true) {
-                        // track row for LRU
-                        CHECK(smeta_export != nullptr);
-                        migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
+                if (ret == true) {
+                        if (move_in_success == true) {
+                                // track row for LRU
+                                CHECK(smeta_export != nullptr);
+                                migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
+                        }
+                } else {
+                        CHECK(move_in_success == false);
                 }
 
-		return move_in_success;
+		return ret && move_in_success;
 	}
 
         bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
@@ -953,16 +975,12 @@ out_unlock_lmeta:
                 bool ret = false;
 
                 lmeta->lock();
-                CHECK(lmeta->is_valid = true);
                 if (lmeta->is_migrated == true) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         char *migrated_row_value = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
 
                         // take the CXL latch
                         smeta->lock();
-
-                        // the tuple must be valid
-                        CHECK(smeta->is_valid == true);
 
                         // reference count > 0, cannot move out the tuple
                         if (smeta->ref_cnt > 0) {
@@ -972,6 +990,7 @@ out_unlock_lmeta:
                         }
 
                         // copy metadata back
+                        lmeta->is_valid = smeta->is_valid;
                         lmeta->tid = smeta->tid;
 
                         // copy data back
@@ -1055,9 +1074,6 @@ out_unlock_lmeta:
                                 // take the CXL latch
                                 smeta->lock();
 
-                                // the tuple must be valid
-                                CHECK(smeta->is_valid == true);
-
                                 // reference count > 0, cannot move out the tuple -> early return
                                 if (smeta->ref_cnt > 0) {
                                         smeta->unlock();
@@ -1067,6 +1083,7 @@ out_unlock_lmeta:
                                 }
 
                                 // copy metadata back
+                                lmeta->is_valid = smeta->is_valid;
                                 lmeta->tid = smeta->tid;
 
                                 // copy data back

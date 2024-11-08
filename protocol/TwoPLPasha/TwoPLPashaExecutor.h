@@ -318,7 +318,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                                 // we assume that every scan will return at least one value - similar to our assumption on point queries
                                 // so if the results are none, we need to do data migration!
-                                if (scan_results.size() == 0) {
+                                if (scan_results.size() == 0 && scan_success == false) {
                                         migration_required = true;
                                 }
 
@@ -397,7 +397,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 		};
 
                 txn.deleteRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key) -> bool {
-			ITable *table = this->db.find_table(table_id, partition_id);
+                        ITable *table = this->db.find_table(table_id, partition_id);
                         auto value_size = table->value_size();
                         bool local_delete = false;
 

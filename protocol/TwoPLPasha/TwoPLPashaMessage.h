@@ -23,6 +23,7 @@ enum class TwoPLPashaMessage {
         DATA_MIGRATION_REQUEST_FOR_SCAN,
         DATA_MIGRATION_RESPONSE_FOR_SCAN,
         DATA_MOVEOUT_HINT,
+        REMOTE_DELETE_REQUEST,
         REPLICATION_REQUEST,
 	REPLICATION_RESPONSE,
 	NFIELDS
@@ -95,6 +96,26 @@ class TwoPLPashaMessageFactory {
 	static std::size_t new_replication_message(Message &message, ITable &table, const void *key, const void *value, uint64_t commit_tid, bool sync_redo)
 	{
 		CHECK(0);
+	}
+
+        static std::size_t new_remote_delete_message(Message &message, ITable &table, const void *key)
+	{
+		/*
+		 * The structure of a remote delete request: (primary key)
+		 */
+
+		auto key_size = table.key_size();
+
+		auto message_size = MessagePiece::get_header_size() + key_size;
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_DELETE_REQUEST),
+                                                                                         message_size, table.tableID(), table.partitionID());
+
+		Encoder encoder(message.data);
+		encoder << message_piece_header;
+		encoder.write_n_bytes(key, key_size);
+		message.flush();
+		message.set_gen_time(Time::now());
+		return message_size;
 	}
 };
 
@@ -285,6 +306,9 @@ class TwoPLPashaMessageHandler {
                 };
                 table.scan(min_key, scan_processor);
 
+                // there can be a race condition between scan and data move in
+                // since a tuple can be deleted after a scan is done
+
                 // move in every tuple - the return value does not matter
                 // note that we do NOT increase reference count here!
                 for (int i = 0; i < scan_results.size(); i++) {
@@ -454,6 +478,110 @@ class TwoPLPashaMessageHandler {
                 migration_manager->move_row_out(table.partitionID());
 	}
 
+        static void remote_delete_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	{
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_DELETE_REQUEST));
+		auto table_id = inputPiece.get_table_id();
+		auto partition_id = inputPiece.get_partition_id();
+		DCHECK(table_id == table.tableID());
+		DCHECK(partition_id == table.partitionID());
+		auto key_size = table.key_size();
+		auto value_size = table.value_size();
+
+		/*
+		 * The structure of a remote delete request: (primary key)
+		 */
+
+		auto stringPiece = inputPiece.toStringPiece();
+
+		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size);
+
+		// get row and offset
+		const void *key = stringPiece.data();
+
+                auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
+                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
+                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
+
+                        bool is_next_key_migrated = false;
+                        bool is_prev_key_migrated = false;
+
+                        // take the latches of the previous and the next keys
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->lock();
+                        }
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->lock();
+                        }
+
+                        // update the next-key information for the previous key
+                        if (prev_lmeta != nullptr) {
+                                if (prev_lmeta->is_migrated == true) {
+                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                        prev_smeta->lock();
+                                        if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
+                                                prev_smeta->is_next_key_real = false;
+                                        } else if (next_lmeta != nullptr && next_lmeta->is_migrated == true) {
+                                                prev_smeta->is_next_key_real = true;
+                                        } else {
+                                                prev_smeta->is_next_key_real = false;
+                                        }
+                                        prev_smeta->unlock();
+                                }
+                        }
+
+                        // update the prev-key information for next key
+                        if (next_lmeta != nullptr) {
+                                if (next_lmeta->is_migrated == true) {
+                                        auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                        next_smeta->lock();
+                                        if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
+                                                next_smeta->is_prev_key_real = false;
+                                        } else if (prev_lmeta != nullptr && prev_lmeta->is_migrated == true) {
+                                                next_smeta->is_prev_key_real = true;
+                                        } else {
+                                                next_smeta->is_prev_key_real = false;
+                                        }
+                                        next_smeta->unlock();
+                                }
+                        }
+
+                        // release the latches of the previous and the next keys
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->unlock();
+                        }
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->unlock();
+                        }
+
+                        // mark both the local and the migrated tuples as invalid
+                        CHECK(cur_lmeta != nullptr);
+                        cur_lmeta->lock();
+                        if (cur_lmeta->is_migrated == true) {
+                                auto cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
+                                cur_smeta->lock();
+                                cur_smeta->is_valid = false;
+                                cur_smeta->unlock();
+
+                                // remove the migrated row
+                                // we call this function here to avoid racing with concurrent data move out
+                                bool remove_success = migration_manager->move_row_out_without_copyback(&table, cur_key, &cur_smeta->migration_policy_meta);
+                                CHECK(remove_success == true);
+                        }
+                        cur_lmeta->is_valid = false;
+                        cur_lmeta->unlock();
+                };
+
+                // update next key info, mark both the local and the migrated tuples as invalid, and remove the migrated tuple
+                bool update_key_info_success = table.search_and_update_next_key_info(key, key_info_updater);
+                CHECK(update_key_info_success == true);
+
+                // remove the local tuple
+                bool success = table.remove(key);
+                CHECK(success == true);
+	}
+
 	static void replication_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
 		CHECK(0);
@@ -474,6 +602,7 @@ class TwoPLPashaMessageHandler {
 		v.push_back(data_migration_request_for_scan_handler);
 		v.push_back(data_migration_response_for_scan_handler);
                 v.push_back(data_move_out_hint_handler);
+                v.push_back(remote_delete_request_handler);
                 // replication is not supported
                 // v.push_back(replication_request_handler);
 		// v.push_back(replication_response_handler);
