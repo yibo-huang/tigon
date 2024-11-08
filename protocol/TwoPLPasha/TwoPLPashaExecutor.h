@@ -411,7 +411,9 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 // we assume all the deletes are "read and delete"
                                 // so the write locks should already been taken
 			} else {
-                                CHECK(0);      // right now we only support local delete
+                                // do nothing here
+                                // we assume all the deletes are "read and delete"
+                                // so the write locks should already been taken
 			}
 
                         return true;

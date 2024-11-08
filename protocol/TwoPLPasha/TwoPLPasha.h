@@ -328,17 +328,21 @@ template <class Database> class TwoPLPasha {
 		}
 
                 // commit deletes
-                auto &deleteSet = txn.deleteSet;
-                for (auto i = 0u; i < deleteSet.size(); i++) {
-			auto &deleteKey = deleteSet[i];
-			CHECK(deleteKey.get_processed() == true);
+                auto &scanSet = txn.scanSet;
+                for (auto i = 0u; i < scanSet.size(); i++) {
+                        auto &scanKey = scanSet[i];
+                        CHECK(scanKey.get_processed() == true);
 
-			auto tableId = deleteKey.get_table_id();
-			auto partitionId = deleteKey.get_partition_id();
+                        if (scanKey.get_request_type() != TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                continue;
+                        }
+
+                        auto tableId = scanKey.get_table_id();
+			auto partitionId = scanKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
-			if (partitioner.has_master_partition(partitionId)) {
-				auto key = deleteKey.get_key();
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
+                        if (partitioner.has_master_partition(partitionId)) {
                                 auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
                                         auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
                                         auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
@@ -406,22 +410,25 @@ template <class Database> class TwoPLPasha {
 
                                                 // remove the migrated row
                                                 // we call this function here to avoid racing with concurrent data move out
-                                                bool remove_success = migration_manager->move_row_out_without_copyback(table, key, &cur_smeta->migration_policy_meta);
+                                                bool remove_success = migration_manager->move_row_out_without_copyback(table, cur_key, &cur_smeta->migration_policy_meta);
                                                 CHECK(remove_success == true);
                                         }
                                         cur_lmeta->is_valid = false;
                                         cur_lmeta->unlock();
                                 };
 
-                                // update next key info, mark both the local and the migrated tuples as invalid, and remove the migrated tuple
-                                bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
-                                CHECK(update_key_info_success == true);
+                                for (auto i = 0u; i < scan_results.size(); i++) {
+                                        auto key = reinterpret_cast<const void *>(scan_results[i].key);
 
-                                // remove the local tuple
-                                bool success = table->remove(key);
-                                CHECK(success == true);
+                                        // update next key info, mark both the local and the migrated tuples as invalid, and remove the migrated tuple
+                                        bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
+                                        CHECK(update_key_info_success == true);
+
+                                        // remove the local tuple
+                                        bool success = table->remove(key);
+                                        CHECK(success == true);
+                                }
 			} else {
-                                // does not support remote insert & delete
                                 CHECK(0);
 			}
 		}
