@@ -419,7 +419,7 @@ template <std::size_t N> class makeDeleteQuery {
                         int32_t pid = -1;
                         while (true) {
                                 pid = random.uniform_dist(0, context.partition_num - 1);
-                                if (pid != partitionID) {
+                                if (partitioner.has_master_partition(pid) == false) {
                                         break;
                                 }
                         }
