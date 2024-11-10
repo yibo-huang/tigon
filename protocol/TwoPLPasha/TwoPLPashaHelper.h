@@ -614,6 +614,7 @@ out_unlock_lmeta:
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
 
 		smeta->lock();
+                CHECK(smeta->ref_cnt > 0);
                 CHECK(smeta->is_valid == !is_valid);
                 smeta->is_valid = is_valid;
                 smeta->unlock();
@@ -709,11 +710,10 @@ out_unlock_lmeta:
                 return target_cxl_table->remove(key, nullptr);
         }
 
-        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                TwoPLPashaMetadataShared *smeta_export = nullptr;
                 void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
@@ -730,6 +730,7 @@ out_unlock_lmeta:
 
                         // init migration policy metadata
                         migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                        migration_policy_meta = smeta->migration_policy_meta;
 
                         // init software cache-coherence metadata
                         scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
@@ -763,8 +764,6 @@ out_unlock_lmeta:
 
                         // LOG(INFO) << "moved in a row with key " << key << " from table " << table->tableID();
 
-                        smeta_export = smeta;
-
                         move_in_success = true;
                 } else {
                         if (inc_ref_cnt == true) {
@@ -778,20 +777,13 @@ out_unlock_lmeta:
                 }
 		lmeta->unlock();
 
-                if (move_in_success == true) {
-                        // track row for LRU
-                        CHECK(smeta_export != nullptr);
-                        migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
-                }
-
 		return move_in_success;
 	}
 
-        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                TwoPLPashaMetadataShared *smeta_export = nullptr;
                 void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
@@ -842,6 +834,7 @@ out_unlock_lmeta:
 
                                 // init migration policy metadata
                                 migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                                migration_policy_meta = smeta->migration_policy_meta;
 
                                 // init software cache-coherence metadata
                                 scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
@@ -883,8 +876,6 @@ out_unlock_lmeta:
                                 // mark the local row as migrated
                                 lmeta->migrated_row = migrated_row_ptr;
                                 lmeta->is_migrated = true;
-
-                                smeta_export = smeta;
 
                                 // release the CXL latch
                                 smeta->unlock();
@@ -932,27 +923,17 @@ out_unlock_lmeta:
                 // update next-key information
                 ret = table->search_and_update_next_key_info(key, move_in_processor);
 
-                if (ret == true) {
-                        if (move_in_success == true) {
-                                // track row for LRU
-                                CHECK(smeta_export != nullptr);
-                                migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
-                        }
-                } else {
-                        CHECK(move_in_success == false);
-                }
-
 		return ret && move_in_success;
 	}
 
-        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 bool move_in_success = false;
 
                 if (table->tableType() == ITable::HASHMAP) {
-                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt);
+                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 } else if (table->tableType() == ITable::BTREE) {
-                        move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt);
+                        move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 } else {
                         CHECK(0);
                 }
@@ -1143,6 +1124,106 @@ out_unlock_lmeta:
                 }
 
 		return move_out_success;
+	}
+
+        bool delete_and_update_next_key_info(ITable *table, const void *key, bool is_local_delete, bool &need_move_out_from_migration_tracker, void *&migration_policy_meta)
+	{
+                 auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                        auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
+                        auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
+                        auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
+
+                        bool is_next_key_migrated = false;
+                        bool is_prev_key_migrated = false;
+                        bool need_remove_from_cxl_index = false;
+
+                        // take the latches of the previous and the next keys
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->lock();
+                        }
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->lock();
+                        }
+
+                        // update the next-key information for the previous key
+                        if (prev_lmeta != nullptr) {
+                                if (prev_lmeta->is_migrated == true) {
+                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                        prev_smeta->lock();
+                                        if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
+                                                prev_smeta->is_next_key_real = false;
+                                        } else if (next_lmeta != nullptr && next_lmeta->is_migrated == true) {
+                                                prev_smeta->is_next_key_real = true;
+                                        } else {
+                                                prev_smeta->is_next_key_real = false;
+                                        }
+                                        prev_smeta->unlock();
+                                }
+                        }
+
+                        // update the prev-key information for next key
+                        if (next_lmeta != nullptr) {
+                                if (next_lmeta->is_migrated == true) {
+                                        auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                        next_smeta->lock();
+                                        if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
+                                                next_smeta->is_prev_key_real = false;
+                                        } else if (prev_lmeta != nullptr && prev_lmeta->is_migrated == true) {
+                                                next_smeta->is_prev_key_real = true;
+                                        } else {
+                                                next_smeta->is_prev_key_real = false;
+                                        }
+                                        next_smeta->unlock();
+                                }
+                        }
+
+                        // release the latches of the previous and the next keys
+                        if (prev_lmeta != nullptr) {
+                                prev_lmeta->unlock();
+                        }
+                        if (next_lmeta != nullptr) {
+                                next_lmeta->unlock();
+                        }
+
+                        // mark both the local and the migrated tuples as invalid
+                        CHECK(cur_lmeta != nullptr);
+                        cur_lmeta->lock();
+                        if (cur_lmeta->is_migrated == true) {
+                                auto cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
+                                cur_smeta->lock();
+                                if (is_local_delete == true) {
+                                        CHECK(cur_smeta->is_valid == true);
+                                        cur_smeta->is_valid = false;
+                                } else {
+                                        CHECK(cur_smeta->is_valid == false);
+                                }
+                                migration_policy_meta = cur_smeta->migration_policy_meta;
+                                cur_smeta->unlock();
+
+                                need_remove_from_cxl_index = true;
+                                need_move_out_from_migration_tracker = true;
+                        }
+
+                        // local tuple might be invalid here because it can be moved back after being marked as invalid by a remote host
+                        cur_lmeta->is_valid = false;
+                        cur_lmeta->unlock();
+
+                        // remove the migrated row from the CXL index
+                        if (need_remove_from_cxl_index) {
+                                bool remove_success = remove_migrated_row(table->tableID(), table->partitionID(), key);
+                                CHECK(remove_success == true);
+                        }
+                };
+
+                // update next key info, mark both the local and the migrated tuples as invalid, and remove the migrated tuple
+                bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
+                CHECK(update_key_info_success == true);
+
+                // remove the local tuple
+                bool success = table->remove(key);
+                CHECK(success == true);
+
+                return true;
 	}
 
     public:

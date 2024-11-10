@@ -430,11 +430,10 @@ out_lmeta_unlock:
                 smeta->unlock();
         }
 
-        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
-                SundialPashaMetadataShared *smeta_export = nullptr;
                 void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
@@ -452,6 +451,7 @@ out_lmeta_unlock:
 
                         // init migration policy metadata
                         migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                        migration_policy_meta = smeta->migration_policy_meta;
 
                         // init software cache-coherence metadata
                         scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
@@ -484,8 +484,6 @@ out_lmeta_unlock:
                         lmeta->migrated_row = migrated_row_ptr;
                         lmeta->is_migrated = true;
 
-                        smeta_export = smeta;
-
                         // release the CXL latch
                         smeta->unlock();
 
@@ -505,21 +503,13 @@ out_lmeta_unlock:
                 }
 		lmeta->unlock();
 
-                if (move_in_success == true) {
-                        // track row for LRU
-                        CHECK(smeta_export != nullptr);
-                        migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
-                }
-
-
 		return move_in_success;
 	}
 
-        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 MetaDataType &meta = *std::get<0>(row);
 		SundialPashaMetadataLocal *lmeta = reinterpret_cast<SundialPashaMetadataLocal *>(meta.load());
-                SundialPashaMetadataShared *smeta_export = nullptr;
                 void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
@@ -559,6 +549,7 @@ out_lmeta_unlock:
 
                                 // init migration policy metadata
                                 migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                                migration_policy_meta = smeta->migration_policy_meta;
 
                                 // init software cache-coherence metadata
                                 scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
@@ -598,8 +589,6 @@ out_lmeta_unlock:
                                 lmeta->migrated_row = migrated_row_ptr;
                                 lmeta->is_migrated = true;
 
-                                smeta_export = smeta;
-
                                 // release the CXL latch
                                 smeta->unlock();
 
@@ -636,23 +625,17 @@ out_lmeta_unlock:
                 ret = table->search_and_update_next_key_info(key, move_in_processor);
                 CHECK(ret == true);
 
-                if (move_in_success == true) {
-                        // track row for LRU
-                        CHECK(smeta_export != nullptr);
-                        migration_manager->access_row(&smeta_export->migration_policy_meta, table->partitionID());
-                }
-
 		return move_in_success;
 	}
 
-        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt)
+        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 bool move_in_success = false;
 
                 if (table->tableType() == ITable::HASHMAP) {
-                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt);
+                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 } else if (table->tableType() == ITable::BTREE) {
-                        move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt);
+                        move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 } else {
                         CHECK(0);
                 }
@@ -842,6 +825,11 @@ out_lmeta_unlock:
                 }
 
 		return move_out_success;
+	}
+
+        bool delete_and_update_next_key_info(ITable *table, const void *key, bool is_local_delete, bool &need_move_out_from_migration_tracker, void *&migration_policy_meta)
+	{
+                CHECK(0);
 	}
 
     public:

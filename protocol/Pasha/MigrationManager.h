@@ -21,11 +21,13 @@ class MigrationManager {
                 Reactive
         };
 
-        MigrationManager(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool)> move_from_partition_to_shared_region,
+        MigrationManager(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                          std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                          const std::string when_to_move_out_str)
         : move_from_partition_to_shared_region(move_from_partition_to_shared_region)
         , move_from_shared_region_to_partition(move_from_shared_region_to_partition)
+        , delete_and_update_next_key_info(delete_and_update_next_key_info)
         {
                 if (when_to_move_out_str == "OnDemand") {
                         when_to_move_out = OnDemand;
@@ -63,11 +65,12 @@ class MigrationManager {
 
         virtual bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) = 0;
         virtual bool move_row_out(uint64_t partition_id) = 0;
-        virtual bool move_row_out_without_copyback(ITable *table, const void *key, void *migration_policy_meta) = 0;
+        virtual bool delete_specific_row_and_move_out(ITable *table, const void *key, bool is_delete_local) = 0;
 
         // user-provided functions
-        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt)> move_from_partition_to_shared_region;
+        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt, void *&)> move_from_partition_to_shared_region;
         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition;
+        std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info;
 
         // when to move out
         int when_to_move_out;

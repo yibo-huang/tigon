@@ -16,25 +16,28 @@ namespace star
 
 class PolicyOnDemandFIFO : public MigrationManager {
     public:
-        PolicyOnDemandFIFO(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool)> move_from_partition_to_shared_region,
+        PolicyOnDemandFIFO(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
+                        std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                         const std::string when_to_move_out_str,
                         uint64_t max_migrated_rows_size)
-        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, when_to_move_out_str)
+        : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, delete_and_update_next_key_info, when_to_move_out_str)
         , max_migrated_rows_size(max_migrated_rows_size)
         {}
 
         bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
+                void *migration_policy_meta = nullptr;
                 bool ret = false;
 
-                ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt);
+                queue_mutex.lock();
+                ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 if (ret == true) {
-                        queue_mutex.lock();
                         fifo_queue.push_back(migrated_row_entity(table, key, row));
                         cur_size += table->value_size();
-                        queue_mutex.unlock();
                 }
+                queue_mutex.unlock();
+
                 return ret;
         }
 
@@ -68,14 +71,20 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 return ret;
         }
 
-        bool move_row_out_without_copyback(ITable *table, const void *key, void *migration_policy_meta) override
+        bool delete_specific_row_and_move_out(ITable *table, const void *key, bool is_delete_local) override
         {
                 std::list<migrated_row_entity>::iterator it;
-                bool ret = false;
+                void *migration_policy_meta = nullptr;
+                bool need_move_out = false, ret = false;
 
                 queue_mutex.lock();
-                ret = twopl_pasha_global_helper->remove_migrated_row(table->tableID(), table->partitionID(), key);
-                if (ret == true) {
+
+                // delete and update next key information
+                ret = delete_and_update_next_key_info(table, key, is_delete_local, need_move_out, migration_policy_meta);
+                CHECK(ret == true);
+
+                // remove it from the tracking list
+                if (need_move_out == true) {
                         bool deleted = false;
                         it = fifo_queue.begin();
                         while (it != fifo_queue.end()) {
@@ -89,6 +98,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
                         }
                         CHECK(deleted == true);
                 }
+
                 queue_mutex.unlock();
 
                 return ret;
