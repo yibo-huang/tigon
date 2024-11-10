@@ -831,7 +831,6 @@ out_unlock_lmeta:
                         // check if the current tuple is migrated
                         // if yes, do the migration and update the next-key information
                         lmeta->lock();
-                        CHECK(lmeta->is_valid = true);
                         if (lmeta->is_migrated == false) {
                                 // allocate the CXL row
                                 std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
