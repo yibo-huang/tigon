@@ -426,6 +426,7 @@ class TwoPLPashaTransaction {
 			bool success = insertRequestHandler(insertKey.get_table_id(), insertKey.get_partition_id(), i, insertKey.get_key(), insertKey.get_value(),
                                                         insertKey.get_require_lock_next_row(), next_row_entity);
                         if (success == false) {
+                                this->abort_insert = true;
                                 ret = true;
                                 goto process_net_req_and_ret;
                         }
@@ -446,6 +447,7 @@ class TwoPLPashaTransaction {
 			const TwoPLPashaRWKey &deleteKey = deleteSet[i];
 			bool success = deleteRequestHandler(deleteKey.get_table_id(), deleteKey.get_partition_id(), i, deleteKey.get_key());
                         if (success == false) {
+                                this->abort_delete = true;
                                 ret = true;
                                 goto process_net_req_and_ret;
                         }

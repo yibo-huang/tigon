@@ -367,6 +367,7 @@ class SundialPashaTransaction {
 			bool success = readRequestHandler(readKey.get_table_id(), readKey.get_partition_id(), i, readKey.get_key(), readKey.get_value(),
 					   readKey.get_local_index_read_bit(), readKey.get_write_request_bit());
                         if (success == false) {
+                                this->abort_lock = true;
                                 ret = true;
                                 goto process_net_req_and_ret;
                         }
@@ -384,6 +385,7 @@ class SundialPashaTransaction {
 			bool success = scanRequestHandler(scanKey.get_table_id(), scanKey.get_partition_id(), i, scanKey.get_scan_min_key(), scanKey.get_scan_max_key(),
                                         scanKey.get_scan_limit(), scanKey.get_scan_res_vec());
                         if (success == false) {
+                                this->abort_lock = true;
                                 ret = true;
                                 goto process_net_req_and_ret;
                         }
@@ -400,6 +402,7 @@ class SundialPashaTransaction {
 			const SundialPashaRWKey &insertKey = insertSet[i];
 			bool success = insertRequestHandler(insertKey.get_table_id(), insertKey.get_partition_id(), i, insertKey.get_key(), insertKey.get_value());
                         if (success == false) {
+                                this->abort_insert = true;
                                 ret = true;
                                 goto process_net_req_and_ret;
                         }
@@ -416,6 +419,7 @@ class SundialPashaTransaction {
 			const SundialPashaRWKey &deleteKey = deleteSet[i];
 			bool success = deleteRequestHandler(deleteKey.get_table_id(), deleteKey.get_partition_id(), i, deleteKey.get_key());
                         if (success == false) {
+                                this->abort_delete = true;
                                 ret = true;
                                 goto process_net_req_and_ret;
                         }
