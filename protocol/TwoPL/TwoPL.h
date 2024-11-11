@@ -275,20 +275,28 @@ template <class Database> class TwoPL {
 		}
 
                 // commit deletes
-                auto &deleteSet = txn.deleteSet;
-                for (auto i = 0u; i < deleteSet.size(); i++) {
-			auto &deleteKey = deleteSet[i];
-			CHECK(deleteKey.get_processed() == true);
+                auto &scanSet = txn.scanSet;
+                for (auto i = 0u; i < scanSet.size(); i++) {
+                        auto &scanKey = scanSet[i];
+                        CHECK(scanKey.get_processed() == true);
 
-			auto tableId = deleteKey.get_table_id();
-			auto partitionId = deleteKey.get_partition_id();
+                        if (scanKey.get_request_type() != TwoPLRWKey::SCAN_FOR_DELETE) {
+                                continue;
+                        }
+
+                        auto tableId = scanKey.get_table_id();
+			auto partitionId = scanKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
-			if (partitioner.has_master_partition(partitionId)) {
-				auto key = deleteKey.get_key();
-                                bool success = table->remove(key);
-                                CHECK(success == true);
+                        std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
+                        CHECK(scan_results.size() > 0);
+
+                        if (partitioner.has_master_partition(partitionId)) {
+                                for (auto i = 0u; i < scan_results.size(); i++) {
+                                        auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                        bool success = table->remove(key);
+                                        CHECK(success == true);
+                                }
 			} else {
-                                // does not support remote insert & delete
                                 CHECK(0);
 			}
 		}
