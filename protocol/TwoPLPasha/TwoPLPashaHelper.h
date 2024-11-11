@@ -456,8 +456,8 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
-                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
+                        CHECK(lmeta->is_valid == true);
                         old_value = lmeta->tid;
 			DCHECK(is_read_locked(old_value));
 			DCHECK(!is_write_locked(old_value));
@@ -502,8 +502,8 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
                 lmeta->lock();
-                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
+                        CHECK(lmeta->is_valid == true);
                         old_value = lmeta->tid;
                         DCHECK(!is_read_locked(old_value));
                         DCHECK(is_write_locked(old_value));
@@ -548,8 +548,8 @@ out_unlock_lmeta:
                 uint64_t old_value = 0;
 
                 lmeta->lock();
-                CHECK(lmeta->is_valid == true);
                 if (lmeta->is_migrated == false) {
+                        CHECK(lmeta->is_valid == true);
                         old_value = lmeta->tid;
                         DCHECK(!is_read_locked(old_value));
                         DCHECK(is_write_locked(old_value));
