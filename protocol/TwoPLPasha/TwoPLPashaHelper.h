@@ -906,6 +906,30 @@ out_unlock_lmeta:
 
                                 move_in_success = true;
                         } else {
+                                // lazily update the next-key information for the previous key
+                                if (prev_lmeta != nullptr) {
+                                        prev_lmeta->lock();
+                                        if (prev_lmeta->is_migrated == true) {
+                                                auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                                prev_smeta->lock();
+                                                prev_smeta->is_next_key_real = true;
+                                                prev_smeta->unlock();
+                                        }
+                                        prev_lmeta->unlock();
+                                }
+
+                                // lazily update the next-key information for the previous key
+                                if (next_lmeta != nullptr) {
+                                        next_lmeta->lock();
+                                        if (next_lmeta->is_migrated == true) {
+                                                TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                                next_smeta->lock();
+                                                next_smeta->is_prev_key_real = true;
+                                                next_smeta->unlock();
+                                        }
+                                        next_lmeta->unlock();
+                                }
+
                                 if (inc_ref_cnt == true) {
                                         // increase the reference count for the requesting host, even if it is already migrated
                                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
