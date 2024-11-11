@@ -148,7 +148,6 @@ template <class Database> class TwoPL {
                 auto &scanSet = txn.scanSet;
 
                 for (auto i = 0u; i < scanSet.size(); i++) {
-                        // release read locks in the scanSet
 			auto &scanKey = scanSet[i];
 			auto tableId = scanKey.get_table_id();
 			auto partitionId = scanKey.get_partition_id();
@@ -164,6 +163,8 @@ template <class Database> class TwoPL {
                                 if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_READ) {
                                         TwoPLHelper::read_lock_release(*meta);
                                 } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_UPDATE) {
+                                        TwoPLHelper::write_lock_release(*meta);
+                                } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_INSERT) {
                                         TwoPLHelper::write_lock_release(*meta);
                                 } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_DELETE) {
                                         TwoPLHelper::write_lock_release(*meta);
@@ -186,6 +187,7 @@ template <class Database> class TwoPL {
 					CHECK(0);
 				}
 			} else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_UPDATE ||
+                                scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_INSERT ||
                                 scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_DELETE) {
                                 // release write locks
 				if (partitioner.has_master_partition(partitionId)) {
@@ -254,7 +256,7 @@ template <class Database> class TwoPL {
 			auto partitionId = insertKey.get_partition_id();
 			auto table = db.find_table(tableId, partitionId);
 			if (partitioner.has_master_partition(partitionId)) {
-                                // make the placeholder valid
+                                // make the placeholder as valid
 				auto key = insertKey.get_key();
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                 CHECK(meta != 0);
@@ -634,6 +636,8 @@ template <class Database> class TwoPL {
                                         TwoPLHelper::read_lock_release(*meta);
                                 } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_UPDATE) {
                                         TwoPLHelper::write_lock_release(*meta);
+                                } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_INSERT) {
+                                        TwoPLHelper::write_lock_release(*meta);
                                 } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_DELETE) {
                                         TwoPLHelper::write_lock_release(*meta);
                                 } else {
@@ -655,6 +659,19 @@ template <class Database> class TwoPL {
 					CHECK(0);
 				}
 			} else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_UPDATE) {
+                                // release write locks for updates
+				if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                                CHECK(meta != 0);
+                                                TwoPLHelper::write_lock_release(*meta);
+                                        }
+				} else {
+                                        // remote scan not supported
+					CHECK(0);
+				}
+                        } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_INSERT) {
                                 // release write locks for updates
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {

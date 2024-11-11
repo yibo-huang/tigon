@@ -98,7 +98,7 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 
                         if (local_scan) {
                                 // we do the next-key locking logic inside this function
-                                bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
+                                bool scan_success = true;       // it is possible that the range is empty - we accept this case
                                 auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
@@ -127,8 +127,12 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
                                                 TwoPLHelper::read_lock(meta, lock_success);
                                         } else if (type == TwoPLRWKey::SCAN_FOR_UPDATE) {
                                                 TwoPLHelper::write_lock(meta, lock_success);
+                                        } else if (type == TwoPLRWKey::SCAN_FOR_INSERT) {
+                                                TwoPLHelper::write_lock(meta, lock_success);
                                         } else if (type == TwoPLRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLHelper::write_lock(meta, lock_success);
+                                        } else {
+                                                CHECK(0);
                                         }
 
                                         if (lock_success == true) {
