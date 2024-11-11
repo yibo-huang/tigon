@@ -332,7 +332,7 @@ template <class Transaction> class Insert : public Transaction {
 	using RandomType = typename DatabaseType::RandomType;
 	using StorageType = Storage;
 
-	static constexpr std::size_t scan_num = 2;
+	static constexpr std::size_t insert_num = 1;
 
 	Insert(std::size_t coordinator_id, std::size_t partition_id, std::size_t granule_id, DatabaseType &db, const ContextType &context,
 			RandomType &random, Partitioner &partitioner, std::size_t ith_replica = 0)
@@ -342,7 +342,7 @@ template <class Transaction> class Insert : public Transaction {
 		, random(random)
 		, partition_id(partition_id)
 		, granule_id(granule_id)
-		, query(makeInsertQuery<scan_num>()(context, partition_id, granule_id, random, partitioner))
+		, query(makeInsertQuery<insert_num>()(context, partition_id, granule_id, random, partitioner))
 	{
 		storage = get_storage();
 	}
@@ -404,16 +404,15 @@ template <class Transaction> class Insert : public Transaction {
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
 
                 uint64_t scan_len = query.scan_len;
+		CHECK(insert_num == 1);
+                CHECK(scan_len == 10);
 
 		int ycsbTableID = ycsb::tableID;
-		DCHECK(ycsbTableID < 1);
-                for (auto i = 0u; i < scan_num; i++) {
-			auto key = query.Y_KEY[i];
-			storage->ycsb_scan_min_keys[i].Y_KEY = key;
-                        storage->ycsb_scan_max_keys[i].Y_KEY = INT32_MAX;
-                        this->scan_for_read(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[i], storage->ycsb_scan_max_keys[i],
-                                scan_len, &storage->ycsb_scan_results[i], context.getGranule(key));
-		}
+                auto key = query.Y_KEY[0];
+                storage->ycsb_scan_min_keys[0].Y_KEY = key;
+                storage->ycsb_scan_max_keys[0].Y_KEY = INT32_MAX - 1;   // otherwise the max key placeholder will be included
+                this->scan_for_insert(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[0], storage->ycsb_scan_max_keys[0],
+                        scan_len, &storage->ycsb_scan_results[0], context.getGranule(key));
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
@@ -421,12 +420,66 @@ template <class Transaction> class Insert : public Transaction {
 		}
 		t_local_work.reset();
 
-		return TransactionResult::READY_TO_COMMIT;
+                // try to find a hole
+                bool hole_exist = false;
+
+                // try to find a hole by searching through the scan results
+                for (int i = 0; i < storage->ycsb_scan_results[0].size(); i++) {
+                        auto potential_key_to_insert = key + i;
+                        auto cur_key = *reinterpret_cast<ycsb::key *>(storage->ycsb_scan_results[0][i].key);
+                        if (potential_key_to_insert == cur_key.Y_KEY) {
+                                continue;
+                        } else {
+                                // found a hole!
+                                hole_exist = true;
+
+                                // insert the missing key
+                                storage->ycsb_keys[0].Y_KEY = potential_key_to_insert;
+                                CHECK(context.getPartitionID(storage->ycsb_keys[0].Y_KEY) == context.getPartitionID(key));
+
+                                // TODO: write new value
+
+                                // the next-key is always locked already - so we do not need to lock the next key
+                                this->insert_row(ycsbTableID, context.getPartitionID(storage->ycsb_keys[0].Y_KEY), storage->ycsb_keys[0], storage->ycsb_values[0], false);
+                                break;
+                        }
+                }
+
+                // try to find a hole by looking at the holes in the tail
+                if (hole_exist == false) {
+                        if (storage->ycsb_scan_results[0].size() < scan_len) {
+                                // found a hole!
+                                hole_exist = true;
+
+                                // insert the missing key
+                                auto potential_key_to_insert = key + storage->ycsb_scan_results[0].size();
+                                storage->ycsb_keys[0].Y_KEY = potential_key_to_insert;
+                                CHECK(context.getPartitionID(storage->ycsb_keys[0].Y_KEY) == context.getPartitionID(key));
+
+                                // TODO: write new value
+
+                                // the next-key is always locked already - so we do not need to lock the next key
+                                this->insert_row(ycsbTableID, context.getPartitionID(storage->ycsb_keys[0].Y_KEY), storage->ycsb_keys[0], storage->ycsb_values[0], false);
+                        }
+                }
+
+                if (hole_exist == false) {
+                        // abort no retry
+                        return TransactionResult::ABORT_NORETRY;
+                }
+
+                t_local_work.end();
+		if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+		t_local_work.reset();
+
+                return TransactionResult::READY_TO_COMMIT;
 	}
 
 	void reset_query() override
 	{
-		query = makeInsertQuery<scan_num>()(context, partition_id, granule_id, random, this->partitioner);
+		query = makeInsertQuery<insert_num>()(context, partition_id, granule_id, random, this->partitioner);
 	}
 
     private:
@@ -435,7 +488,7 @@ template <class Transaction> class Insert : public Transaction {
 	RandomType random;
 	Storage *storage = nullptr;
 	std::size_t partition_id, granule_id;
-	InsertQuery<scan_num> query;
+	InsertQuery<insert_num> query;
 };
 
 // The Delete transaction scans a range and deletes the first tuple within that range

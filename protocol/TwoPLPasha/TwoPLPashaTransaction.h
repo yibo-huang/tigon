@@ -284,6 +284,20 @@ class TwoPLPashaTransaction {
 	}
 
         template <class KeyType>
+	void scan_for_insert(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
+                        uint64_t limit, void *results, std::size_t granule_id = 0)
+	{
+		TwoPLPashaRWKey scanKey;
+
+		scanKey.set_table_id(table_id);
+		scanKey.set_partition_id(partition_id);
+
+                scanKey.set_scan_args(&min_key, &max_key, limit, results, TwoPLPashaRWKey::SCAN_FOR_INSERT);
+
+		add_to_scan_set(scanKey);
+	}
+
+        template <class KeyType>
 	void scan_for_delete(std::size_t table_id, std::size_t partition_id, const KeyType &min_key, const KeyType &max_key,
                         uint64_t limit, void *results, std::size_t granule_id = 0)
 	{

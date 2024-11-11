@@ -16,7 +16,7 @@ namespace star
 class SundialPashaRWKey {
     public:
         // range query types
-        enum { SCAN_FOR_READ, SCAN_FOR_UPDATE, SCAN_FOR_DELETE };
+        enum { SCAN_FOR_READ, SCAN_FOR_UPDATE, SCAN_FOR_INSERT, SCAN_FOR_DELETE };
 
 	// local index read bit
 
