@@ -184,6 +184,10 @@ class SiloTransaction {
 		writeSet.clear();
 	}
 
+        bool should_abort() {
+                return abort_lock || abort_read_validation;
+        }
+
 	virtual TransactionResult execute(std::size_t worker_id) = 0;
 
 	virtual void reset_query() = 0;
@@ -294,7 +298,9 @@ class SiloTransaction {
 
 	bool process_requests(std::size_t worker_id, bool last_call_in_transaction = true)
 	{
+                bool ret = false;
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
+
 		// cannot use unsigned type in reverse iteration
 		for (int i = int(readSet.size()) - 1; i >= 0; i--) {
 			// early return
@@ -317,6 +323,12 @@ class SiloTransaction {
 				remote_request_handler(0);
 			}
 		}
+
+                // we may decide to abort after processing some messages
+                if (should_abort()) {
+                        ret = true;
+                }
+
 		return false;
 	}
 

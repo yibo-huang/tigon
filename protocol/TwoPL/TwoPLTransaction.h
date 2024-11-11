@@ -187,6 +187,10 @@ class TwoPLTransaction {
                 deleteSet.clear();
 	}
 
+        bool should_abort() {
+                return abort_lock || abort_read_validation || abort_insert || abort_delete;
+        }
+
 	virtual TransactionResult execute(std::size_t worker_id) = 0;
 
 	virtual void reset_query() = 0;
@@ -450,6 +454,12 @@ process_net_req_and_ret:
 				remote_request_handler(0);
 			}
 		}
+
+                // we may decide to abort after processing some messages
+                if (should_abort()) {
+                        ret = true;
+                }
+
 		return ret;
 	}
 
