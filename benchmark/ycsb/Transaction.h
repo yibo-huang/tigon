@@ -296,7 +296,7 @@ template <class Transaction> class Scan : public Transaction {
                 for (auto i = 0u; i < scan_num; i++) {
 			auto key = query.Y_KEY[i];
 			storage->ycsb_scan_min_keys[i].Y_KEY = key;
-                        storage->ycsb_scan_max_keys[i].Y_KEY = INT32_MAX;
+                        storage->ycsb_scan_max_keys[i].Y_KEY = INT32_MAX - 1;   // otherwise the max key placeholder will be included
                         this->scan_for_read(ycsbTableID, context.getPartitionID(key), storage->ycsb_scan_min_keys[i], storage->ycsb_scan_max_keys[i],
                                 scan_len, &storage->ycsb_scan_results[i], context.getGranule(key));
 		}
