@@ -146,7 +146,6 @@ template <class Database> class TwoPLPasha {
                 auto &scanSet = txn.scanSet;
 
                 for (auto i = 0u; i < scanSet.size(); i++) {
-                        // release read locks in the scanSet
 			auto &scanKey = scanSet[i];
 			auto tableId = scanKey.get_table_id();
 			auto partitionId = scanKey.get_partition_id();
@@ -164,6 +163,8 @@ template <class Database> class TwoPLPasha {
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                                 TwoPLPashaHelper::write_lock_release(*meta);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
+                                                TwoPLPashaHelper::write_lock_release(*meta);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         } else {
@@ -176,6 +177,8 @@ template <class Database> class TwoPLPasha {
                                         if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                                 TwoPLPashaHelper::remote_read_lock_release(cxl_row);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
                                                 TwoPLPashaHelper::remote_write_lock_release(cxl_row);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLPashaHelper::remote_write_lock_release(cxl_row);
@@ -202,6 +205,7 @@ template <class Database> class TwoPLPasha {
                                         }
 				}
 			} else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE ||
+                                scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_INSERT ||
                                 scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                 // release write locks
 				if (partitioner.has_master_partition(partitionId)) {
@@ -308,7 +312,7 @@ template <class Database> class TwoPLPasha {
                                 bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
                                 CHECK(update_key_info_success == true);
 
-                                // make the placeholder valid
+                                // make the placeholder as valid
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);
                                 CHECK(meta != 0);
                                 TwoPLPashaHelper::modify_tuple_valid_bit(*meta, true);
@@ -577,6 +581,8 @@ template <class Database> class TwoPLPasha {
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                                 TwoPLPashaHelper::write_lock_release(*meta);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
+                                                TwoPLPashaHelper::write_lock_release(*meta);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         } else {
@@ -590,6 +596,8 @@ template <class Database> class TwoPLPasha {
                                         if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                                 TwoPLPashaHelper::remote_read_lock_release(cxl_row);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
                                                 TwoPLPashaHelper::remote_write_lock_release(cxl_row);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLPashaHelper::remote_write_lock_release(cxl_row);
@@ -616,6 +624,22 @@ template <class Database> class TwoPLPasha {
                                         }
                                 }
                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
+                                // release write locks for updates
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
+                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                                CHECK(meta != 0);
+                                                TwoPLPashaHelper::write_lock_release(*meta);
+                                        }
+                                } else {
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::remote_write_lock_release(cxl_row);
+                                        }
+                                }
+                        } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
                                 // release write locks for updates
                                 if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {

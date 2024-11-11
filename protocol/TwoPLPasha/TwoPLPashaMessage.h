@@ -425,8 +425,12 @@ class TwoPLPashaMessageHandler {
                                 TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                 TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
+                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                 TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                        } else {
+                                CHECK(0);
                         }
 
                         if (lock_success == true) {

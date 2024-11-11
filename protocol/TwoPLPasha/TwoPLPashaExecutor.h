@@ -176,7 +176,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
 			if (local_scan) {
                                 // we do the next-key locking logic inside this function
-                                bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
+                                bool scan_success = true;       // it is possible that the range is empty - we accept this case
                                 auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                         CHECK(key != nullptr);
                                         CHECK(meta_ptr != nullptr);
@@ -205,8 +205,12 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 TwoPLPashaHelper::read_lock(meta, lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                                 TwoPLPashaHelper::write_lock(meta, lock_success);
+                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
+                                                TwoPLPashaHelper::write_lock(meta, lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLPashaHelper::write_lock(meta, lock_success);
+                                        } else {
+                                                CHECK(0);
                                         }
 
                                         if (lock_success == true) {
@@ -289,8 +293,12 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                                 TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
+                                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                 TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                                        } else {
+                                                CHECK(0);
                                         }
 
                                         if (lock_success == true) {
@@ -337,8 +345,12 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                         TwoPLPashaHelper::remote_read_lock_release(reinterpret_cast<char *>(cxl_row));
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
                                                         TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
+                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
+                                                        TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                         TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
+                                                } else {
+                                                        CHECK(0);
                                                 }
                                                 TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
                                         }
