@@ -1153,7 +1153,9 @@ out_unlock_lmeta:
                                         if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
                                                 prev_smeta->is_next_key_real = false;
                                         } else if (next_lmeta != nullptr && next_lmeta->is_migrated == true) {
-                                                prev_smeta->is_next_key_real = true;
+                                                // We should treat migrated tuples as equal no matter they are valid or not.
+                                                // Since we are removing the migrated tuple but keeping the local tuple, we should mark the next key as false.
+                                                prev_smeta->is_next_key_real = false;
                                         } else {
                                                 prev_smeta->is_next_key_real = false;
                                         }
@@ -1169,7 +1171,9 @@ out_unlock_lmeta:
                                         if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
                                                 next_smeta->is_prev_key_real = false;
                                         } else if (prev_lmeta != nullptr && prev_lmeta->is_migrated == true) {
-                                                next_smeta->is_prev_key_real = true;
+                                                // We should treat migrated tuples as equal no matter they are valid or not.
+                                                // Since we are removing the migrated tuple but keeping the local tuple, we should mark the previous key as false.
+                                                next_smeta->is_prev_key_real = false;
                                         } else {
                                                 next_smeta->is_prev_key_real = false;
                                         }
@@ -1219,7 +1223,7 @@ out_unlock_lmeta:
                 bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
                 CHECK(update_key_info_success == true);
 
-                // remove the local tuple
+                // remove from the local tuple
                 bool success = table->remove(key);
                 CHECK(success == true);
 
