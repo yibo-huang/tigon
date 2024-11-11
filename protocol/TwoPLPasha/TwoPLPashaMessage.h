@@ -23,6 +23,8 @@ enum class TwoPLPashaMessage {
         DATA_MIGRATION_REQUEST_FOR_SCAN,
         DATA_MIGRATION_RESPONSE_FOR_SCAN,
         DATA_MOVEOUT_HINT,
+        REMOTE_INSERT_REQUEST,
+        REMOTE_INSERT_RESPONSE,
         REMOTE_DELETE_REQUEST,
         REPLICATION_REQUEST,
 	REPLICATION_RESPONSE,
@@ -96,6 +98,30 @@ class TwoPLPashaMessageFactory {
 	static std::size_t new_replication_message(Message &message, ITable &table, const void *key, const void *value, uint64_t commit_tid, bool sync_redo)
 	{
 		CHECK(0);
+	}
+
+        static std::size_t new_remote_insert_message(Message &message, ITable &table, const void *key, void *value, uint64_t transaction_id, uint32_t key_offset)
+	{
+		/*
+		 * The structure of a remote delete request: (primary key, value)
+		 */
+
+		auto key_size = table.key_size();
+                auto value_size = table.value_size();
+
+		auto message_size = MessagePiece::get_header_size() + key_size + value_size + sizeof(transaction_id) + sizeof(key_offset);
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_INSERT_REQUEST),
+                                                                                         message_size, table.tableID(), table.partitionID());
+
+		Encoder encoder(message.data);
+		encoder << message_piece_header;
+		encoder.write_n_bytes(key, key_size);
+                encoder.write_n_bytes(value, value_size);
+                encoder << transaction_id;
+		encoder << key_offset;
+		message.flush();
+		message.set_gen_time(Time::now());
+		return message_size;
 	}
 
         static std::size_t new_remote_delete_message(Message &message, ITable &table, const void *key)
@@ -482,6 +508,102 @@ class TwoPLPashaMessageHandler {
                 migration_manager->move_row_out(table.partitionID());
 	}
 
+        static void remote_insert_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	{
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_INSERT_REQUEST));
+		auto table_id = inputPiece.get_table_id();
+		auto partition_id = inputPiece.get_partition_id();
+		DCHECK(table_id == table.tableID());
+		DCHECK(partition_id == table.partitionID());
+		auto key_size = table.key_size();
+		auto value_size = table.value_size();
+
+		/*
+		 * The structure of a remote insert request: (primary key, value)
+		 */
+
+		auto stringPiece = inputPiece.toStringPiece();
+		uint64_t transaction_id;
+		uint32_t key_offset;
+
+		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size + value_size + sizeof(transaction_id) + sizeof(key_offset));
+
+                // get the key
+		const void *key = stringPiece.data();
+		stringPiece.remove_prefix(key_size);
+
+                // get the value
+                const void *value = stringPiece.data();
+		stringPiece.remove_prefix(value_size);
+
+                // get transaction_id, and key_offset
+		star::Decoder dec(stringPiece);
+		dec >> transaction_id >> key_offset;
+
+		DCHECK(dec.size() == 0);
+
+                // insert a placeholder
+                ITable::row_entity next_row_entity;
+                bool insert_success = twopl_pasha_global_helper->insert_and_update_next_key_info(&table, key, value, false, next_row_entity);
+                CHECK(insert_success == true);
+
+                // move it into CXL memory
+                auto row = table.search(key);
+                migration_manager->move_row_in(&table, key, row, true);
+
+                // prepare response message header
+		auto message_size = MessagePiece::get_header_size() + sizeof(insert_success) + sizeof(key_offset);
+		auto message_piece_header = MessagePiece::construct_message_piece_header(static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_INSERT_RESPONSE), message_size,
+                                                                                         table_id, partition_id);
+
+		star::Encoder encoder(responseMessage.data);
+		encoder << message_piece_header;
+                encoder << insert_success << key_offset;
+		responseMessage.flush();
+	}
+
+        static void remote_insert_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
+	{
+		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_DELETE_REQUEST));
+		auto table_id = inputPiece.get_table_id();
+		auto partition_id = inputPiece.get_partition_id();
+		DCHECK(table_id == table.tableID());
+		DCHECK(partition_id == table.partitionID());
+		auto key_size = table.key_size();
+		auto value_size = table.value_size();
+
+		/*
+		 * The structure of a remote insert response: (success, key_offset)
+		 */
+
+		auto stringPiece = inputPiece.toStringPiece();
+                bool success;
+                uint32_t key_offset;
+
+		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset));
+
+		// get success and key_offset
+		star::Decoder dec(stringPiece);
+		dec >> success >> key_offset;
+
+                // always succeeds
+                CHECK(success == true);
+
+                TwoPLPashaRWKey &insertKey = txn->insertSet[key_offset];
+                CHECK(insertKey.get_processed() == true);
+
+                // mark the placeholder as valid
+                auto key = insertKey.get_key();
+                CXLTableBase *target_cxl_table = twopl_pasha_global_helper->get_cxl_table(table_id, partition_id);
+                char *cxl_row = reinterpret_cast<char *>(target_cxl_table->search(key));
+                TwoPLPashaHelper::remote_modify_tuple_valid_bit(cxl_row, true);
+
+                // mark it as reference counted so that we know if we need to release it upon commit/abort
+                insertKey.set_reference_counted();
+
+                txn->pendingResponses--;
+	}
+
         static void remote_delete_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
 		DCHECK(inputPiece.get_message_type() == static_cast<uint32_t>(TwoPLPashaMessage::REMOTE_DELETE_REQUEST));
@@ -500,7 +622,7 @@ class TwoPLPashaMessageHandler {
 
 		DCHECK(inputPiece.get_message_length() == MessagePiece::get_header_size() + key_size);
 
-		// get row and offset
+		// get the key
 		const void *key = stringPiece.data();
 
                 // delete the key and untrack it if necessary
@@ -527,6 +649,8 @@ class TwoPLPashaMessageHandler {
 		v.push_back(data_migration_request_for_scan_handler);
 		v.push_back(data_migration_response_for_scan_handler);
                 v.push_back(data_move_out_hint_handler);
+                v.push_back(remote_insert_request_handler);
+                v.push_back(remote_insert_response_handler);
                 v.push_back(remote_delete_request_handler);
                 // replication is not supported
                 // v.push_back(replication_request_handler);

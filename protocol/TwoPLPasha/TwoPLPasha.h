@@ -326,10 +326,16 @@ template <class Database> class TwoPLPasha {
                                         TwoPLPashaHelper::read_lock_release(*next_key_meta);
                                 }
 			} else {
-                                // does not support remote insert & delete
-                                CHECK(0);
+                                auto coordinatorID = partitioner.master_coordinator(partitionId);
+                                txn.network_size += MessageFactoryType::new_remote_insert_message(
+                                        *messages[coordinatorID], *table, insertKey.get_key(), insertKey.get_value(), txn.transaction_id, i);
+                                txn.pendingResponses++;
 			}
 		}
+
+                // wait for the remote host to insert a placeholder and migrate it
+                // then mark the placeholder as valid
+                sync_messages(txn);
 
                 // commit deletes
                 auto &scanSet = txn.scanSet;
@@ -558,6 +564,33 @@ template <class Database> class TwoPLPasha {
 			}
 		}
 
+                // release write locks for the next keys of inserts
+		auto &insertSet = txn.insertSet;
+
+		for (auto i = 0u; i < insertSet.size(); i++) {
+			auto &insertKey = insertSet[i];
+			auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+
+                        // release the next row
+                        if (insertKey.get_next_row_locked() == true) {
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto next_row_entity = insertKey.get_next_row_entity();
+                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
+                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+                                        TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
+                                } else {
+                                        CHECK(insertKey.get_next_row_locked() == true);
+                                        auto next_row_entity = insertKey.get_next_row_entity();
+                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                        CHECK(cxl_row != nullptr);
+                                        twopl_pasha_global_helper->remote_write_lock_release(cxl_row, commit_tid);
+                                }
+                        }
+		}
+
                 // release locks in the scan set
                 auto &scanSet = txn.scanSet;
 
@@ -677,6 +710,21 @@ template <class Database> class TwoPLPasha {
 			if (readKey.get_reference_counted() == true) {
                                 DCHECK(partitioner.has_master_partition(partitionId) == false);
                                 auto key = readKey.get_key();
+                                twopl_pasha_global_helper->release_migrated_row(tableId, partitionId, key);
+                        }
+		}
+
+                // release rows in the insert set
+                auto &insertSet = txn.insertSet;
+		for (auto i = 0u; i < insertSet.size(); ++i) {
+			auto &insertKey = insertSet[i];
+                        auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+
+			if (insertKey.get_reference_counted() == true) {
+                                DCHECK(partitioner.has_master_partition(partitionId) == false);
+                                auto key = insertKey.get_key();
                                 twopl_pasha_global_helper->release_migrated_row(tableId, partitionId, key);
                         }
 		}

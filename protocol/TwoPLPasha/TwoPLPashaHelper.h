@@ -1126,6 +1126,84 @@ out_unlock_lmeta:
 		return move_out_success;
 	}
 
+        bool insert_and_update_next_key_info(ITable *table, const void *key, const void *value, bool require_lock_next_key, ITable::row_entity &next_row_entity)
+        {
+                auto adjacent_tuples_processor = [&](const void *prev_key, MetaDataType *prev_meta, void *prev_data, const void *next_key, MetaDataType *next_meta, void *next_data) -> bool {
+                        TwoPLPashaMetadataLocal *prev_lmeta = nullptr, *next_lmeta = nullptr;
+                        if (prev_meta != nullptr) {
+                                prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta->load());
+                        }
+                        if (next_meta != nullptr) {
+                                next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta->load());
+                        }
+
+                        if (require_lock_next_key == true) {
+                                // try to acquire the write lock of the next key
+                                CHECK(next_meta != nullptr);
+                                std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(next_meta);
+                                bool lock_success = false;
+                                TwoPLPashaHelper::write_lock(meta, lock_success);
+                                if (lock_success == true) {
+                                        ITable::row_entity next_row(next_key, table->key_size(), &meta, next_data, table->value_size());
+                                        next_row_entity = next_row;
+
+                                        // update the next key information for the previous key
+                                        if (prev_lmeta != nullptr) {
+                                                prev_lmeta->lock();
+                                                if (prev_lmeta->is_migrated == true) {
+                                                        auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                                        prev_smeta->lock();
+                                                        prev_smeta->is_next_key_real = false;
+                                                        prev_smeta->unlock();
+                                                }
+                                                prev_lmeta->unlock();
+                                        }
+
+                                        // update the previous key information for the next key
+                                        if (next_lmeta != nullptr) {
+                                                next_lmeta->lock();
+                                                if (next_lmeta->is_migrated == true) {
+                                                        auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                                        next_smeta->lock();
+                                                        next_smeta->is_prev_key_real = false;
+                                                        next_smeta->unlock();
+                                                }
+                                                next_lmeta->unlock();
+                                        }
+                                }
+                                return lock_success;
+                        } else {
+                                // update the next key information for the previous key
+                                if (prev_lmeta != nullptr) {
+                                        prev_lmeta->lock();
+                                        if (prev_lmeta->is_migrated == true) {
+                                                auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
+                                                prev_smeta->lock();
+                                                prev_smeta->is_next_key_real = false;
+                                                prev_smeta->unlock();
+                                        }
+                                        prev_lmeta->unlock();
+                                }
+
+                                // update the previous key information for the next key
+                                if (next_lmeta != nullptr) {
+                                        next_lmeta->lock();
+                                        if (next_lmeta->is_migrated == true) {
+                                                auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
+                                                next_smeta->lock();
+                                                next_smeta->is_prev_key_real = false;
+                                                next_smeta->unlock();
+                                        }
+                                        next_lmeta->unlock();
+                                }
+                                return true;
+                        }
+                };
+
+                // insert a placeholder and update adjacent tuple information if necessary
+                return table->insert_and_process_adjacent_tuples(key, value, adjacent_tuples_processor, true);
+        }
+
         bool delete_and_update_next_key_info(ITable *table, const void *key, bool is_local_delete, bool &need_move_out_from_migration_tracker, void *&migration_policy_meta)
 	{
                  auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
@@ -1206,6 +1284,8 @@ out_unlock_lmeta:
 
                                 need_remove_from_cxl_index = true;
                                 need_move_out_from_migration_tracker = true;
+
+                                cur_lmeta->is_migrated = false;
                         }
 
                         // local tuple might be invalid here because it can be moved back after being marked as invalid by a remote host

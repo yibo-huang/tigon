@@ -70,6 +70,10 @@ class ITable {
 
         virtual bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) = 0;
 
+        virtual bool insert_and_process_adjacent_tuples(const void *key, const void *value,
+                std::function<bool(const void *prev_key, MetaDataType *prev_meta, void *prev_data, const void *next_key, MetaDataType *next_meta, void *next_data)> update_processor,
+                bool is_placeholder = false) = 0;
+
         virtual bool remove(const void *key) = 0;
 
 	virtual void update(
@@ -242,6 +246,13 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 	}
 
         bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
+        {
+                CHECK(0);
+        }
+
+        bool insert_and_process_adjacent_tuples(const void *key, const void *value,
+                std::function<bool(const void *prev_key, MetaDataType *prev_meta, void *prev_data, const void *next_key, MetaDataType *next_meta, void *next_data)> update_processor,
+                bool is_placeholder = false) override
         {
                 CHECK(0);
         }
@@ -495,6 +506,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 btree.scanForUpdate(min_k, processor);
         }
 
+        // used by other baselines
 	bool insert(const void *key, const void *value, bool is_placeholder = false) override
 	{
                 tid_check();
@@ -518,6 +530,7 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 		return success;
 	}
 
+        // used by TwoPL
         bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
 	{
                 tid_check();
@@ -547,6 +560,50 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
 
                 // insert BTreeOLCValue to BTreeOLC
 		bool success = btree.insert_lock_next_key(k, btree_value, processor);
+		return success;
+	}
+
+        // used by Pasha
+        bool insert_and_process_adjacent_tuples(const void *key, const void *value,
+                std::function<bool(const void *prev_key, MetaDataType *prev_meta, void *prev_data, const void *next_key, MetaDataType *next_meta, void *next_data)> processor,
+                bool is_placeholder = false) override
+	{
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+		const auto &v = *static_cast<const ValueType *>(value);
+
+                CHECK(is_placeholder == true);
+
+                bool is_tuple_valid = !is_placeholder;
+
+                // create value that will not be moved around
+                ValueStruct *row = new ValueStruct;
+                CHECK(row != nullptr);
+                row->meta = MetaInitFunc()(is_tuple_valid);
+                row->data = v;
+
+                // BTreeOLCValue will be moved around and thus only stores pointers to the actual value
+                BTreeOLCValue btree_value;
+                btree_value.row = row;
+
+                auto adjacent_tuples_processor = [&](const KeyType *prev_key, BTreeOLCValue *prev_value, const KeyType *next_key, BTreeOLCValue *next_value) -> bool {
+                        MetaDataType *prev_meta_ptr = nullptr, *next_meta_ptr = nullptr;
+                        void *prev_data = nullptr, *next_data = nullptr;
+
+                        if (prev_value != nullptr) {
+                                prev_meta_ptr = &prev_value->row->meta;
+                                prev_data = &prev_value->row->data;
+                        }
+                        if (next_value != nullptr) {
+                                next_meta_ptr = &next_value->row->meta;
+                                next_data = &next_value->row->data;
+                        }
+
+                        return processor(prev_key, prev_meta_ptr, prev_data, next_key, next_meta_ptr, next_data);
+		};
+
+                // insert BTreeOLCValue to BTreeOLC
+		bool success = btree.insert_and_process_adjacent_tuples(k, btree_value, adjacent_tuples_processor);
 		return success;
 	}
 
@@ -763,6 +820,13 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 CHECK(0);
         }
 
+        bool insert_and_process_adjacent_tuples(const void *key, const void *value,
+                std::function<bool(const void *prev_key, MetaDataType *prev_meta, void *prev_data, const void *next_key, MetaDataType *next_meta, void *next_data)> update_processor,
+                bool is_placeholder = false) override
+        {
+                CHECK(0);
+        }
+
         bool remove(const void *key) override
         {
                 CHECK(0);
@@ -914,6 +978,13 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
 	}
 
         bool insert_lock_next_key(const void *key, const void *value, std::function<bool(const void *, MetaDataType *, void *)> next_key_processor, bool is_placeholder = false) override
+        {
+                CHECK(0);
+        }
+
+        bool insert_and_process_adjacent_tuples(const void *key, const void *value,
+                std::function<bool(const void *prev_key, MetaDataType *prev_meta, void *prev_data, const void *next_key, MetaDataType *next_meta, void *next_data)> update_processor,
+                bool is_placeholder = false) override
         {
                 CHECK(0);
         }
