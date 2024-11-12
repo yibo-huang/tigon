@@ -1230,7 +1230,7 @@ out_unlock_lmeta:
 
         bool delete_and_update_next_key_info(ITable *table, const void *key, bool is_local_delete, bool &need_move_out_from_migration_tracker, void *&migration_policy_meta)
 	{
-                 auto key_info_updater = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
+                 auto adjacent_tuples_processor = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) -> bool {
                         auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
                         auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
                         auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
@@ -1321,14 +1321,12 @@ out_unlock_lmeta:
                                 bool remove_success = remove_migrated_row(table->tableID(), table->partitionID(), key);
                                 CHECK(remove_success == true);
                         }
+
+                        return true;
                 };
 
                 // update next key info, mark both the local and the migrated tuples as invalid, and remove the migrated tuple
-                bool update_key_info_success = table->search_and_update_next_key_info(key, key_info_updater);
-                CHECK(update_key_info_success == true);
-
-                // remove from the local tuple
-                bool success = table->remove(key);
+                bool success = table->remove_and_process_adjacent_tuples(key, adjacent_tuples_processor);
                 CHECK(success == true);
 
                 return true;

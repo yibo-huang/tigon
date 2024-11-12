@@ -76,6 +76,9 @@ class ITable {
 
         virtual bool remove(const void *key) = 0;
 
+        virtual bool remove_and_process_adjacent_tuples(const void *key,
+                std::function<bool(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> processor) = 0;
+
 	virtual void update(
 		const void *key, const void *value, std::function<void(const void *, const void *)> on_update = [](const void *, const void *) {}) = 0;
 
@@ -258,6 +261,12 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
         }
 
         bool remove(const void *key) override
+        {
+                CHECK(0);
+        }
+
+        bool remove_and_process_adjacent_tuples(const void *key,
+                std::function<bool(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> processor) override
         {
                 CHECK(0);
         }
@@ -618,6 +627,39 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 return success;
         }
 
+        bool remove_and_process_adjacent_tuples(const void *key,
+                std::function<bool(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> processor) override
+        {
+                tid_check();
+		const auto &k = *static_cast<const KeyType *>(key);
+
+                auto adjacent_tuples_processor = [&](const KeyType *prev_key, BTreeOLCValue *prev_value, const KeyType *cur_key, BTreeOLCValue *cur_value, const KeyType *next_key, BTreeOLCValue *next_value) -> bool {
+                        void *prev_meta = nullptr, *cur_meta = nullptr, *next_meta = nullptr;
+                        void *prev_data = nullptr, *cur_data = nullptr, *next_data = nullptr;
+
+                        if (prev_value != nullptr) {
+                                prev_meta = reinterpret_cast<void *>(prev_value->row->meta.load());
+                                prev_data = &prev_value->row->data;
+                        }
+                        if (cur_value != nullptr) {
+                                cur_meta = reinterpret_cast<void *>(cur_value->row->meta.load());
+                                cur_data = &cur_value->row->data;
+                        }
+                        if (next_value != nullptr) {
+                                next_meta = reinterpret_cast<void *>(next_value->row->meta.load());
+                                next_data = &next_value->row->data;
+                        }
+
+                        return processor(prev_key, prev_meta, prev_data, cur_key, cur_meta, cur_value, next_key, next_meta, next_data);
+		};
+
+
+                bool success = btree.remove_and_process_adjacent_keys(k, adjacent_tuples_processor);
+                CHECK(success == true);
+
+                return success;
+        }
+
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
 	{
                 tid_check();
@@ -832,6 +874,12 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                 CHECK(0);
         }
 
+        bool remove_and_process_adjacent_tuples(const void *key,
+                std::function<bool(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> processor) override
+        {
+                CHECK(0);
+        }
+
 	void update(const void *key, const void *value, std::function<void(const void *, const void *)> on_update) override
 	{
 		const auto &k = *static_cast<const KeyType *>(key);
@@ -990,6 +1038,12 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
         }
 
         bool remove(const void *key) override
+        {
+                CHECK(0);
+        }
+
+        bool remove_and_process_adjacent_tuples(const void *key,
+                std::function<bool(const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data)> processor) override
         {
                 CHECK(0);
         }
