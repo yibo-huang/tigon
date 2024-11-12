@@ -90,7 +90,7 @@ template <class Database> class TwoPLPasha {
                                         auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
                                         std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
                                         CHECK(next_key_meta != nullptr);
-                                        TwoPLPashaHelper::read_lock_release(*next_key_meta);
+                                        TwoPLPashaHelper::write_lock_release(*next_key_meta);
                                 }
 			} else {
                                 // does not support remote insert & delete
