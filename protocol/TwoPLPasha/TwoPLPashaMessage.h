@@ -418,7 +418,6 @@ class TwoPLPashaMessageHandler {
                         smeta->lock();
                         if (table.compare_key(key, min_key) == 0) {
                                 // if the first key matches the min_key, then we do not care about the previous key
-                                CHECK(scan_results.size() == 0);
                                 if (smeta->is_next_key_real == false) {
                                         migration_required = true;
                                 }
