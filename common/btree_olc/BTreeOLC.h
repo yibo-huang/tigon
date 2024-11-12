@@ -2194,26 +2194,20 @@ restart:
                                 }
 
                                 // get the next key & value
-                                if (pos < leaf->getCount() - 1) {
-                                        // the next tuple is within the current leaf node
-                                        next_key = &leaf->keys_[pos + 1];
-                                        next_value = &leaf->values_[pos + 1];
-                                } else {
-                                        // the next tuple is within the next leaf node
+                                if (pos == leaf->getCount()) {
+                                        // the next tuple is within the next leaf
                                         nextLeaf = leaf->next_;
-                                        if (nextLeaf != nullptr) {
-                                                nextLeaf->writeLockOrRestart(needRestart);
-                                                if (needRestart == true) {
-                                                        leaf->writeUnlock();
-                                                        if (prevLeaf)
-                                                                prevLeaf->writeUnlock();
-                                                        goto restart;
-                                                }
-                                                if (nextLeaf->getCount() > 0) {
-                                                        next_key = &nextLeaf->keys_[0];
-                                                        next_value = &nextLeaf->values_[0];
-                                                }
+                                        CHECK(nextLeaf != nullptr);
+                                        nextLeaf->writeLockOrRestart(needRestart);
+                                        if (needRestart == true) {
+                                                leaf->writeUnlock();
+                                                goto restart;
                                         }
+                                        next_key = &nextLeaf->keys_[0];
+                                        next_value = &nextLeaf->values_[0];
+                                } else {
+                                        next_key = &leaf->keys_[pos];
+                                        next_value = &leaf->values_[pos];
                                 }
 
                                 // now we've taken the write locks for all the necessary leaf nodes
