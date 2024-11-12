@@ -2353,6 +2353,7 @@ restart:
 		BTreeLeaf *nextLeaf = leaf->next_.get();
 		for (unsigned p = pos; p < leaf->getCount(); ++p) {
 			bool lastItem = nextLeaf == nullptr && p + 1 == leaf->getCount();
+                        CHECK(keyComp_(leaf->keys_[p], lowKey) >= 0);
 			bool end = processor(leaf->keys_[p], leaf->values_[p], lastItem);
 			if (end) {
 				quit = true;
