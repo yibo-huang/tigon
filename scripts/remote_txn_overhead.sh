@@ -102,44 +102,44 @@ function run_remote_txn_overhead_ycsb {
 mkdir -p $RESULT_DIR
 
 ### (custom) YCSB with Uniform Distribution and CXL transport ###
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 100000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 100000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 100000 NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 100000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 100000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 100000 NoOP None
 
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
 
 ### (custom) YCSB with Uniform Distribution and Network transport ###
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0 0 NoMoveOut OnDemand 0 NoOP None
 
 ### (custom) YCSB with High-skewness with CXL transport ###
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 100000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 100000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 100000 NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 100000 WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 100000 NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 100000 NoOP None
 
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
 
 ### (custom) YCSB with High-skewness with Network transport ###
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $READ_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
+# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM mixed $WRITE_INTENSIVE_RW_RATIO 0.99 0 NoMoveOut OnDemand 0 NoOP None
 
 
 
