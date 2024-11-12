@@ -98,7 +98,7 @@ template <class Database> class TwoPL {
                                         auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
                                         std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
                                         CHECK(next_key_meta != nullptr);
-                                        TwoPLHelper::read_lock_release(*next_key_meta);
+                                        TwoPLHelper::write_lock_release(*next_key_meta);
                                 }
 			} else {
                                 // does not support remote insert & delete
@@ -612,6 +612,30 @@ template <class Database> class TwoPL {
 				txn.network_size +=
 					MessageFactoryType::new_release_write_lock_message(*messages[coordinatorID], *table, writeKey.get_key(), commit_tid);
 			}
+		}
+
+                // release write locks for the next keys of inserts
+		auto &insertSet = txn.insertSet;
+
+		for (auto i = 0u; i < insertSet.size(); i++) {
+			auto &insertKey = insertSet[i];
+			auto tableId = insertKey.get_table_id();
+			auto partitionId = insertKey.get_partition_id();
+			auto table = db.find_table(tableId, partitionId);
+
+                        // release the next row
+                        if (insertKey.get_next_row_locked() == true) {
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto next_row_entity = insertKey.get_next_row_entity();
+                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
+                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
+                                        CHECK(meta != 0);
+                                        TwoPLHelper::write_lock_release(*meta, commit_tid);
+                                } else {
+                                        // not supported
+                                        CHECK(0);
+                                }
+                        }
 		}
 
                 // release locks in the scan set

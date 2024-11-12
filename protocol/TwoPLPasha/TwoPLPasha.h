@@ -93,7 +93,7 @@ template <class Database> class TwoPLPasha {
                                         TwoPLPashaHelper::write_lock_release(*next_key_meta);
                                 }
 			} else {
-                                // does not support remote insert & delete
+                                // currently the execution logic should never reach here
                                 CHECK(0);
 			}
 		}

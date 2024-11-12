@@ -182,7 +182,7 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
                                         // try to acquire the read lock of the next key
                                         std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
                                         bool lock_success = false;
-                                        TwoPLHelper::read_lock(meta, lock_success);
+                                        TwoPLHelper::write_lock(meta, lock_success);
                                         if (lock_success == true) {
                                                 ITable::row_entity next_row(next_key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                                 next_row_entity = next_row;
