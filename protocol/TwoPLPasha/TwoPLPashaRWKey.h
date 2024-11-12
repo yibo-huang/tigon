@@ -297,6 +297,17 @@ class TwoPLPashaRWKey {
 		this->reference_counted = true;
 	}
 
+        // remote insert
+        char *get_inserted_cxl_row()
+        {
+                return this->inserted_cxl_row;
+        }
+
+        void set_inserted_cxl_row(char *cxl_row)
+        {
+                this->inserted_cxl_row = cxl_row;
+        }
+
     private:
 	/*
 	 * A bitvec is a 64-bit word.
@@ -335,6 +346,9 @@ class TwoPLPashaRWKey {
         bool reference_counted = false;
 
         bool processed = false;
+
+        // for remote insert
+        char *inserted_cxl_row = nullptr;
 
     public:
 	static constexpr uint64_t TABLE_ID_MASK = 0x1f;

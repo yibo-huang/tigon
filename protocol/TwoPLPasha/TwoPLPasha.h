@@ -366,6 +366,7 @@ template <class Database> class TwoPLPasha {
                                         char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
                                         CHECK(cxl_row != nullptr);
                                         TwoPLPashaHelper::remote_modify_tuple_valid_bit(cxl_row, false);
+                                        // TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
                                         txn.network_size += MessageFactoryType::new_remote_delete_message(*messages[coordinatorID], *table, scan_results[i].key);
                                 }
 			}
@@ -722,9 +723,14 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
 
 			if (insertKey.get_reference_counted() == true) {
-                                DCHECK(partitioner.has_master_partition(partitionId) == false);
-                                auto key = insertKey.get_key();
-                                twopl_pasha_global_helper->release_migrated_row(tableId, partitionId, key);
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto key = insertKey.get_key();
+                                        twopl_pasha_global_helper->release_migrated_row(tableId, partitionId, key);
+                                } else {
+                                        char *inserted_cxl_row = insertKey.get_inserted_cxl_row();
+                                        CHECK(inserted_cxl_row != nullptr);
+                                        TwoPLPashaHelper::decrease_reference_count_via_ptr(inserted_cxl_row);
+                                }
                         }
 		}
 
@@ -739,18 +745,30 @@ template <class Database> class TwoPLPasha {
                         std::vector<ITable::row_entity> &scan_results = *reinterpret_cast<std::vector<ITable::row_entity> *>(scanKey.get_scan_res_vec());
 
                         if (partitioner.has_master_partition(partitionId) == false) {
-                                // release the next row
-                                if (scanKey.get_next_row_locked() == true) {
-                                        auto next_row_entity = scanKey.get_next_row_entity();
-                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
-                                        CHECK(cxl_row != nullptr);
-                                        TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
-                                }
+                                if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
+                                        // release the next row
+                                        if (scanKey.get_next_row_locked() == true) {
+                                                auto next_row_entity = scanKey.get_next_row_entity();
+                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                        }
 
-                                for (auto i = 0u; i < scan_results.size(); i++) {
-                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
-                                        CHECK(cxl_row != nullptr);
-                                        TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                        // no need to release the row to be deleted
+                                } else {
+                                        // release the next row
+                                        if (scanKey.get_next_row_locked() == true) {
+                                                auto next_row_entity = scanKey.get_next_row_entity();
+                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                        }
+
+                                        for (auto i = 0u; i < scan_results.size(); i++) {
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                CHECK(cxl_row != nullptr);
+                                                TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
+                                        }
                                 }
                         }
                 }

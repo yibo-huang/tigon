@@ -598,6 +598,9 @@ class TwoPLPashaMessageHandler {
                 char *cxl_row = reinterpret_cast<char *>(target_cxl_table->search(key));
                 TwoPLPashaHelper::remote_modify_tuple_valid_bit(cxl_row, true);
 
+                // record it locally
+                insertKey.set_inserted_cxl_row(cxl_row);
+
                 // mark it as reference counted so that we know if we need to release it upon commit/abort
                 insertKey.set_reference_counted();
 

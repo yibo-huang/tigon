@@ -687,7 +687,6 @@ out_unlock_lmeta:
 
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
                 smeta->lock();
-                CHECK(smeta->is_valid == true);
                 CHECK(smeta->ref_cnt > 0);
                 smeta->ref_cnt--;
                 smeta->unlock();
