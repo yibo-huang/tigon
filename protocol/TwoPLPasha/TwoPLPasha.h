@@ -582,7 +582,6 @@ template <class Database> class TwoPLPasha {
                                         CHECK(meta != 0);
                                         TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
                                 } else {
-                                        CHECK(insertKey.get_next_row_locked() == true);
                                         auto next_row_entity = insertKey.get_next_row_entity();
                                         char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
                                         CHECK(cxl_row != nullptr);
