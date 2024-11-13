@@ -152,7 +152,6 @@ template <class KeyType, class KeyComparator> class CXLTableBTreeOLC : public CX
                         bool should_end = scan_processor(&key, value.row.get(), is_last_tuple);
 
                         if (should_end == false) {
-                                CHECK(KeyComparator()(key, min_k) >= 0);
                                 return false;
                         } else {
                                 return true;
