@@ -99,7 +99,7 @@ class CXLMemory {
         {
                 void *addr = NULL;
                 while (true) {
-                        addr = cxlalloc_get_root(root_index, NULL);
+                        addr = cxlalloc_get_root(root_index);
                         if (addr)
                                 break;
                 }

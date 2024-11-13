@@ -24,7 +24,7 @@
 
 #include "common/CXLMemory.h"
 
-#include "atomic_offset_ptr.hpp"
+#include "common/atomic_offset_ptr.hpp"
 #include <boost/interprocess/offset_ptr.hpp>
 
 #include "glog/logging.h"
