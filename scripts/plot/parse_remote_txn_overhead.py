@@ -36,12 +36,11 @@ def parse_results(input_list, output_file_name, header_row):
                 output_writer.writerows(rows)
 
 
-### remote txn overhead ###
+### End-to-End Performance ###
 def construct_input_list_tpcc_remote_txn_overhead(res_dir):
         input_file_list = list()
         # Pasha
-        input_file_list.append(("SundialPasha-CXL", res_dir + "/tpcc-SundialPasha-8-2-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
 
         # Baselines
         input_file_list.append(("Sundial-CXL", res_dir + "/tpcc-Sundial-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
@@ -53,14 +52,18 @@ def construct_input_list_tpcc_remote_txn_overhead(res_dir):
 def construct_input_list_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
         # Pasha
-        input_file_list.append(("SundialPasha-CXL", res_dir + "/ycsb-SundialPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL", res_dir + "/ycsb-TwoPLPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
 
         # Baselines
-        input_file_list.append(("Sundial-CXL", res_dir + "/ycsb-Sundial-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
-        input_file_list.append(("TwoPL-CXL", res_dir + "/ycsb-TwoPL-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
-        input_file_list.append(("Sundial-NET", res_dir + "/ycsb-Sundial-8-2-" + rw_ratio + "-" + zipf_theta + "-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
-        input_file_list.append(("TwoPL-NET", res_dir + "/ycsb-TwoPL-8-2-" + rw_ratio + "-" + zipf_theta + "-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
+        input_file_list.append(("Sundial-CXL", res_dir + "/ycsb-Sundial-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
+        input_file_list.append(("TwoPL-CXL", res_dir + "/ycsb-TwoPL-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
+        input_file_list.append(("Sundial-NET", res_dir + "/ycsb-Sundial-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
+        input_file_list.append(("TwoPL-NET", res_dir + "/ycsb-TwoPL-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + ".txt"))
+        return input_file_list
+
+def construct_input_list_custom_ycsb(res_dir, rw_ratio, zipf_theta):
+        input_file_list = list()
+        input_file_list.append(("Tigon", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
         return input_file_list
 
 def parse_tpcc_remote_txn_overhead(res_dir):
@@ -71,30 +74,30 @@ def parse_tpcc_remote_txn_overhead(res_dir):
 
 def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
         input_file_list = construct_input_list_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta)
-        output_file_name = res_dir + "/ycsb-remote-txn-overhead-" + rw_ratio + "-" + zipf_theta + ".csv"
+        output_file_name = res_dir + "/ycsb-rmw-remote-txn-overhead-" + rw_ratio + "-" + zipf_theta + ".csv"
+        header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+        parse_results(input_file_list, output_file_name, header_row)
+
+def parse_ycsb_custom_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
+        input_file_list = construct_input_list_custom_ycsb(res_dir, rw_ratio, zipf_theta)
+        output_file_name = res_dir + "/ycsb-custom-remote-txn-overhead-" + rw_ratio + "-" + zipf_theta + ".csv"
         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
         parse_results(input_file_list, output_file_name, header_row)
 
 
-### SCC Macrobenchmark ###
+### SCC Microbenchmark ###
 def construct_input_list_tpcc_scc_overhead(res_dir):
         input_file_list = list()
-        input_file_list.append(("SundialPasha-CXL-WT", res_dir + "/tpcc-SundialPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-WT", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("SundialPasha-CXL-HCC", res_dir + "/tpcc-SundialPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-HCC", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("SundialPasha-CXL-NT", res_dir + "/tpcc-SundialPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NonTemporal" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-NT", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NonTemporal" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-WT", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-HCC", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-NT", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NonTemporal" + "-" + "NonPart" + ".txt"))
         return input_file_list
 
 def construct_input_list_ycsb_scc_overhead(res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("SundialPasha-CXL-WT", res_dir + "/ycsb-SundialPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-WT", res_dir + "/ycsb-TwoPLPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("SundialPasha-CXL-HCC", res_dir + "/ycsb-SundialPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-HCC", res_dir + "/ycsb-TwoPLPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("SundialPasha-CXL-NT", res_dir + "/ycsb-SundialPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NonTemporal" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-NT", res_dir + "/ycsb-TwoPLPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NonTemporal" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-WT", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-HCC", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-NT", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NonTemporal" + "-" + "NonPart" + ".txt"))
         return input_file_list
 
 def parse_tpcc_scc_overhead(res_dir):
@@ -105,26 +108,24 @@ def parse_tpcc_scc_overhead(res_dir):
 
 def parse_ycsb_scc_overhead(res_dir, rw_ratio, zipf_theta):
         input_file_list = construct_input_list_ycsb_scc_overhead(res_dir, rw_ratio, zipf_theta)
-        output_file_name = res_dir + "/ycsb-scc-overhead-" + rw_ratio + "-" + zipf_theta + ".csv"
+        output_file_name = res_dir + "/ycsb-rmw-scc-overhead-" + rw_ratio + "-" + zipf_theta + ".csv"
         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
         parse_results(input_file_list, output_file_name, header_row)
 
 
-### Migration Policy Macrobenchmark ###
+### Migration Policy Microbenchmark ###
 def construct_input_list_tpcc_migration_policy(res_dir):
         input_file_list = list()
-        input_file_list.append(("SundialPasha-CXL-FIFO", res_dir + "/tpcc-SundialPasha-8-2-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-FIFO", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
-        input_file_list.append(("SundialPasha-CXL-NoMoveOut", res_dir + "/tpcc-SundialPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-NoMoveOut", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-LRU", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "LRU" + "-" + "OnDemand" + "-" + "10000000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-FIFO", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-NoMoveOut", res_dir + "/tpcc-TwoPLPasha-8-2-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
         return input_file_list
 
 def construct_input_list_ycsb_migration_policy(res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("SundialPasha-CXL-FIFO", res_dir + "/ycsb-SundialPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-FIFO", res_dir + "/ycsb-TwoPLPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
-        input_file_list.append(("SundialPasha-CXL-NoMoveOut", res_dir + "/ycsb-SundialPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
-        input_file_list.append(("TwoPLPasha-CXL-NoMoveOut", res_dir + "/ycsb-TwoPLPasha-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
+        input_file_list.append(("Tigon-LRU", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "LRU" + "-" + "OnDemand" + "-" + "1000000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-FIFO", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "OnDemandFIFO" + "-" + "OnDemand" + "-" + "1000000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-NoMoveOut", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "WriteThrough" + "-" + "NonPart" + ".txt"))
         return input_file_list
 
 def parse_tpcc_migration_policy(res_dir):
@@ -135,9 +136,26 @@ def parse_tpcc_migration_policy(res_dir):
 
 def parse_ycsb_migration_policy(res_dir, rw_ratio, zipf_theta):
         input_file_list = construct_input_list_ycsb_migration_policy(res_dir, rw_ratio, zipf_theta)
-        output_file_name = res_dir + "/ycsb-migration-policy-" + rw_ratio + "-" + zipf_theta + ".csv"
+        output_file_name = res_dir + "/ycsb-rmw-migration-policy-" + rw_ratio + "-" + zipf_theta + ".csv"
         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
         parse_results(input_file_list, output_file_name, header_row)
+
+### Dynamic Data Movement ###
+def construct_input_list_ycsb_dynamic_data_movement(res_dir, rw_ratio, zipf_theta):
+        input_file_list = list()
+        input_file_list.append(("Tigon-LRU-1000", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "LRU" + "-" + "OnDemand" + "-" + "1000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-LRU-10000", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "LRU" + "-" + "OnDemand" + "-" + "10000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-LRU-100000", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "LRU" + "-" + "OnDemand" + "-" + "100000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-LRU-1000000", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "LRU" + "-" + "OnDemand" + "-" + "1000000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        input_file_list.append(("Tigon-LRU-10000000", res_dir + "/ycsb-TwoPLPasha-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-" + "LRU" + "-" + "OnDemand" + "-" + "10000000" + "-" + "WriteThrough" + "-" + "None" + ".txt"))
+        return input_file_list
+
+def parse_ycsb_dynamic_data_movement(res_dir, rw_ratio, zipf_theta):
+        input_file_list = construct_input_list_ycsb_dynamic_data_movement(res_dir, rw_ratio, zipf_theta)
+        output_file_name = res_dir + "/ycsb-rmw-dyanmic_data_movement-" + rw_ratio + "-" + zipf_theta + ".csv"
+        header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+        parse_results(input_file_list, output_file_name, header_row)
+
 
 
 if len(sys.argv) != 2:
@@ -146,13 +164,18 @@ if len(sys.argv) != 2:
 
 res_dir = sys.argv[1]
 
-### Remote TXN Overhead
+### End-to-End Performance
 parse_tpcc_remote_txn_overhead(res_dir)
 
 parse_ycsb_remote_txn_overhead(res_dir, "50", "0")
 parse_ycsb_remote_txn_overhead(res_dir, "50", "0.99")
 parse_ycsb_remote_txn_overhead(res_dir, "90", "0")
 parse_ycsb_remote_txn_overhead(res_dir, "90", "0.99")
+
+parse_ycsb_custom_remote_txn_overhead(res_dir, "50", "0")
+parse_ycsb_custom_remote_txn_overhead(res_dir, "50", "0.99")
+parse_ycsb_custom_remote_txn_overhead(res_dir, "90", "0")
+parse_ycsb_custom_remote_txn_overhead(res_dir, "90", "0.99")
 
 
 ### SCC Macrobenchmark
@@ -171,3 +194,7 @@ parse_ycsb_migration_policy(res_dir, "50", "0")
 parse_ycsb_migration_policy(res_dir, "50", "0.99")
 parse_ycsb_migration_policy(res_dir, "90", "0")
 parse_ycsb_migration_policy(res_dir, "90", "0.99")
+
+
+### Dyanmic Data Movement
+parse_ycsb_dynamic_data_movement(res_dir, "90", "0")
