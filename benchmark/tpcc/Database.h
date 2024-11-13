@@ -1137,6 +1137,7 @@ class Database {
                                         if (table->compare_key(key, &max_key) > 0)
                                                 return true;
 
+                                        // testing is single-threaded, so it is fine to make this assertion
                                         CHECK(table->compare_key(key, &min_key) >= 0);
 
                                         ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
@@ -1266,6 +1267,7 @@ class Database {
                                         if (table->compare_key(key, &max_order_customer_key) > 0)
                                                 return true;
 
+                                        // testing is single-threaded, so it is fine to make this assertion
                                         CHECK(table->compare_key(key, &min_order_customer_key) >= 0);
 
                                         ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
@@ -1350,6 +1352,7 @@ class Database {
                                         if (table->compare_key(key, &max_order_line_key) > 0)
                                                 return true;
 
+                                        // testing is single-threaded, so it is fine to make this assertion
                                         CHECK(table->compare_key(key, &min_order_line_key) >= 0);
 
                                         ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());

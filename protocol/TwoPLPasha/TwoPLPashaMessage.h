@@ -317,7 +317,15 @@ class TwoPLPashaMessageHandler {
                                 migrating_next_key = true;
                         }
 
-                        CHECK(table.compare_key(key, min_key) >= 0);
+                        if (table.compare_key(key, min_key) >= 0) {
+                                if (scan_results.size() > 0) {
+                                        if (table.compare_key(key, scan_results[scan_results.size() - 1].key) <= 0) {
+                                                return false;
+                                        }
+                                }
+                        } else {
+                                return false;
+                        }
 
                         // record the current row in scan_results
                         // we do not care about the return value of move_row_in
@@ -411,7 +419,15 @@ class TwoPLPashaMessageHandler {
                                 locking_next_tuple = true;
                         }
 
-                        CHECK(table.compare_key(key, min_key) >= 0);
+                        if (table.compare_key(key, min_key) >= 0) {
+                                if (scan_results.size() > 0) {
+                                        if (table.compare_key(key, scan_results[scan_results.size() - 1].key) <= 0) {
+                                                return false;
+                                        }
+                                }
+                        } else {
+                                return false;
+                        }
 
                         // check if the previous key and the next key are real
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);

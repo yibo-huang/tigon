@@ -114,7 +114,15 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
                                                 locking_next_tuple = true;
                                         }
 
-                                        CHECK(table->compare_key(key, min_key) >= 0);
+                                        if (table->compare_key(key, min_key) >= 0) {
+                                                if (scan_results.size() > 0) {
+                                                        if (table->compare_key(key, scan_results[scan_results.size() - 1].key) <= 0) {
+                                                                return false;
+                                                        }
+                                                }
+                                        } else {
+                                                return false;
+                                        }
 
                                         // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
                                         // But we can ignore it for now because we never generate

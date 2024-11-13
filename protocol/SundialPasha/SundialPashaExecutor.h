@@ -196,7 +196,15 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                                 return true;
                                         }
 
-                                        CHECK(table->compare_key(key, min_key) >= 0);
+                                        if (table->compare_key(key, min_key) >= 0) {
+                                                if (scan_results.size() > 0) {
+                                                        if (table->compare_key(key, scan_results[scan_results.size() - 1].key) <= 0) {
+                                                                return false;
+                                                        }
+                                                }
+                                        } else {
+                                                return false;
+                                        }
 
                                         ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
                                         scan_results.push_back(cur_row);
