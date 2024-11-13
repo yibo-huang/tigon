@@ -59,7 +59,7 @@ corrosion_import_crate(
     PROFILE release
     NO_DEFAULT_FEATURES
     CRATES cxlalloc-static
-    FEATURES cxlalloc-static/arch-gpf
+    FEATURES cxlalloc-static/arch-gpf cxlalloc-static/backend-ivshmem
 )
 
 add_executable(bench_tpcc bench_tpcc.cpp)
