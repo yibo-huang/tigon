@@ -58,12 +58,16 @@ struct TwoPLPashaMetadataShared {
         TwoPLPashaMetadataShared()
                 : tid(0)
                 , ref_cnt(0)
-                , is_valid(false)
                 , scc_meta(0)
+                , flags(0)
         {
                 // this spinlock will be shared between multiple processes
                 pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
         }
+
+        static constexpr int valid_flag_index = 0;
+        static constexpr int is_prev_key_real_flag_index = 1;
+        static constexpr int is_next_key_real_flag_index = 2;
 
         void lock()
 	{
@@ -75,6 +79,18 @@ struct TwoPLPashaMetadataShared {
 		pthread_spin_unlock(&latch);
 	}
 
+        bool get_flag(int flag_index) {
+                return (flags & (1 << flag_index)) != 0;
+        }
+
+        void set_flag(int flag_index) {
+                flags |= (1 << flag_index);  // Set the specific bit to 1
+        }
+
+        void clear_flag(int flag_index) {
+                flags &= ~(1 << flag_index);  // Clear the specific bit to 0
+        }
+
         pthread_spinlock_t latch;
 
 	uint64_t tid{ 0 };
@@ -83,14 +99,14 @@ struct TwoPLPashaMetadataShared {
         // a migrated row can only be moved out if its ref_cnt == 0
         uint64_t ref_cnt{ 0 };
 
-        // a migrated tuple can be invalid if it is deleted or migrated out
-        bool is_valid{ false };
-
         // migration policy metadata
         char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
 
         // software cache-coherence metadata
         uint64_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
+
+        // is_valid, is_next_key_real, is_prev_key_real
+        uint8_t flags{ 0 };
 
         bool is_next_key_real{ false };
         bool is_prev_key_real{ false };
@@ -127,7 +143,7 @@ class TwoPLPashaHelper {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         void *src = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+                        CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
                         scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
                         tid_ = smeta->tid;
                         smeta->unlock();
@@ -144,7 +160,7 @@ class TwoPLPashaHelper {
                 uint64_t tid_ = 0;
 
 		smeta->lock();
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
                 scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
                 tid_ = smeta->tid;
 		smeta->unlock();
@@ -166,7 +182,7 @@ class TwoPLPashaHelper {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         void *data_ptr = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+                        CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
                         scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
                         smeta->unlock();
                 }
@@ -179,7 +195,7 @@ class TwoPLPashaHelper {
                 void *data_ptr = row + sizeof(TwoPLPashaMetadataShared);
 
 		smeta->lock();
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
                 scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
                 smeta->unlock();
 	}
@@ -237,7 +253,7 @@ class TwoPLPashaHelper {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
 
-                        if (smeta->is_valid == false) {
+                        if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
                                 smeta->unlock();
                                 success = false;
                                 goto out_unlock_lmeta;
@@ -275,7 +291,7 @@ out_unlock_lmeta:
                 // because this function is only called by remote point queries,
                 // which are assumed to always succeed,
                 // so this assertion should always hold
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                 old_value = smeta->tid;
 
@@ -302,7 +318,7 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-                if (smeta->is_valid == false) {
+                if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
                         success = false;
                         smeta->unlock();
                         return remove_lock_bit(old_value);
@@ -357,7 +373,7 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        if (smeta->is_valid == false) {
+                        if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
                                 smeta->unlock();
                                 success = false;
                                 goto out_unlock_lmeta;
@@ -395,7 +411,7 @@ out_unlock_lmeta:
                 // because this function is only called by remote point queries,
                 // which are assumed to always succeed,
                 // so this assertion should always hold
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                 old_value = smeta->tid;
 
@@ -422,7 +438,7 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-                if (smeta->is_valid == false) {
+                if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
                         success = false;
                         smeta->unlock();
                         return remove_lock_bit(old_value);
@@ -466,7 +482,7 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+                        CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                         old_value = smeta->tid;
 			DCHECK(is_read_locked(old_value));
@@ -485,7 +501,7 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                 old_value = smeta->tid;
                 DCHECK(is_read_locked(old_value));
@@ -512,7 +528,7 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+                        CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                         old_value = smeta->tid;
                         DCHECK(!is_read_locked(old_value));
@@ -531,7 +547,7 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                 old_value = smeta->tid;
                 DCHECK(!is_read_locked(old_value));
@@ -559,7 +575,7 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        CHECK(smeta->is_valid == true);
+                        CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                         old_value = smeta->tid;
                         DCHECK(!is_read_locked(old_value));
@@ -579,7 +595,7 @@ out_unlock_lmeta:
                 uint64_t old_value = 0;
 
 		smeta->lock();
-                CHECK(smeta->is_valid == true);
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
 
                 old_value = smeta->tid;
                 DCHECK(!is_read_locked(old_value));
@@ -599,8 +615,12 @@ out_unlock_lmeta:
                 if (lmeta->is_migrated == true) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         smeta->lock();
-                        CHECK(smeta->is_valid == !is_valid);
-                        smeta->is_valid = is_valid;
+                        CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == !is_valid);
+                        if (is_valid == true) {
+                                smeta->set_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                        } else {
+                                smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                        }
                         smeta->unlock();
                 } else {
                         CHECK(lmeta->is_valid == !is_valid);
@@ -615,8 +635,12 @@ out_unlock_lmeta:
 
 		smeta->lock();
                 CHECK(smeta->ref_cnt > 0);
-                CHECK(smeta->is_valid == !is_valid);
-                smeta->is_valid = is_valid;
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == !is_valid);
+                if (is_valid == true) {
+                        smeta->set_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                } else {
+                        smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                }
                 smeta->unlock();
         }
 
@@ -660,7 +684,7 @@ out_unlock_lmeta:
                 if (migrated_row != nullptr) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
                         smeta->lock();
-                        if (smeta->is_valid == true) {
+                        if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true) {
                                 if (inc_ref_cnt == true) {
                                         smeta->ref_cnt++;
                                         migration_policy_meta = &smeta->migration_policy_meta;
@@ -738,7 +762,11 @@ out_unlock_lmeta:
                         smeta->lock();
 
                         // copy metadata
-                        smeta->is_valid = lmeta->is_valid;
+                        if (lmeta->is_valid == true) {
+                                smeta->set_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                        } else {
+                                smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                        }
                         smeta->tid = lmeta->tid;
 
                         // copy data
@@ -837,7 +865,11 @@ out_unlock_lmeta:
                                 cur_smeta->lock();
 
                                 // copy metadata
-                                cur_smeta->is_valid = cur_lmeta->is_valid;
+                                if (cur_lmeta->is_valid == true) {
+                                        cur_smeta->set_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                                } else {
+                                        cur_smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
+                                }
                                 cur_smeta->tid = cur_lmeta->tid;
 
                                 // copy data
@@ -988,14 +1020,14 @@ out_unlock_lmeta:
                         }
 
                         // copy metadata back
-                        lmeta->is_valid = smeta->is_valid;
+                        lmeta->is_valid = smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index);
                         lmeta->tid = smeta->tid;
 
                         // copy data back
                         scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, migrated_row_value, table->value_size());
 
                         // set the migrated row as invalid
-                        smeta->is_valid = false;
+                        smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
 
                         // remove from CXL index
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
@@ -1076,14 +1108,14 @@ out_unlock_lmeta:
                                 }
 
                                 // copy metadata back
-                                cur_lmeta->is_valid = cur_smeta->is_valid;
+                                cur_lmeta->is_valid = cur_smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index);
                                 cur_lmeta->tid = cur_smeta->tid;
 
                                 // copy data back
                                 scc_manager->do_read(&cur_smeta->scc_meta, coordinator_id, cur_data, migrated_row_value, table->value_size());
 
                                 // set the migrated row as invalid
-                                cur_smeta->is_valid = false;
+                                cur_smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
 
                                 // mark the local row as not migrated
                                 cur_lmeta->migrated_row = nullptr;
@@ -1287,10 +1319,10 @@ out_unlock_lmeta:
                                 auto cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
                                 cur_smeta->lock();
                                 if (is_local_delete == true) {
-                                        CHECK(cur_smeta->is_valid == true);
-                                        cur_smeta->is_valid = false;
+                                        CHECK(cur_smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
+                                        cur_smeta->clear_flag(TwoPLPashaMetadataShared::valid_flag_index);
                                 } else {
-                                        CHECK(cur_smeta->is_valid == false);
+                                        CHECK(cur_smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false);
                                 }
                                 migration_policy_meta = cur_smeta->migration_policy_meta;
                                 cur_smeta->unlock();
