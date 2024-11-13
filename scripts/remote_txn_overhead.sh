@@ -255,25 +255,25 @@ run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw 
 run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
 run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 WriteThrough NonPart
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NonTemporal NonPart
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
 run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 NoMoveOut OnDemand 0 NoOP None
@@ -287,25 +287,25 @@ run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha rmw $HOST_NUM $WORKER_NUM 
 run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha rmw $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
 run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha rmw $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 WriteThrough NonPart
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NonTemporal NonPart
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP NonPart
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 OnDemandFIFO OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 WriteThrough None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 NonTemporal None
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand 1000000 NoOP None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT WriteThrough None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NonTemporal None
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 LRU OnDemand $YCSB_CAT_SIZE_LIMIT NoOP None
 
 run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 NoMoveOut OnDemand 0 NoOP None
