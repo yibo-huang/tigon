@@ -781,9 +781,6 @@ out_unlock_lmeta:
 
         bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
-                MetaDataType &meta = *std::get<0>(row);
-		TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                void *local_data = std::get<1>(row);
                 bool move_in_success = false;
                 bool ret = false;
 
@@ -791,8 +788,6 @@ out_unlock_lmeta:
                         auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
                         auto cur_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(cur_meta);
                         auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
-
-                        CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
                         bool is_next_key_migrated = false, next_key_exist = false;
                         bool is_prev_key_migrated = false, prev_key_exist = false;
@@ -821,50 +816,50 @@ out_unlock_lmeta:
 
                         // check if the current tuple is migrated
                         // if yes, do the migration and update the next-key information
-                        lmeta->lock();
-                        if (lmeta->is_migrated == false) {
+                        cur_lmeta->lock();
+                        if (cur_lmeta->is_migrated == false) {
                                 // allocate the CXL row
                                 std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
                                 char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size,
                                                 CXLMemory::DATA_ALLOCATION, sizeof(TwoPLPashaMetadataShared), table->value_size()));
                                 char *migrated_row_value_ptr = migrated_row_ptr + sizeof(TwoPLPashaMetadataShared);
-                                TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
-                                new(smeta) TwoPLPashaMetadataShared();
+                                TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
+                                new(cur_smeta) TwoPLPashaMetadataShared();
 
                                 // init migration policy metadata
-                                migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
-                                migration_policy_meta = smeta->migration_policy_meta;
+                                migration_manager->init_migration_policy_metadata(&cur_smeta->migration_policy_meta, table, key, row);
+                                migration_policy_meta = cur_smeta->migration_policy_meta;
 
                                 // init software cache-coherence metadata
-                                scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
+                                scc_manager->init_scc_metadata(&cur_smeta->scc_meta, coordinator_id);
 
                                 // take the CXL latch
-                                smeta->lock();
+                                cur_smeta->lock();
 
                                 // copy metadata
-                                smeta->is_valid = lmeta->is_valid;
-                                smeta->tid = lmeta->tid;
+                                cur_smeta->is_valid = cur_lmeta->is_valid;
+                                cur_smeta->tid = cur_lmeta->tid;
 
                                 // copy data
-                                scc_manager->do_write(&smeta->scc_meta, coordinator_id, migrated_row_value_ptr, local_data, table->value_size());
+                                scc_manager->do_write(&cur_smeta->scc_meta, coordinator_id, migrated_row_value_ptr, cur_data, table->value_size());
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
-                                        smeta->ref_cnt++;
+                                        cur_smeta->ref_cnt++;
                                 }
 
                                 // update the next-key information
                                 if (is_next_key_migrated == true) {
-                                        smeta->is_next_key_real = true;
+                                        cur_smeta->is_next_key_real = true;
                                 } else {
-                                        smeta->is_next_key_real = false;
+                                        cur_smeta->is_next_key_real = false;
                                 }
 
                                 // update the prev-key information
                                 if (is_prev_key_migrated == true) {
-                                        smeta->is_prev_key_real = true;
+                                        cur_smeta->is_prev_key_real = true;
                                 } else {
-                                        smeta->is_prev_key_real = false;
+                                        cur_smeta->is_prev_key_real = false;
                                 }
 
                                 // insert into the corresponding CXL table
@@ -873,11 +868,11 @@ out_unlock_lmeta:
                                 CHECK(ret == true);
 
                                 // mark the local row as migrated
-                                lmeta->migrated_row = migrated_row_ptr;
-                                lmeta->is_migrated = true;
+                                cur_lmeta->migrated_row = migrated_row_ptr;
+                                cur_lmeta->is_migrated = true;
 
                                 // release the CXL latch
-                                smeta->unlock();
+                                cur_smeta->unlock();
 
                                 // lazily update the next-key information for the previous key
                                 if (prev_lmeta != nullptr) {
@@ -931,16 +926,16 @@ out_unlock_lmeta:
 
                                 if (inc_ref_cnt == true) {
                                         // increase the reference count for the requesting host, even if it is already migrated
-                                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                                        smeta->lock();
-                                        smeta->ref_cnt++;
-                                        smeta->unlock();
+                                        TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
+                                        cur_smeta->lock();
+                                        cur_smeta->ref_cnt++;
+                                        cur_smeta->unlock();
                                 }
                                 move_in_success = false;
 
                                 // the next-key information should already been updated
                         }
-                        lmeta->unlock();
+                        cur_lmeta->unlock();
 		};
 
                 // update next-key information
@@ -1029,9 +1024,6 @@ out_unlock_lmeta:
 
         bool move_from_btree_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
 	{
-                MetaDataType &meta = *std::get<0>(row);
-		TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
-                void *local_data = std::get<1>(row);
                 bool move_out_success = false;
                 bool ret = false;
 
@@ -1041,8 +1033,6 @@ out_unlock_lmeta:
                         auto next_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(next_meta);
 
                         bool is_cur_tuple_moved_out = false;
-
-                        CHECK(lmeta != nullptr && cur_lmeta == lmeta);
 
                         // eagerly update the next-key information for the previous tuple
                         if (prev_lmeta != nullptr) {
@@ -1068,45 +1058,45 @@ out_unlock_lmeta:
                                 next_lmeta->unlock();
                         }
 
-                        lmeta->lock();
-                        CHECK(lmeta->is_valid = true);
-                        if (lmeta->is_migrated == true) {
-                                TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                                char *migrated_row_value = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
+                        cur_lmeta->lock();
+                        CHECK(cur_lmeta->is_valid = true);
+                        if (cur_lmeta->is_migrated == true) {
+                                TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
+                                char *migrated_row_value = cur_lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
 
                                 // take the CXL latch
-                                smeta->lock();
+                                cur_smeta->lock();
 
                                 // reference count > 0, cannot move out the tuple -> early return
-                                if (smeta->ref_cnt > 0) {
-                                        smeta->unlock();
-                                        lmeta->unlock();
+                                if (cur_smeta->ref_cnt > 0) {
+                                        cur_smeta->unlock();
+                                        cur_lmeta->unlock();
                                         move_out_success = false;
                                         return;
                                 }
 
                                 // copy metadata back
-                                lmeta->is_valid = smeta->is_valid;
-                                lmeta->tid = smeta->tid;
+                                cur_lmeta->is_valid = cur_smeta->is_valid;
+                                cur_lmeta->tid = cur_smeta->tid;
 
                                 // copy data back
-                                scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, migrated_row_value, table->value_size());
+                                scc_manager->do_read(&cur_smeta->scc_meta, coordinator_id, cur_data, migrated_row_value, table->value_size());
 
                                 // set the migrated row as invalid
-                                smeta->is_valid = false;
+                                cur_smeta->is_valid = false;
 
                                 // mark the local row as not migrated
-                                lmeta->migrated_row = nullptr;
-                                lmeta->is_migrated = false;
+                                cur_lmeta->migrated_row = nullptr;
+                                cur_lmeta->is_migrated = false;
 
                                 // free the CXL row
                                 // TODO: register EBR
                                 std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
-                                cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size,
+                                cxl_memory.cxlalloc_free_wrapper(cur_smeta, row_total_size,
                                         CXLMemory::DATA_FREE, sizeof(TwoPLPashaMetadataShared), table->value_size());
 
                                 // release the CXL latch
-                                smeta->unlock();
+                                cur_smeta->unlock();
 
                                 // remove the current-key from the CXL index
                                 // it is safe to do so because there is no concurrent data move in/out
@@ -1116,7 +1106,7 @@ out_unlock_lmeta:
                         } else {
                                 CHECK(0);
                         }
-                        lmeta->unlock();
+                        cur_lmeta->unlock();
 
                         move_out_success = true;
 		};
