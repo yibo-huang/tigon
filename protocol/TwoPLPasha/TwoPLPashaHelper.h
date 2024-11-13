@@ -108,7 +108,6 @@ struct TwoPLPashaMetadataShared {
         // is_valid, is_next_key_real, is_prev_key_real
         uint8_t flags{ 0 };
 
-        bool is_next_key_real{ false };
         bool is_prev_key_real{ false };
 };
 
@@ -882,9 +881,9 @@ out_unlock_lmeta:
 
                                 // update the next-key information
                                 if (is_next_key_migrated == true) {
-                                        cur_smeta->is_next_key_real = true;
+                                        cur_smeta->set_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                 } else {
-                                        cur_smeta->is_next_key_real = false;
+                                        cur_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                 }
 
                                 // update the prev-key information
@@ -912,7 +911,7 @@ out_unlock_lmeta:
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                 prev_smeta->lock();
-                                                prev_smeta->is_next_key_real = true;
+                                                prev_smeta->set_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                                 prev_smeta->unlock();
                                         }
                                         prev_lmeta->unlock();
@@ -938,7 +937,7 @@ out_unlock_lmeta:
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                 prev_smeta->lock();
-                                                prev_smeta->is_next_key_real = true;
+                                                prev_smeta->set_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                                 prev_smeta->unlock();
                                         }
                                         prev_lmeta->unlock();
@@ -1072,7 +1071,7 @@ out_unlock_lmeta:
                                 if (prev_lmeta->is_migrated == true) {
                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                         prev_smeta->lock();
-                                        prev_smeta->is_next_key_real = false;
+                                        prev_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                         prev_smeta->unlock();
                                 }
                                 prev_lmeta->unlock();
@@ -1198,7 +1197,7 @@ out_unlock_lmeta:
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                         prev_smeta->lock();
-                                                        prev_smeta->is_next_key_real = false;
+                                                        prev_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                                         prev_smeta->unlock();
                                                 }
                                                 prev_lmeta->unlock();
@@ -1224,7 +1223,7 @@ out_unlock_lmeta:
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                                 prev_smeta->lock();
-                                                prev_smeta->is_next_key_real = false;
+                                                prev_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                                 prev_smeta->unlock();
                                         }
                                         prev_lmeta->unlock();
@@ -1274,13 +1273,13 @@ out_unlock_lmeta:
                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
                                         prev_smeta->lock();
                                         if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
-                                                prev_smeta->is_next_key_real = false;
+                                                prev_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                         } else if (next_lmeta != nullptr && next_lmeta->is_migrated == true) {
                                                 // We should treat migrated tuples as equal no matter they are valid or not.
                                                 // Since we are removing the migrated tuple but keeping the local tuple, we should mark the next key as false.
-                                                prev_smeta->is_next_key_real = false;
+                                                prev_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                         } else {
-                                                prev_smeta->is_next_key_real = false;
+                                                prev_smeta->clear_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index);
                                         }
                                         prev_smeta->unlock();
                                 }

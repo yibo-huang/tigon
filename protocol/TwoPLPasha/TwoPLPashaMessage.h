@@ -434,7 +434,7 @@ class TwoPLPashaMessageHandler {
                         smeta->lock();
                         if (table.compare_key(key, min_key) == 0) {
                                 // if the first key matches the min_key, then we do not care about the previous key
-                                if (smeta->is_next_key_real == false) {
+                                if (smeta->get_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index) == false) {
                                         migration_required = true;
                                 }
                         } else if (scan_results.size() == limit) {
@@ -444,7 +444,7 @@ class TwoPLPashaMessageHandler {
                                 }
                         } else {
                                 // for intermediate keys, we care about both the next and previous keys
-                                if (smeta->is_next_key_real == false || smeta->is_prev_key_real == false) {
+                                if (smeta->get_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index) == false || smeta->is_prev_key_real == false) {
                                         migration_required = true;
                                 }
                         }
