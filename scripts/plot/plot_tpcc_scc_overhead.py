@@ -33,22 +33,15 @@ res_df = pd.read_csv(res_csv)
 # Extract the data
 x = res_df["Remote_Ratio"]
 
-sundialpasha_cxl_wt_y = res_df["SundialPasha-CXL-WT"]
-sundialpasha_cxl_hcc_y = res_df["SundialPasha-CXL-HCC"]
-sundialpasha_cxl_nt_y = res_df["SundialPasha-CXL-NT"]
-
-twoplpasha_cxl_wt_y = res_df["TwoPLPasha-CXL-WT"]
-twoplpasha_cxl_hcc_y = res_df["TwoPLPasha-CXL-HCC"]
-twoplpasha_cxl_nt_y = res_df["TwoPLPasha-CXL-NT"]
+twoplpasha_cxl_wt_y = res_df["Tigon-WT"]
+twoplpasha_cxl_hcc_y = res_df["Tigon-HCC"]
+twoplpasha_cxl_nt_y = res_df["Tigon-NT"]
 
 plt.xlabel("Multi-host Transaction Percentage (NewOrder/Payment)", **basic_font)
 plt.ylabel("Throughput (txns/sec)", **basic_font)
 
 # Configure axis range
 tmp_list = list()
-tmp_list.extend(sundialpasha_cxl_wt_y)
-tmp_list.extend(sundialpasha_cxl_hcc_y)
-tmp_list.extend(sundialpasha_cxl_nt_y)
 tmp_list.extend(twoplpasha_cxl_wt_y)
 tmp_list.extend(twoplpasha_cxl_hcc_y)
 tmp_list.extend(twoplpasha_cxl_nt_y)
@@ -62,12 +55,9 @@ ax = plt.subplot(111)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 # Create the line plot
-plt.plot(x, sundialpasha_cxl_hcc_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-HCC")
-plt.plot(x, sundialpasha_cxl_wt_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-WT")
-plt.plot(x, sundialpasha_cxl_nt_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-NT")
-plt.plot(x, twoplpasha_cxl_hcc_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL-HCC")
-plt.plot(x, twoplpasha_cxl_wt_y, color="#CD5C5C", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL-WT")
-plt.plot(x, twoplpasha_cxl_nt_y, color="#4372c4", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL-NT")
+plt.plot(x, twoplpasha_cxl_hcc_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon-HCC")
+plt.plot(x, twoplpasha_cxl_wt_y, color="#CD5C5C", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon-WT")
+plt.plot(x, twoplpasha_cxl_nt_y, color="#4372c4", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon-NT")
 
 # Configure legend
 ax.legend(frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})

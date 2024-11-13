@@ -27,7 +27,7 @@ plt.yticks(**basic_font)
 plt.grid(axis='y')
 
 ### plot TPCC ###
-res_csv = res_dir + "/ycsb-migration-policy-" + rw_ratio + "-" + zipf_theta + ".csv"
+res_csv = res_dir + "/ycsb-rmw-migration-policy-" + rw_ratio + "-" + zipf_theta + ".csv"
 
 # Read the CSV file into a Pandas DataFrame
 res_df = pd.read_csv(res_csv)
@@ -35,19 +35,16 @@ res_df = pd.read_csv(res_csv)
 # Extract the data
 x = res_df["Remote_Ratio"]
 
-sundialpasha_cxl_nomoveout_y = res_df["SundialPasha-CXL-NoMoveOut"]
-sundialpasha_cxl_fifo_y = res_df["SundialPasha-CXL-FIFO"]
-
-twoplpasha_cxl_nomoveout_y = res_df["TwoPLPasha-CXL-NoMoveOut"]
-twoplpasha_cxl_fifo_y = res_df["TwoPLPasha-CXL-FIFO"]
+twoplpasha_cxl_lru_y = res_df["Tigon-LRU"]
+twoplpasha_cxl_nomoveout_y = res_df["Tigon-NoMoveOut"]
+twoplpasha_cxl_fifo_y = res_df["Tigon-FIFO"]
 
 plt.xlabel("Multi-host Transaction Percentage", **basic_font)
 plt.ylabel("Throughput (txns/sec)", **basic_font)
 
 # Configure axis range
 tmp_list = list()
-tmp_list.extend(sundialpasha_cxl_nomoveout_y)
-tmp_list.extend(sundialpasha_cxl_fifo_y)
+tmp_list.extend(twoplpasha_cxl_lru_y)
 tmp_list.extend(twoplpasha_cxl_nomoveout_y)
 tmp_list.extend(twoplpasha_cxl_fifo_y)
 
@@ -60,12 +57,11 @@ ax = plt.subplot(111)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 # Create the line plot
-plt.plot(x, sundialpasha_cxl_nomoveout_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-NoMoveOut")
-plt.plot(x, sundialpasha_cxl_fifo_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-FIFO")
-plt.plot(x, twoplpasha_cxl_nomoveout_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL-NoMoveOut")
-plt.plot(x, twoplpasha_cxl_fifo_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL-FIFO")
+plt.plot(x, twoplpasha_cxl_lru_y, color="#62615d", marker=">", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon-LRU")
+plt.plot(x, twoplpasha_cxl_nomoveout_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon-NoMoveOut")
+plt.plot(x, twoplpasha_cxl_fifo_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon-FIFO")
 
 # Configure legend
 ax.legend(frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
 
-plt.savefig(res_dir + "ycsb-migration-policy-" + rw_ratio + "-" + zipf_theta + ".pdf", format="pdf", bbox_inches="tight")
+plt.savefig(res_dir + "ycsb-rmw-migration-policy-" + rw_ratio + "-" + zipf_theta + ".pdf", format="pdf", bbox_inches="tight")

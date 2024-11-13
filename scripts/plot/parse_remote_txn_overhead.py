@@ -152,7 +152,7 @@ def construct_input_list_ycsb_dynamic_data_movement(res_dir, rw_ratio, zipf_thet
 
 def parse_ycsb_dynamic_data_movement(res_dir, rw_ratio, zipf_theta):
         input_file_list = construct_input_list_ycsb_dynamic_data_movement(res_dir, rw_ratio, zipf_theta)
-        output_file_name = res_dir + "/ycsb-rmw-dyanmic_data_movement-" + rw_ratio + "-" + zipf_theta + ".csv"
+        output_file_name = res_dir + "/ycsb-rmw-dynamic-data-movement-" + rw_ratio + "-" + zipf_theta + ".csv"
         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
         parse_results(input_file_list, output_file_name, header_row)
 

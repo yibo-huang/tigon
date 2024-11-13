@@ -33,8 +33,7 @@ res_df = pd.read_csv(res_csv)
 # Extract the data
 x = res_df["Remote_Ratio"]
 
-sundialpasha_cxl_y = res_df["SundialPasha-CXL"]
-twoplpasha_cxl_y = res_df["TwoPLPasha-CXL"]
+twoplpasha_cxl_y = res_df["Tigon"]
 sundial_cxl_y = res_df["Sundial-CXL"]
 sundial_net_y = res_df["Sundial-NET"]
 twopl_cxl_y = res_df["TwoPL-CXL"]
@@ -45,7 +44,6 @@ plt.ylabel("Throughput (txns/sec)", **basic_font)
 
 # Configure axis range
 tmp_list = list()
-tmp_list.extend(sundialpasha_cxl_y)
 tmp_list.extend(twoplpasha_cxl_y)
 tmp_list.extend(sundial_cxl_y)
 tmp_list.extend(sundial_net_y)
@@ -60,8 +58,7 @@ ax = plt.subplot(111)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 # Create the line plot
-plt.plot(x, sundialpasha_cxl_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="SundialPasha-CXL")
-plt.plot(x, twoplpasha_cxl_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPLPasha-CXL")
+plt.plot(x, twoplpasha_cxl_y, color="#000000", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon")
 plt.plot(x, sundial_cxl_y, color="#ffc003", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Sundial-CXL")
 plt.plot(x, twopl_cxl_y, color="#62615d", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPL-CXL")
 plt.plot(x, sundial_net_y, color="#CD5C5C", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Sundial-NET")
