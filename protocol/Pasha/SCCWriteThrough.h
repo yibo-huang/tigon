@@ -61,7 +61,7 @@ class SCCWriteThrough : public SCCManager {
         }
 
     private:
-        using MetaType = uint32_t;
+        using MetaType = uint16_t;
         static constexpr uint64_t bits_per_word = sizeof(MetaType) * 8;
 
         // Function to set a bit at a given position in the bitmap
