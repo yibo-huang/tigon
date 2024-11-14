@@ -107,8 +107,6 @@ struct TwoPLPashaMetadataShared {
 
         // is_valid, is_next_key_real, is_prev_key_real
         uint8_t flags{ 0 };
-
-        bool is_prev_key_real{ false };
 };
 
 uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
@@ -888,9 +886,9 @@ out_unlock_lmeta:
 
                                 // update the prev-key information
                                 if (is_prev_key_migrated == true) {
-                                        cur_smeta->is_prev_key_real = true;
+                                        cur_smeta->set_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                 } else {
-                                        cur_smeta->is_prev_key_real = false;
+                                        cur_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                 }
 
                                 // insert into the corresponding CXL table
@@ -923,7 +921,7 @@ out_unlock_lmeta:
                                         if (next_lmeta->is_migrated == true) {
                                                 TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                                 next_smeta->lock();
-                                                next_smeta->is_prev_key_real = true;
+                                                next_smeta->set_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                                 next_smeta->unlock();
                                         }
                                         next_lmeta->unlock();
@@ -949,7 +947,7 @@ out_unlock_lmeta:
                                         if (next_lmeta->is_migrated == true) {
                                                 TwoPLPashaMetadataShared *next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                                 next_smeta->lock();
-                                                next_smeta->is_prev_key_real = true;
+                                                next_smeta->set_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                                 next_smeta->unlock();
                                         }
                                         next_lmeta->unlock();
@@ -1083,7 +1081,7 @@ out_unlock_lmeta:
                                 if (next_lmeta->is_migrated == true) {
                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                         next_smeta->lock();
-                                        next_smeta->is_prev_key_real = false;
+                                        next_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                         next_smeta->unlock();
                                 }
                                 next_lmeta->unlock();
@@ -1209,7 +1207,7 @@ out_unlock_lmeta:
                                                 if (next_lmeta->is_migrated == true) {
                                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                                         next_smeta->lock();
-                                                        next_smeta->is_prev_key_real = false;
+                                                        next_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                                         next_smeta->unlock();
                                                 }
                                                 next_lmeta->unlock();
@@ -1235,7 +1233,7 @@ out_unlock_lmeta:
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                                 next_smeta->lock();
-                                                next_smeta->is_prev_key_real = false;
+                                                next_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                                 next_smeta->unlock();
                                         }
                                         next_lmeta->unlock();
@@ -1291,13 +1289,13 @@ out_unlock_lmeta:
                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
                                         next_smeta->lock();
                                         if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
-                                                next_smeta->is_prev_key_real = false;
+                                                next_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                         } else if (prev_lmeta != nullptr && prev_lmeta->is_migrated == true) {
                                                 // We should treat migrated tuples as equal no matter they are valid or not.
                                                 // Since we are removing the migrated tuple but keeping the local tuple, we should mark the previous key as false.
-                                                next_smeta->is_prev_key_real = false;
+                                                next_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                         } else {
-                                                next_smeta->is_prev_key_real = false;
+                                                next_smeta->clear_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index);
                                         }
                                         next_smeta->unlock();
                                 }

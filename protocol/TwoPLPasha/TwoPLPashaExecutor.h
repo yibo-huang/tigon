@@ -282,12 +282,13 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 }
                                         } else if (scan_results.size() == limit) {
                                                 // we do not care about the next key of the next key
-                                                if (smeta->is_prev_key_real == false) {
+                                                if (smeta->get_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index) == false) {
                                                         migration_required = true;
                                                 }
                                         } else {
                                                 // for intermediate keys, we care about both the next and previous keys
-                                                if (smeta->get_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index) == false || smeta->is_prev_key_real == false) {
+                                                if (smeta->get_flag(TwoPLPashaMetadataShared::is_next_key_real_flag_index) == false ||
+                                                        smeta->get_flag(TwoPLPashaMetadataShared::is_prev_key_real_flag_index) == false) {
                                                         migration_required = true;
                                                 }
                                         }
