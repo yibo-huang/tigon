@@ -57,9 +57,9 @@ struct TwoPLPashaMetadataLocal {
 struct TwoPLPashaMetadataShared {
         TwoPLPashaMetadataShared()
                 : tid(0)
-                , ref_cnt(0)
                 , scc_meta(0)
                 , flags(0)
+                , ref_cnt(0)
         {
                 // this spinlock will be shared between multiple processes
                 pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
@@ -95,11 +95,6 @@ struct TwoPLPashaMetadataShared {
 
 	uint64_t tid{ 0 };
 
-        // multi-host transaction accessing a cxl row would increase its reference count by 1
-        // a migrated row can only be moved out if its ref_cnt == 0
-        // TODO: remove the need for ref_cnt
-        uint8_t ref_cnt{ 0 };
-
         // migration policy metadata
         char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
 
@@ -108,6 +103,11 @@ struct TwoPLPashaMetadataShared {
 
         // is_valid, is_next_key_real, is_prev_key_real
         uint8_t flags{ 0 };
+
+        // multi-host transaction accessing a cxl row would increase its reference count by 1
+        // a migrated row can only be moved out if its ref_cnt == 0
+        // TODO: remove the need for ref_cnt
+        uint8_t ref_cnt{ 0 };
 };
 
 uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
