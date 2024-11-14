@@ -98,7 +98,7 @@ struct TwoPLPashaMetadataShared {
         // multi-host transaction accessing a cxl row would increase its reference count by 1
         // a migrated row can only be moved out if its ref_cnt == 0
         // TODO: remove the need for ref_cnt
-        uint16_t ref_cnt{ 0 };
+        uint8_t ref_cnt{ 0 };
 
         // migration policy metadata
         char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
