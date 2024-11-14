@@ -20,12 +20,10 @@ namespace star
 class PolicyLRU : public MigrationManager {
     public:
         struct LRUMeta {
-                MigrationManager::migrated_row_entity row_entity;
+                MigrationManager::migrated_row_entity row_entity;       // TODO: this does not need to be in CXL
 
                 boost::interprocess::offset_ptr<LRUMeta> prev{ nullptr };
                 boost::interprocess::offset_ptr<LRUMeta> next{ nullptr };
-
-                bool is_tracked{ false };
         };
 
         class LRUTracker {
@@ -69,8 +67,6 @@ class PolicyLRU : public MigrationManager {
                                 lru_meta->prev = tail;
                                 tail = lru_meta;
                         }
-
-                        lru_meta->is_tracked = true;
                 }
 
                 // remove from the list
@@ -100,7 +96,6 @@ class PolicyLRU : public MigrationManager {
                                 }
                         }
 
-                        lru_meta->is_tracked = false;
                         lru_meta->prev = nullptr;
                         lru_meta->next = nullptr;
                 }
@@ -199,12 +194,7 @@ class PolicyLRU : public MigrationManager {
                 LRUMeta *lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
 
                 lru_tracker.lock();
-                if (lru_meta->is_tracked == false) {
-                        CHECK(0);
-                } else {
-                        // already tracked, promote it
-                        lru_tracker.promote(lru_meta);
-                }
+                lru_tracker.promote(lru_meta);
                 lru_tracker.unlock();
         }
 
@@ -222,17 +212,13 @@ class PolicyLRU : public MigrationManager {
                 if (ret == true) {
                         CHECK(migration_policy_meta != nullptr);
                         lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
-                        if (lru_meta->is_tracked == false) {
-                                CHECK(lru_meta->next == nullptr);
-                                CHECK(lru_meta->prev == nullptr);
+                        CHECK(lru_meta->next == nullptr);
+                        CHECK(lru_meta->prev == nullptr);
 
-                                // not tracked, push it to the back
-                                lru_tracker.track(lru_meta);
+                        // not tracked, push it to the back
+                        lru_tracker.track(lru_meta);
 
-                                cur_size += lru_meta->row_entity.table->value_size();
-                        } else {
-                                CHECK(0);
-                        }
+                        cur_size += lru_meta->row_entity.table->value_size();
                 }
 
                 lru_tracker.unlock();
@@ -301,7 +287,6 @@ class PolicyLRU : public MigrationManager {
                         lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
 
                         // remove it from the LRU tracker
-                        CHECK(lru_meta->is_tracked == true);
                         lru_tracker.untrack(lru_meta);
                         cur_size -= lru_meta->row_entity.table->value_size();
                 }
