@@ -20,7 +20,7 @@ namespace star
 class PolicyLRU : public MigrationManager {
     public:
         struct LRUMeta {
-                MigrationManager::migrated_row_entity row_entity;       // TODO: this does not need to be in CXL
+                MigrationManager::migrated_row_entity *row_entity_ptr{ nullptr };       // this will be in local DRAM and is only accessed by the owner host
 
                 boost::interprocess::offset_ptr<LRUMeta> prev{ nullptr };
                 boost::interprocess::offset_ptr<LRUMeta> next{ nullptr };
@@ -134,8 +134,8 @@ class PolicyLRU : public MigrationManager {
                                 if (cur_node == nullptr) {
                                         break;
                                 } else {
-                                        ITable *table = cur_node->row_entity.table;
-                                        const void *key = cur_node->row_entity.key;
+                                        ITable *table = cur_node->row_entity_ptr->table;
+                                        const void *key = cur_node->row_entity_ptr->key;
                                         LOG(INFO) << "ID = " << i << " key = " << table->get_plain_key(key);
                                 }
                                 i++;
@@ -184,7 +184,8 @@ class PolicyLRU : public MigrationManager {
         {
                 LRUMeta *lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
                 new(lru_meta) LRUMeta();
-                lru_meta->row_entity = MigrationManager::migrated_row_entity(table, key, row);
+                CHECK(lru_meta->row_entity_ptr == nullptr);
+                lru_meta->row_entity_ptr = new MigrationManager::migrated_row_entity(table, key, row);
         }
 
         void access_row(void *migration_policy_meta, uint64_t partition_id) override
@@ -218,7 +219,7 @@ class PolicyLRU : public MigrationManager {
                         // not tracked, push it to the back
                         lru_tracker.track(lru_meta);
 
-                        cur_size += lru_meta->row_entity.table->value_size();
+                        cur_size += lru_meta->row_entity_ptr->table->value_size();
                 }
 
                 lru_tracker.unlock();
@@ -246,13 +247,14 @@ class PolicyLRU : public MigrationManager {
                         if (victim == nullptr) {
                                 break;
                         } else {
-                                MigrationManager::migrated_row_entity victim_row_entity = victim->row_entity;
+                                MigrationManager::migrated_row_entity victim_row_entity = *victim->row_entity_ptr;
                                 bool move_out_success = false;
                                 move_out_success = move_from_shared_region_to_partition(victim_row_entity.table, victim_row_entity.key, victim_row_entity.local_row);
                                 if (move_out_success == true) {
                                         lru_tracker.untrack(victim);
                                         lru_tracker.reset_cur_victim();
                                         cur_size -= victim_row_entity.table->value_size();
+                                        delete victim->row_entity_ptr;
                                         if (cur_size < max_migrated_rows_size_per_partition) {
                                                 ret = true;
                                                 break;
@@ -288,7 +290,7 @@ class PolicyLRU : public MigrationManager {
 
                         // remove it from the LRU tracker
                         lru_tracker.untrack(lru_meta);
-                        cur_size -= lru_meta->row_entity.table->value_size();
+                        cur_size -= lru_meta->row_entity_ptr->table->value_size();
                 }
 
                 lru_tracker.unlock();
