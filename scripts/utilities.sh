@@ -24,7 +24,6 @@ function sync_files {
         do
                 echo ......syncing to VM $i......
                 port=$(expr $base_port + $i)
-                ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -p $port root@127.0.0.1 "[ -e $dst ] && rm -rf $dst"
                 scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -r -P $port $src root@127.0.0.1:$dst > /dev/null
         done
 }

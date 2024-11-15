@@ -47,7 +47,13 @@ function sync_binaries {
 
         cd $SCRIPT_DIR
         echo "Syncing executables and configs..."
-        sync_files $SCRIPT_DIR/../build /root/pasha $HOST_NUM
+        for (( i=0; i < $HOST_NUM; ++i ))
+        do
+                ssh_command "mkdir -p pasha" $i
+        done
+        sync_files $SCRIPT_DIR/../build/bench_tpcc /root/pasha/ $HOST_NUM
+        sync_files $SCRIPT_DIR/../build/bench_ycsb /root/pasha/ $HOST_NUM
+        exit -1
 }
 
 function print_server_string {
