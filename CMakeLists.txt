@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -fno-omit-frame-pointer -pedantic  -O3 -DNDEBUG -g3 -Wno-long-long -Wno-unused-variable \
                     -Wno-unused-but-set-variable -Wno-variadic-macros -Wno-unused-lambda-capture -Wno-c99-extensions \
                     -Wno-zero-length-array -Wno-deprecated-declarations")
-set(CMAKE_EXE_LINKER_FLAGS "-lnuma -O3 -no-pie -fuse-ld=lld-15")
+set(CMAKE_EXE_LINKER_FLAGS "-O3 -no-pie -fuse-ld=lld-15")
 
 # -O3 -DNDEBUG
 find_library(jemalloc_lib jemalloc) # jemalloc 5.0
@@ -32,8 +32,7 @@ add_custom_target(
 
 include_directories(
         ${CMAKE_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/src/cxlalloc/include
-        ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/src/common_cpp
+        ${CMAKE_SOURCE_DIR}/dependencies/cxlalloc/cxlalloc-static/include
 )
 
 file(GLOB_RECURSE MISC_CPP_FILES common/*.cpp protocol/Pasha/*.cpp protocol/SundialPasha/*.cpp protocol/TwoPLPasha/*.cpp core/*.cpp)
@@ -47,11 +46,27 @@ else()
     target_link_libraries(misc_cpp ${jemalloc_lib} glog gflags)
 endif()
 
+# Build cxlalloc
+include(FetchContent)
+FetchContent_Declare(
+    Corrosion
+    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG v0.5.0 # Optionally specify a commit hash, version tag or branch here
+)
+FetchContent_MakeAvailable(Corrosion)
+corrosion_import_crate(
+    MANIFEST_PATH ${CMAKE_SOURCE_DIR}/dependencies/cxlalloc/cxlalloc-static/Cargo.toml
+    PROFILE release
+    NO_DEFAULT_FEATURES
+    CRATES cxlalloc-static
+    FEATURES cxlalloc-static/arch-gpf cxlalloc-static/backend-ivshmem
+)
+
 add_executable(bench_tpcc bench_tpcc.cpp)
-target_link_libraries(bench_tpcc misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
+target_link_libraries(bench_tpcc misc_cpp cxlalloc_static)
 
 add_executable(bench_ycsb bench_ycsb.cpp)
-target_link_libraries(bench_ycsb misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxl_shmem/build_clang_release/libcxlalloc_static.a)
+target_link_libraries(bench_ycsb misc_cpp cxlalloc_static)
 
 # add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
 # target_link_libraries(btreeolc_test gtest glog gflags)
