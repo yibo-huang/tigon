@@ -450,7 +450,7 @@ out_lmeta_unlock:
                         new(smeta) SundialPashaMetadataShared();
 
                         // init migration policy metadata
-                        migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                        migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row, sizeof(SundialPashaMetadataShared));
                         migration_policy_meta = smeta->migration_policy_meta;
 
                         // init software cache-coherence metadata
@@ -548,7 +548,7 @@ out_lmeta_unlock:
                                 new(smeta) SundialPashaMetadataShared();
 
                                 // init migration policy metadata
-                                migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                                migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row, sizeof(SundialPashaMetadataShared));
                                 migration_policy_meta = smeta->migration_policy_meta;
 
                                 // init software cache-coherence metadata

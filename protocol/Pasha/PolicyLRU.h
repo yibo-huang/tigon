@@ -180,12 +180,12 @@ class PolicyLRU : public MigrationManager {
                 }
         }
 
-        void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row) override
+        void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, uint64_t metadata_size) override
         {
                 LRUMeta *lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
                 new(lru_meta) LRUMeta();
                 CHECK(lru_meta->row_entity_ptr == nullptr);
-                lru_meta->row_entity_ptr = new MigrationManager::migrated_row_entity(table, key, row);
+                lru_meta->row_entity_ptr = new MigrationManager::migrated_row_entity(table, key, row, metadata_size);
         }
 
         void access_row(void *migration_policy_meta, uint64_t partition_id) override
@@ -219,7 +219,7 @@ class PolicyLRU : public MigrationManager {
                         // not tracked, push it to the back
                         lru_tracker.track(lru_meta);
 
-                        cur_size += lru_meta->row_entity_ptr->table->value_size();
+                        cur_size += lru_meta->row_entity_ptr->metadata_size;
                 }
 
                 lru_tracker.unlock();
@@ -253,7 +253,7 @@ class PolicyLRU : public MigrationManager {
                                 if (move_out_success == true) {
                                         lru_tracker.untrack(victim);
                                         lru_tracker.reset_cur_victim();
-                                        cur_size -= victim_row_entity.table->value_size();
+                                        cur_size -= victim_row_entity.metadata_size;
                                         delete victim->row_entity_ptr;
                                         if (cur_size < max_migrated_rows_size_per_partition) {
                                                 ret = true;

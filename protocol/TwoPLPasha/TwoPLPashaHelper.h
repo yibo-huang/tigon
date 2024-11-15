@@ -91,12 +91,9 @@ struct TwoPLPashaMetadataShared {
                 flags &= ~(1 << flag_index);  // Clear the specific bit to 0
         }
 
+        uint64_t tid{ 0 };
+
         pthread_spinlock_t latch;
-
-	uint64_t tid{ 0 };
-
-        // migration policy metadata
-        char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
 
         // software cache-coherence metadata
         uint16_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
@@ -108,6 +105,9 @@ struct TwoPLPashaMetadataShared {
         // a migrated row can only be moved out if its ref_cnt == 0
         // TODO: remove the need for ref_cnt
         uint8_t ref_cnt{ 0 };
+
+        // migration policy metadata
+        char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
 };
 
 uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
@@ -750,7 +750,7 @@ out_unlock_lmeta:
                         new(smeta) TwoPLPashaMetadataShared();
 
                         // init migration policy metadata
-                        migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row);
+                        migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
                         migration_policy_meta = smeta->migration_policy_meta;
 
                         // init software cache-coherence metadata
@@ -853,7 +853,7 @@ out_unlock_lmeta:
                                 new(cur_smeta) TwoPLPashaMetadataShared();
 
                                 // init migration policy metadata
-                                migration_manager->init_migration_policy_metadata(&cur_smeta->migration_policy_meta, table, key, row);
+                                migration_manager->init_migration_policy_metadata(&cur_smeta->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
                                 migration_policy_meta = cur_smeta->migration_policy_meta;
 
                                 // init software cache-coherence metadata

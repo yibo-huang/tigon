@@ -16,6 +16,10 @@ namespace star
 
 class PolicyOnDemandFIFO : public MigrationManager {
     public:
+        struct FIFOMeta {
+                MigrationManager::migrated_row_entity *row_entity_ptr{ nullptr };       // this will be in local DRAM and is only accessed by the owner host
+        };
+
         PolicyOnDemandFIFO(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
@@ -25,16 +29,27 @@ class PolicyOnDemandFIFO : public MigrationManager {
         , max_migrated_rows_size(max_migrated_rows_size)
         {}
 
+        void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, uint64_t metadata_size) override
+        {
+                FIFOMeta *fifo_meta = reinterpret_cast<FIFOMeta *>(migration_policy_meta);
+                new(fifo_meta) FIFOMeta();
+                CHECK(fifo_meta->row_entity_ptr == nullptr);
+                fifo_meta->row_entity_ptr = new MigrationManager::migrated_row_entity(table, key, row, metadata_size);
+        }
+
         bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 void *migration_policy_meta = nullptr;
+                FIFOMeta *fifo_meta = nullptr;
                 bool ret = false;
 
                 queue_mutex.lock();
                 ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 if (ret == true) {
-                        fifo_queue.push_back(migrated_row_entity(table, key, row));
-                        cur_size += table->value_size();
+                        CHECK(migration_policy_meta != nullptr);
+                        auto fifo_meta = reinterpret_cast<FIFOMeta *>(migration_policy_meta);
+                        fifo_queue.push_back(*fifo_meta->row_entity_ptr);
+                        cur_size += fifo_meta->row_entity_ptr->metadata_size;
                 }
                 queue_mutex.unlock();
 
@@ -58,7 +73,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 while (it != fifo_queue.end()) {
                         ret = move_from_shared_region_to_partition(it->table, it->key, it->local_row);
                         if (ret == true) {
-                                cur_size -= it->table->value_size();
+                                cur_size -= it->metadata_size;
                                 it = fifo_queue.erase(it);
                                 if (cur_size < max_migrated_rows_size)
                                         break;
