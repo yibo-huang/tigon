@@ -246,6 +246,15 @@ template <class Database> class TwoPLPasha {
 			return false;
 		}
 
+                {
+			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_prepare_time(us); });
+			if (txn.get_logger()) {
+				write_redo_logs_for_commit(txn);
+			} else {
+				// do nothing if logging is disabled
+			}
+		}
+
 		// all locks are acquired
 
 		uint64_t commit_tid;
@@ -516,6 +525,31 @@ template <class Database> class TwoPLPasha {
                                 }
                         }
 		}
+	}
+
+        void write_redo_logs_for_commit(TransactionType &txn)
+	{
+		auto &readSet = txn.readSet;
+		auto &writeSet = txn.writeSet;
+
+                // Redo logging
+                for (size_t j = 0; j < writeSet.size(); ++j) {
+                        auto &writeKey = writeSet[j];
+                        auto tableId = writeKey.get_table_id();
+                        auto partitionId = writeKey.get_partition_id();
+                        auto table = db.find_table(tableId, partitionId);
+                        auto key_size = table->key_size();
+                        auto value_size = table->value_size();
+                        auto key = writeKey.get_key();
+                        auto value = writeKey.get_value();
+                        DCHECK(key);
+                        DCHECK(value);
+                        std::ostringstream ss;
+                        ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
+                                << std::string((char *)value, value_size);
+                        auto output = ss.str();
+                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                }
 	}
 
 	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages)
