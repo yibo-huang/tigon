@@ -216,14 +216,14 @@ template <class Database> class TwoPL {
 			return false;
 		}
 
-		// {
-		// 	ScopedTimer t([&, this](uint64_t us) { txn.record_commit_prepare_time(us); });
-		// 	if (txn.get_logger()) {
-		// 		prepare_and_redo_for_commit(txn, messages);
-		// 	} else {
-		// 		prepare_for_commit(txn, messages);
-		// 	}
-		// }
+		{
+			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_prepare_time(us); });
+			if (txn.get_logger()) {
+				prepare_and_redo_for_commit(txn, messages);
+			} else {
+				prepare_for_commit(txn, messages);
+			}
+		}
 
 		// all locks are acquired
 
