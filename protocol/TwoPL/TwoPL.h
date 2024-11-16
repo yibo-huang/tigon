@@ -479,8 +479,8 @@ template <class Database> class TwoPL {
 				DCHECK(key);
 				DCHECK(value);
 				std::ostringstream ss;
-				ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-				   << std::string((char *)value, value_size);
+                                int log_type = 0;       // 0 stands for write
+				ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
 				auto output = ss.str();
 				txn.get_logger()->write(output.c_str(), output.size(), false);
 			}
@@ -556,8 +556,8 @@ template <class Database> class TwoPL {
 						DCHECK(key);
 						DCHECK(value);
 						std::ostringstream ss;
-						ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-						   << std::string((char *)value, value_size);
+                                                int log_type = 0;       // 0 stands for write
+						ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
 						auto output = ss.str();
 						txn.get_logger()->write(output.c_str(), output.size(), false);
 					}
