@@ -31,6 +31,18 @@ function kill_prev_exps {
         done
 }
 
+function delete_log_files {
+        typeset MAX_HOST_NUM=8
+        typeset LOG_FILE_NAME=pasha_log_non_group_commit.txt
+        typeset i=0
+
+        echo "deleting log files..."
+        for (( i=0; i < $MAX_HOST_NUM; ++i ))
+        do
+                ssh_command "[ -e $LOG_FILE_NAME ] && rm $LOG_FILE_NAME" $i
+        done
+}
+
 function gather_other_output {
         typeset HOST_NUM=$1
 
@@ -103,6 +115,7 @@ function run_exp_tpcc {
         typeset i=0
 
         kill_prev_exps
+        delete_log_files
         init_cxl_for_vms $HOST_NUM
 
         if [ $PROTOCOL = "SundialPasha" ]; then
@@ -248,6 +261,7 @@ function run_exp_ycsb {
         typeset i=0
 
         kill_prev_exps
+        delete_log_files
         init_cxl_for_vms $HOST_NUM
 
         if [ $PROTOCOL = "SundialPasha" ]; then
