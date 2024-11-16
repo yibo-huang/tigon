@@ -74,7 +74,7 @@ function print_server_string {
 }
 
 function run_exp_tpcc {
-        if [ $# != 17 ]; then
+        if [ $# != 19 ]; then
                 print_usage
                 exit -1
         fi
@@ -94,7 +94,9 @@ function run_exp_tpcc {
         typeset PRE_MIGRATE=${14}
         typeset TIME_TO_RUN=${15}
         typeset TIME_TO_WARMUP=${16}
-        typeset GATHER_OUTPUT=${17}
+        typeset LOG_PATH=${17}
+        typeset LOTUS_CHECKPOINT=${18}
+        typeset GATHER_OUTPUT=${19}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -109,7 +111,7 @@ function run_exp_tpcc {
                 do
                         ssh_command "cd pasha; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -122,7 +124,7 @@ function run_exp_tpcc {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -137,7 +139,7 @@ function run_exp_tpcc {
                 do
                         ssh_command "cd pasha; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -147,7 +149,7 @@ function run_exp_tpcc {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -159,7 +161,7 @@ function run_exp_tpcc {
                 do
                         ssh_command "cd pasha; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -172,7 +174,7 @@ function run_exp_tpcc {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -187,7 +189,7 @@ function run_exp_tpcc {
                 do
                         ssh_command "cd pasha; nohup ./bench_tpcc --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -197,7 +199,7 @@ function run_exp_tpcc {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_tpcc --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -215,7 +217,7 @@ function run_exp_tpcc {
 }
 
 function run_exp_ycsb {
-        if [ $# != 19 ]; then
+        if [ $# != 21 ]; then
                 print_usage
                 exit -1
         fi
@@ -237,7 +239,9 @@ function run_exp_ycsb {
         typeset PRE_MIGRATE=${16}
         typeset TIME_TO_RUN=${17}
         typeset TIME_TO_WARMUP=${18}
-        typeset GATHER_OUTPUT=${19}
+        typeset LOG_PATH=${19}
+        typeset LOTUS_CHECKPOINT=${20}
+        typeset GATHER_OUTPUT=${21}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -252,7 +256,7 @@ function run_exp_ycsb {
                 do
                         ssh_command "cd pasha; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -265,7 +269,7 @@ function run_exp_ycsb {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -280,7 +284,7 @@ function run_exp_ycsb {
                 do
                         ssh_command "cd pasha; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -290,7 +294,7 @@ function run_exp_ycsb {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -302,7 +306,7 @@ function run_exp_ycsb {
                 do
                         ssh_command "cd pasha; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -315,7 +319,7 @@ function run_exp_ycsb {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -330,7 +334,7 @@ function run_exp_ycsb {
                 do
                         ssh_command "cd pasha; nohup ./bench_ycsb --logtostderr=1 --id=$i --servers=\"$SERVER_STRING\"
                                 --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                                --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                                --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -340,7 +344,7 @@ function run_exp_ycsb {
                 # launch the first process
                 ssh_command "cd pasha; ./bench_ycsb --logtostderr=1 --id=0 --servers=\"$SERVER_STRING\"
                         --threads=$WORKER_NUM --partition_num=$PARTITION_NUM --granule_count=2000
-                        --log_path= --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
+                        --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
@@ -373,7 +377,7 @@ typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=8192
 typeset BASELINE_CXL_TRANS_ENTRY_NUM=4096
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 16 ]; then
+        if [ $# != 17 ]; then
                 print_usage
                 exit -1
         fi
@@ -392,7 +396,8 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset PRE_MIGRATE=${13}
         typeset TIME_TO_RUN=${14}
         typeset TIME_TO_WARMUP=${15}
-        typeset GATHER_OUTPUT=${16}
+        typeset ENABLE_LOGGING=${16}
+        typeset GATHER_OUTPUT=${17}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -402,10 +407,17 @@ if [ $RUN_TYPE = "TPCC" ]; then
                 typeset CXL_TRANS_ENTRY_NUM=$BASELINE_CXL_TRANS_ENTRY_NUM
         fi
 
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $GATHER_OUTPUT
+        typeset LOG_PATH="/root/pasha_log"
+        if [ $ENABLE_LOGGING == 1 ]; then
+                typeset LOTUS_CHECKPOINT=1
+        else
+                typeset LOTUS_CHECKPOINT=0
+        fi
+
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 18 ]; then
+        if [ $# != 19 ]; then
                 print_usage
                 exit -1
         fi
@@ -426,7 +438,8 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset PRE_MIGRATE=${15}
         typeset TIME_TO_RUN=${16}
         typeset TIME_TO_WARMUP=${17}
-        typeset GATHER_OUTPUT=${18}
+        typeset ENABLE_LOGGING=${18}
+        typeset GATHER_OUTPUT=${19}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -436,7 +449,14 @@ elif [ $RUN_TYPE = "YCSB" ]; then
                 typeset CXL_TRANS_ENTRY_NUM=$BASELINE_CXL_TRANS_ENTRY_NUM
         fi
 
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $GATHER_OUTPUT
+        typeset LOG_PATH="/root/pasha_log"
+        if [ $ENABLE_LOGGING == 1 ]; then
+                typeset LOTUS_CHECKPOINT=1
+        else
+                typeset LOTUS_CHECKPOINT=0
+        fi
+
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
