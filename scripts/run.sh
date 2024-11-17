@@ -10,8 +10,8 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI/COLLECT_OUTPUTS] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP GATHER_OUTPUTS"
-        echo "YCSB: [SundialPasha/Sundial/TwoPL/Lotus/Calvin] HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP GATHER_OUTPUTS"
+        echo "TPCC: [SundialPasha/Sundial/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP ENABLE_LOGGING GATHER_OUTPUTS"
+        echo "YCSB: [SundialPasha/Sundial/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT MAX_MIGRATED_ROWS_SIZE SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP ENABLE_LOGGING GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
@@ -40,6 +40,8 @@ function delete_log_files {
         for (( i=0; i < $MAX_HOST_NUM; ++i ))
         do
                 ssh_command "[ -e $LOG_FILE_NAME ] && rm $LOG_FILE_NAME" $i
+                ssh_command "echo 1 > /proc/sys/vm/drop_caches" $i
+                ssh_command "sync" $i
         done
 }
 
@@ -86,7 +88,7 @@ function print_server_string {
 }
 
 function run_exp_tpcc {
-        if [ $# != 19 ]; then
+        if [ $# != 20 ]; then
                 print_usage
                 exit -1
         fi
@@ -97,18 +99,19 @@ function run_exp_tpcc {
         typeset REMOTE_NEWORDER_PERC=$5
         typeset REMOTE_PAYMENT_PERC=$6
         typeset USE_CXL_TRANS=$7
-        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$8
-        typeset CXL_TRANS_ENTRY_NUM=$9
-        typeset MIGRATION_POLICY=${10}
-        typeset WHEN_TO_MOVE_OUT=${11}
-        typeset MAX_MIGRATED_ROWS_SIZE=${12}
-        typeset SCC_MECH=${13}
-        typeset PRE_MIGRATE=${14}
-        typeset TIME_TO_RUN=${15}
-        typeset TIME_TO_WARMUP=${16}
-        typeset LOG_PATH=${17}
-        typeset LOTUS_CHECKPOINT=${18}
-        typeset GATHER_OUTPUT=${19}
+        typeset USE_OUTPUT_THREAD=$8
+        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$9
+        typeset CXL_TRANS_ENTRY_NUM=${10}
+        typeset MIGRATION_POLICY=${11}
+        typeset WHEN_TO_MOVE_OUT=${12}
+        typeset MAX_MIGRATED_ROWS_SIZE=${13}
+        typeset SCC_MECH=${14}
+        typeset PRE_MIGRATE=${15}
+        typeset TIME_TO_RUN=${16}
+        typeset TIME_TO_WARMUP=${17}
+        typeset LOG_PATH=${18}
+        typeset LOTUS_CHECKPOINT=${19}
+        typeset GATHER_OUTPUT=${20}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -127,7 +130,7 @@ function run_exp_tpcc {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
@@ -140,7 +143,7 @@ function run_exp_tpcc {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
@@ -155,7 +158,7 @@ function run_exp_tpcc {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=Sundial --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -165,7 +168,7 @@ function run_exp_tpcc {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Sundial --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
         elif [ $PROTOCOL = "TwoPLPasha" ]; then
@@ -177,7 +180,7 @@ function run_exp_tpcc {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
@@ -190,7 +193,7 @@ function run_exp_tpcc {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
@@ -205,7 +208,7 @@ function run_exp_tpcc {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=TwoPL --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
 
@@ -215,7 +218,7 @@ function run_exp_tpcc {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=TwoPL --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
         else
                 echo "Protocol not supported!"
@@ -230,7 +233,7 @@ function run_exp_tpcc {
 }
 
 function run_exp_ycsb {
-        if [ $# != 21 ]; then
+        if [ $# != 22 ]; then
                 print_usage
                 exit -1
         fi
@@ -243,18 +246,19 @@ function run_exp_ycsb {
         typeset ZIPF_THETA=$7
         typeset CROSS_RATIO=$8
         typeset USE_CXL_TRANS=$9
-        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=${10}
-        typeset CXL_TRANS_ENTRY_NUM=${11}
-        typeset MIGRATION_POLICY=${12}
-        typeset WHEN_TO_MOVE_OUT=${13}
-        typeset MAX_MIGRATED_ROWS_SIZE=${14}
-        typeset SCC_MECH=${15}
-        typeset PRE_MIGRATE=${16}
-        typeset TIME_TO_RUN=${17}
-        typeset TIME_TO_WARMUP=${18}
-        typeset LOG_PATH=${19}
-        typeset LOTUS_CHECKPOINT=${20}
-        typeset GATHER_OUTPUT=${21}
+        typeset USE_OUTPUT_THREAD=${10}
+        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=${11}
+        typeset CXL_TRANS_ENTRY_NUM=${12}
+        typeset MIGRATION_POLICY=${13}
+        typeset WHEN_TO_MOVE_OUT=${14}
+        typeset MAX_MIGRATED_ROWS_SIZE=${15}
+        typeset SCC_MECH=${16}
+        typeset PRE_MIGRATE=${17}
+        typeset TIME_TO_RUN=${18}
+        typeset TIME_TO_WARMUP=${19}
+        typeset LOG_PATH=${20}
+        typeset LOTUS_CHECKPOINT=${21}
+        typeset GATHER_OUTPUT=${22}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -273,7 +277,7 @@ function run_exp_ycsb {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
@@ -286,7 +290,7 @@ function run_exp_ycsb {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
@@ -301,7 +305,7 @@ function run_exp_ycsb {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=Sundial --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -311,7 +315,7 @@ function run_exp_ycsb {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=Sundial --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
         elif [ $PROTOCOL = "TwoPLPasha" ]; then
@@ -323,7 +327,7 @@ function run_exp_ycsb {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
@@ -336,7 +340,7 @@ function run_exp_ycsb {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
@@ -351,7 +355,7 @@ function run_exp_ycsb {
                                 --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                                --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                                --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --protocol=TwoPL --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
 
@@ -361,7 +365,7 @@ function run_exp_ycsb {
                         --log_path=$LOG_PATH --lotus_checkpoint=$LOTUS_CHECKPOINT --persist_latency=0 --wal_group_commit_time=0 --wal_group_commit_size=0
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
-                        --use_cxl_transport=$USE_CXL_TRANS --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
+                        --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --protocol=TwoPL --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
         else
                 echo "Protocol not supported!"
@@ -391,7 +395,7 @@ typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=8192
 typeset BASELINE_CXL_TRANS_ENTRY_NUM=4096
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 17 ]; then
+        if [ $# != 18 ]; then
                 print_usage
                 exit -1
         fi
@@ -403,15 +407,16 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset REMOTE_NEWORDER_PERC=$6
         typeset REMOTE_PAYMENT_PERC=$7
         typeset USE_CXL_TRANS=$8
-        typeset MIGRATION_POLICY=$9
-        typeset WHEN_TO_MOVE_OUT=${10}
-        typeset MAX_MIGRATED_ROWS=${11}
-        typeset SCC_MECH=${12}
-        typeset PRE_MIGRATE=${13}
-        typeset TIME_TO_RUN=${14}
-        typeset TIME_TO_WARMUP=${15}
-        typeset ENABLE_LOGGING=${16}
-        typeset GATHER_OUTPUT=${17}
+        typeset USE_OUTPUT_THREAD=$9
+        typeset MIGRATION_POLICY=${10}
+        typeset WHEN_TO_MOVE_OUT=${11}
+        typeset MAX_MIGRATED_ROWS=${12}
+        typeset SCC_MECH=${13}
+        typeset PRE_MIGRATE=${14}
+        typeset TIME_TO_RUN=${15}
+        typeset TIME_TO_WARMUP=${16}
+        typeset ENABLE_LOGGING=${17}
+        typeset GATHER_OUTPUT=${18}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -428,10 +433,10 @@ if [ $RUN_TYPE = "TPCC" ]; then
                 typeset LOTUS_CHECKPOINT=0
         fi
 
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $GATHER_OUTPUT
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 19 ]; then
+        if [ $# != 20 ]; then
                 print_usage
                 exit -1
         fi
@@ -445,15 +450,16 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset ZIPF_THETA=$8
         typeset CROSS_RATIO=$9
         typeset USE_CXL_TRANS=${10}
-        typeset MIGRATION_POLICY=${11}
-        typeset WHEN_TO_MOVE_OUT=${12}
-        typeset MAX_MIGRATED_ROWS=${13}
-        typeset SCC_MECH=${14}
-        typeset PRE_MIGRATE=${15}
-        typeset TIME_TO_RUN=${16}
-        typeset TIME_TO_WARMUP=${17}
-        typeset ENABLE_LOGGING=${18}
-        typeset GATHER_OUTPUT=${19}
+        typeset USE_OUTPUT_THREAD=${11}
+        typeset MIGRATION_POLICY=${12}
+        typeset WHEN_TO_MOVE_OUT=${13}
+        typeset MAX_MIGRATED_ROWS=${14}
+        typeset SCC_MECH=${15}
+        typeset PRE_MIGRATE=${16}
+        typeset TIME_TO_RUN=${17}
+        typeset TIME_TO_WARMUP=${18}
+        typeset ENABLE_LOGGING=${19}
+        typeset GATHER_OUTPUT=${20}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -470,7 +476,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
                 typeset LOTUS_CHECKPOINT=0
         fi
 
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $GATHER_OUTPUT
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
