@@ -114,7 +114,6 @@ int main(int argc, char *argv[])
 
 	do_tid_check = false;
 	star::Coordinator c(FLAGS_id, db, context);
-        c.initCXLTransport();
 	c.connectToPeers();
 	c.start();
 	return 0;

@@ -10,6 +10,7 @@
 #include "common/Message.h"
 #include "common/Socket.h"
 #include "common/MPSCRingBuffer.h"
+#include "common/CXLTransport.h"
 #include "core/ControlMessage.h"
 #include "core/Worker.h"
 #include <atomic>
@@ -193,14 +194,13 @@ class IncomingDispatcher {
 class OutgoingDispatcher {
     public:
 	OutgoingDispatcher(std::size_t coord_id, std::size_t group_id, std::size_t io_thread_num, std::vector<Socket> &sockets,
-			   MPSCRingBuffer *cxl_ringbuffers, const std::vector<std::shared_ptr<Worker> > &workers, LockfreeQueue<Message *> &coordinator_queue,
+			   const std::vector<std::shared_ptr<Worker> > &workers, LockfreeQueue<Message *> &coordinator_queue,
 			   LockfreeQueue<Message *> &out_to_in_queue, std::atomic<bool> &stopFlag, Context context)
 		: coordinator_id(coord_id)
 		, group_id(group_id)
 		, io_thread_num(io_thread_num)
 		, network_size(0)
 		, sockets(sockets)
-                , cxl_ringbuffers(cxl_ringbuffers)
 		, workers(workers)
 		, coordinator_queue(coordinator_queue)
 		, out_to_in_queue(out_to_in_queue)
@@ -296,9 +296,7 @@ class OutgoingDispatcher {
                 if (context.use_cxl_transport == false) {
 		        sockets[dest_node_id].write_n_bytes(message->get_raw_ptr(), message_length);
                 } else {
-                        uint64_t bytes_sent = 0;
-                        bytes_sent = cxl_ringbuffers[dest_node_id].send(message->get_raw_ptr(), message_length);
-                        DCHECK(bytes_sent == message_length);
+                        cxl_transport->send(message);
                 }
 
 		if (message->get_message_gen_time())
@@ -415,7 +413,6 @@ class OutgoingDispatcher {
 	Percentile<std::size_t> network_msg_group_size;
 	std::size_t internal_network_msg_cnt = 0;
 	std::vector<Socket> &sockets;           // network transport
-        MPSCRingBuffer *cxl_ringbuffers;        // CXL transport
 	std::vector<std::shared_ptr<Worker> > workers;
 	LockfreeQueue<Message *> &coordinator_queue;
 	LockfreeQueue<Message *> &out_to_in_queue;

@@ -9,6 +9,7 @@
 #include "common/Socket.h"
 #include "common/CXLMemory.h"
 #include "common/MPSCRingBuffer.h"
+#include "common/CXLTransport.h"
 #include "core/ControlMessage.h"
 #include "core/Dispatcher.h"
 #include "core/Executor.h"
@@ -36,6 +37,8 @@ class Coordinator {
 		, context(context)
 	{
                 cxl_memory.init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
+
+                initCXLTransport();
 
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
@@ -130,7 +133,7 @@ class Coordinator {
 		for (auto i = 0u; i < context.io_thread_num; i++) {
 			iDispatchers[i] = std::make_unique<IncomingDispatcher>(id, i, context.io_thread_num, inSockets[i], cxl_ringbuffers, workers, in_queue, 
                                                                                out_to_in_queue, ioStopFlag, context);
-			oDispatchers[i] = std::make_unique<OutgoingDispatcher>(id, i, context.io_thread_num, outSockets[i], cxl_ringbuffers, workers, out_queue, 
+			oDispatchers[i] = std::make_unique<OutgoingDispatcher>(id, i, context.io_thread_num, outSockets[i], workers, out_queue,
                                                                                out_to_in_queue, ioStopFlag, context);
 
 			iDispatcherThreads.emplace_back(&IncomingDispatcher::start, iDispatchers[i].get());
@@ -335,6 +338,7 @@ class Coordinator {
                                 CXLMemory::TRANSPORT_ALLOCATION));
                         for (i = 0; i < coordinator_num; i++)
                                 new(&cxl_ringbuffers[i]) MPSCRingBuffer(context.cxl_trans_entry_struct_size, context.cxl_trans_entry_num);
+                        cxl_transport = new CXLTransport(cxl_ringbuffers);
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_transport_root_index, cxl_ringbuffers);
                         LOG(INFO) << "Coordinator " << id << " initializes CXL transport metadata ("
                                 << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "
@@ -342,6 +346,7 @@ class Coordinator {
                 } else {
                         CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_transport_root_index, &tmp);
                         cxl_ringbuffers = reinterpret_cast<MPSCRingBuffer *>(tmp);
+                        cxl_transport = new CXLTransport(cxl_ringbuffers);
                         LOG(INFO) << "Coordinator " << id << " retrives CXL transport metadata ("
                                 << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "
                                 << cxl_ringbuffers[0].get_entry_size() << " Bytes)";
