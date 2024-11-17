@@ -72,6 +72,7 @@ DEFINE_int32(granule_count, 1, "# granules in a partition");
 DEFINE_bool(hstore_active_active, false, "H-Store style active-active replication");
 
 DEFINE_bool(use_cxl_transport, false, "use CXL transport instead of network transport");
+DEFINE_bool(use_output_thread, false, "do you want an output thread?");
 DEFINE_uint64(cxl_trans_entry_struct_size, 8192, "size of enrty in a MPSC ringbuffer");
 DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer");
 
@@ -139,6 +140,7 @@ DEFINE_string(pre_migrate, "None", "what tuples to pre-migrate?");
 	context.lotus_checkpoint_location = FLAGS_lotus_checkpoint_location;                    \
 	context.hstore_active_active = FLAGS_hstore_active_active;                              \
         context.use_cxl_transport = FLAGS_use_cxl_transport;                                    \
+        context.use_output_thread = FLAGS_use_output_thread;                                    \
         context.cxl_trans_entry_struct_size = FLAGS_cxl_trans_entry_struct_size;                \
         context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                                \
         context.migration_policy = FLAGS_migration_policy;                                      \

@@ -10,6 +10,8 @@
 #include "core/Delay.h"
 #include "core/Worker.h"
 
+#include "common/CXLTransport.h"
+
 #include <thread>
 
 namespace star
@@ -298,7 +300,12 @@ class Manager : public Worker {
 
 			auto message = messages[i].release();
 
-			out_queue.push(message);
+			if (context.use_output_thread == true) {
+			        out_queue.push(message);
+                        } else {
+                                cxl_transport->send(message);
+                        }
+
 			messages[i] = std::make_unique<Message>();
 			init_message(messages[i].get(), i);
 		}

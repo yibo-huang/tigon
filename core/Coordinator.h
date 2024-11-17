@@ -136,8 +136,16 @@ class Coordinator {
 			oDispatchers[i] = std::make_unique<OutgoingDispatcher>(id, i, context.io_thread_num, outSockets[i], workers, out_queue,
                                                                                out_to_in_queue, ioStopFlag, context);
 
+                        // the input thread is always needed
 			iDispatcherThreads.emplace_back(&IncomingDispatcher::start, iDispatchers[i].get());
-			oDispatcherThreads.emplace_back(&OutgoingDispatcher::start, oDispatchers[i].get());
+
+                        // but the output thread is optional
+                        if (context.use_output_thread == true) {
+			        oDispatcherThreads.emplace_back(&OutgoingDispatcher::start, oDispatchers[i].get());
+                        } else {
+                                CHECK(context.use_cxl_transport == true);
+                        }
+
 			if (context.cpu_affinity) {
 				pin_thread_to_core(iDispatcherThreads[i]);
 				pin_thread_to_core(oDispatcherThreads[i]);
@@ -317,7 +325,11 @@ class Coordinator {
 
 		for (auto i = 0u; i < context.io_thread_num; i++) {
 			iDispatcherThreads[i].join();
-			oDispatcherThreads[i].join();
+                        if (context.use_output_thread == true) {
+			        oDispatcherThreads[i].join();
+                        } else {
+                                CHECK(context.use_cxl_transport == true);
+                        }
 		}
 
 		if (context.logger)
@@ -494,7 +506,11 @@ class Coordinator {
 			auto message = std::make_unique<Message>();
 			init_message(message.get(), id, 0);
 			ControlMessageFactory::new_statistics_message(*message, id, commit, size_index_usage, size_metadata_usage, size_data_usage, size_transport_usage);
-			out_queue.push(message.release());
+                        if (context.use_output_thread == true) {
+			        out_queue.push(message.release());
+                        } else {
+                                cxl_transport->send(message.release());
+                        }
 		}
 		if (context.partitioner == "hpb") {
 			LOG(INFO) << "replica total commit " << replica_sum;

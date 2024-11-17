@@ -342,7 +342,11 @@ template <class Workload, class Protocol> class Executor : public Worker {
 			}
 
 			auto message = messages[i].release();
-			out_queue.push(message);
+			if (context.use_output_thread == true) {
+			        out_queue.push(message);
+                        } else {
+                                cxl_transport->send(message);
+                        }
 			message->set_put_to_out_queue_time(Time::now());
 
 			messages[i] = std::make_unique<Message>();
