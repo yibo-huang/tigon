@@ -330,8 +330,8 @@ template <class Database> class Sundial {
 
 			if (txn.abort_read_validation == false && txn.abort_lock == false) {
 				// Redo logging for writes
-				for (size_t j = 0; j < writeSet.size(); ++j) {
-					auto &writeKey = writeSet[j];
+				for (size_t i = 0; i < writeSet.size(); ++i) {
+					auto &writeKey = writeSet[i];
 					auto tableId = writeKey.get_table_id();
 					auto partitionId = writeKey.get_partition_id();
 					auto table = db.find_table(tableId, partitionId);
@@ -452,24 +452,23 @@ template <class Database> class Sundial {
 						}
 					}
 
-					// Redo logging for writes
-					for (size_t j = 0; j < writeSet.size(); ++j) {
-						auto &writeKey = writeSet[j];
-						auto tableId = writeKey.get_table_id();
-						auto partitionId = writeKey.get_partition_id();
-						auto table = db.find_table(tableId, partitionId);
-						auto key_size = table->key_size();
-						auto value_size = table->value_size();
-						auto key = writeKey.get_key();
-						auto value = writeKey.get_value();
+                                        // Redo logging for writes
+                                        for (size_t j = 0; j < writeSet.size(); ++j) {
+                                                auto &writeKey = writeSet[j];
+                                                auto tableId = writeKey.get_table_id();
+                                                auto partitionId = writeKey.get_partition_id();
+                                                auto table = db.find_table(tableId, partitionId);
+                                                auto key_size = table->key_size();
+                                                auto value_size = table->value_size();
+                                                auto key = writeKey.get_key();
+                                                auto value = writeKey.get_value();
 
-						std::ostringstream ss;
+                                                std::ostringstream ss;
                                                 int log_type = 0;       // 0 stands for write
-						ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
-						auto output = ss.str();
-						txn.get_logger()->write(output.c_str(), output.size(), false);
-					}
-
+                                                ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
+                                                auto output = ss.str();
+                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                        }
 				} else {
 					if (readSet.empty() && writeSet.empty())
 						continue;

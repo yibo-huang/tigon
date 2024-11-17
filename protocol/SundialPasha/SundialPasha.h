@@ -316,9 +316,9 @@ template <class Database> class SundialPasha {
 			DCHECK(txn.pendingResponses == 0);
 
 			if (txn.abort_read_validation == false && txn.abort_lock == false) {
-				// Redo logging
-				for (size_t j = 0; j < writeSet.size(); ++j) {
-					auto &writeKey = writeSet[j];
+				// Redo logging for writes
+				for (size_t i = 0; i < writeSet.size(); ++i) {
+					auto &writeKey = writeSet[i];
 					auto tableId = writeKey.get_table_id();
 					auto partitionId = writeKey.get_partition_id();
 					auto table = db.find_table(tableId, partitionId);
@@ -328,11 +328,53 @@ template <class Database> class SundialPasha {
 					auto value = writeKey.get_value();
 
 					std::ostringstream ss;
-					ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-					   << std::string((char *)value, value_size);
+                                        int log_type = 0;       // 0 stands for write
+					ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
 					auto output = ss.str();
 					txn.get_logger()->write(output.c_str(), output.size(), false);
 				}
+
+                                // Redo logging for inserts
+                                auto &insertSet = txn.insertSet;
+                                for (size_t i = 0; i < insertSet.size(); ++i) {
+                                        auto &insertKey = insertSet[i];
+                                        auto tableId = insertKey.get_table_id();
+                                        auto partitionId = insertKey.get_partition_id();
+                                        auto table = db.find_table(tableId, partitionId);
+                                        auto key_size = table->key_size();
+                                        auto value_size = table->value_size();
+                                        auto key = insertKey.get_key();
+                                        auto value = insertKey.get_value();
+                                        DCHECK(key);
+                                        DCHECK(value);
+                                        std::ostringstream ss;
+
+                                        int log_type = 1;       // 1 stands for insert
+                                        ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
+                                        auto output = ss.str();
+                                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                                }
+
+                                // Redo logging for deletes
+                                auto &deleteSet = txn.deleteSet;
+                                for (size_t i = 0; i < deleteSet.size(); ++i) {
+                                        auto &deleteKey = deleteSet[i];
+                                        auto tableId = deleteKey.get_table_id();
+                                        auto partitionId = deleteKey.get_partition_id();
+                                        auto table = db.find_table(tableId, partitionId);
+                                        auto key_size = table->key_size();
+                                        auto value_size = table->value_size();
+                                        auto key = deleteKey.get_key();
+                                        auto value = deleteKey.get_value();
+                                        DCHECK(key);
+                                        DCHECK(value);
+                                        std::ostringstream ss;
+
+                                        int log_type = 2;       // 2 stands for delete
+                                        ss << log_type << tableId << partitionId << std::string((char *)key, key_size);     // do not need to log value for deletes
+                                        auto output = ss.str();
+                                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                                }
 			}
 		} else {
 			std::vector<std::vector<SundialPashaRWKey> > readSetGroupByCoordinator(context.coordinator_num);
@@ -430,22 +472,67 @@ template <class Database> class SundialPasha {
 					}
 				}
 
-                                // Redo logging
-                                for (size_t j = 0; j < writeSet.size(); ++j) {
-                                        auto &writeKey = writeSet[j];
-                                        auto tableId = writeKey.get_table_id();
-                                        auto partitionId = writeKey.get_partition_id();
-                                        auto table = db.find_table(tableId, partitionId);
-                                        auto key_size = table->key_size();
-                                        auto value_size = table->value_size();
-                                        auto key = writeKey.get_key();
-                                        auto value = writeKey.get_value();
+                                if (txn.abort_read_validation == false) {
+                                        // Redo logging for writes
+                                        for (size_t j = 0; j < writeSet.size(); ++j) {
+                                                auto &writeKey = writeSet[j];
+                                                auto tableId = writeKey.get_table_id();
+                                                auto partitionId = writeKey.get_partition_id();
+                                                auto table = db.find_table(tableId, partitionId);
+                                                auto key_size = table->key_size();
+                                                auto value_size = table->value_size();
+                                                auto key = writeKey.get_key();
+                                                auto value = writeKey.get_value();
 
-                                        std::ostringstream ss;
-                                        ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
-                                                << std::string((char *)value, value_size);
-                                        auto output = ss.str();
-                                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                                                std::ostringstream ss;
+                                                int log_type = 0;       // 0 stands for write
+                                                ss << log_type << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
+                                                        << std::string((char *)value, value_size);
+                                                auto output = ss.str();
+                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                        }
+
+                                        // Redo logging for inserts
+                                        auto &insertSet = txn.insertSet;
+                                        for (size_t j = 0; j < insertSet.size(); ++j) {
+                                                auto &insertKey = insertSet[j];
+                                                auto tableId = insertKey.get_table_id();
+                                                auto partitionId = insertKey.get_partition_id();
+                                                auto table = db.find_table(tableId, partitionId);
+                                                auto key_size = table->key_size();
+                                                auto value_size = table->value_size();
+                                                auto key = insertKey.get_key();
+                                                auto value = insertKey.get_value();
+                                                DCHECK(key);
+                                                DCHECK(value);
+                                                std::ostringstream ss;
+
+                                                int log_type = 1;       // 1 stands for insert
+                                                ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
+                                                auto output = ss.str();
+                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                        }
+
+                                        // Redo logging for deletes
+                                        auto &deleteSet = txn.deleteSet;
+                                        for (size_t j = 0; j < deleteSet.size(); ++j) {
+                                                auto &deleteKey = deleteSet[j];
+                                                auto tableId = deleteKey.get_table_id();
+                                                auto partitionId = deleteKey.get_partition_id();
+                                                auto table = db.find_table(tableId, partitionId);
+                                                auto key_size = table->key_size();
+                                                auto value_size = table->value_size();
+                                                auto key = deleteKey.get_key();
+                                                auto value = deleteKey.get_value();
+                                                DCHECK(key);
+                                                DCHECK(value);
+                                                std::ostringstream ss;
+
+                                                int log_type = 2;       // 2 stands for delete
+                                                ss << log_type << tableId << partitionId << std::string((char *)key, key_size);     // do not need to log value for deletes
+                                                auto output = ss.str();
+                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                        }
                                 }
 			}
 
