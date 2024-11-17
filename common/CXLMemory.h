@@ -65,9 +65,6 @@ class CXLMemory {
                         CHECK(0);
                 }
 
-                // unfortunately, our allocator has bug
-                if (size < minimal_cxlalloc_size)
-                        size = minimal_cxlalloc_size;
                 return cxlalloc_malloc(size);
         }
 
