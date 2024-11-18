@@ -438,7 +438,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=10
+                typeset WAL_GROUP_COMMIT_TIME=40000     # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
@@ -494,8 +494,8 @@ elif [ $RUN_TYPE = "YCSB" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=1000
-                typeset WAL_GROUP_COMMIT_BATCH_SIZE=20
+                typeset WAL_GROUP_COMMIT_TIME=40000   # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
                 typeset LOTUS_CHECKPOINT=0
