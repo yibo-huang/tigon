@@ -171,6 +171,7 @@ class BlackholeLogger : public WALLogger {
 		, writer(filename.c_str(), block_size, emulated_persist_latency)
 	{
 	}
+
 	~BlackholeLogger() override
 	{
 	}
@@ -304,6 +305,100 @@ class GroupCommitLogger : public WALLogger {
 	Percentile<uint64_t> sync_batch_bytes;
 };
 
+class PashaGroupCommitLogger : public WALLogger {
+    public:
+	PashaGroupCommitLogger(const std::string &filename, std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
+			  std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
+		: WALLogger(filename, emulated_persist_latency)
+                , committed_txn_cnt(0)
+		, writer(filename.c_str(), block_size, emulated_persist_latency)
+		, write_lsn(0)
+		, sync_lsn(0)
+		, group_commit_latency_us(group_commit_latency)
+		, group_commit_txn_cnt(group_commit_txn_cnt)
+                , cur_grouped_txn_cnt(0)
+                , disk_sync_cnt(0)
+		, last_sync_time(Time::now())
+	{
+		std::thread([this]() {
+			while (true) {
+				if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
+					do_sync();
+				}
+				std::this_thread::sleep_for(std::chrono::microseconds(2));
+			}
+		}).detach();
+	}
+
+	~PashaGroupCommitLogger() override
+	{
+	}
+
+	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+	{
+                uint64_t end_lsn = 0;
+
+                mutex.lock();
+
+                writer.write(str, size);
+                write_lsn += size;
+                end_lsn = write_lsn;
+
+                if (persist == true) {
+                        cur_grouped_txn_cnt++;
+                }
+
+                mutex.unlock();
+
+		return end_lsn;
+	}
+
+	void do_sync()
+	{
+		mutex.lock();
+		if (sync_lsn < write_lsn) {
+			writer.sync();
+                        sync_lsn = write_lsn;
+                        committed_txn_cnt += cur_grouped_txn_cnt;
+                        cur_grouped_txn_cnt = 0;
+                        disk_sync_cnt++;
+        		last_sync_time = Time::now();
+		}
+                mutex.unlock();
+	}
+
+	void sync(std::size_t lsn, std::function<void()> on_blocking = []() {}) override
+	{
+		CHECK(0);
+	}
+
+	void close() override
+	{
+		writer.close();
+	}
+
+        void print_sync_stats() override
+	{
+		LOG(INFO) << "total_log_size " << sync_lsn
+                        << " total_committed_txn_count " << committed_txn_cnt
+                        << " disk_sync_cnt " << disk_sync_cnt;
+	}
+
+    public:
+        std::size_t committed_txn_cnt;
+
+    private:
+	std::mutex mutex;
+	BufferedDirectFileWriter writer;
+	uint64_t write_lsn;
+	uint64_t sync_lsn;
+	std::size_t group_commit_latency_us;
+	std::size_t group_commit_txn_cnt;
+        std::size_t cur_grouped_txn_cnt;
+        uint64_t disk_sync_cnt;
+	std::atomic<std::size_t> last_sync_time;
+};
+
 class SimpleWALLogger : public WALLogger {
     public:
 	SimpleWALLogger(const std::string &filename, std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
@@ -315,6 +410,7 @@ class SimpleWALLogger : public WALLogger {
 	~SimpleWALLogger() override
 	{
 	}
+
 	std::size_t write(
 		const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
 	{

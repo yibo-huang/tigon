@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 			context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
 		} else {
                         logger_type = "GroupCommit Logger";
-			context.logger = new star::GroupCommitLogger(redo_filename, context.group_commit_batch_size, context.wal_group_commit_time,
+			context.logger = new star::PashaGroupCommitLogger(redo_filename, context.group_commit_batch_size, context.wal_group_commit_time,
 								     context.emulated_persist_latency);
 		}
 		LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]"
