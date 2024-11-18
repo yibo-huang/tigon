@@ -98,6 +98,7 @@ class BufferedDirectFileWriter {
 				CHECK(io_size <= BUFFER_SIZE);
 			}
 			err = ::write(fd, buffer, io_size);
+                        fdatasync(fd);
 			int errnumber = errno;
 			CHECK(err >= 0);
 			CHECK(errnumber == 0);
