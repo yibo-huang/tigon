@@ -80,39 +80,6 @@ int main(int argc, char *argv[])
 		star::Zipf::globalZipfForStraggler().init(context.straggler_num_txn_len, FLAGS_stragglers_zipf_factor);
 	}
 
-	if (context.log_path != "" && context.wal_group_commit_time != 0) {
-		std::string redo_filename = context.log_path + "_group_commit.txt";
-		std::string logger_type;
-		if (context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) { // logging off so that logging and checkpoint threads
-													   // will not compete for bandwidth
-			logger_type = "Blackhole Logger";
-			context.master_logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
-		} else {
-                        logger_type = "GroupCommit Logger";
-                        std::vector<star::LockfreeLogBufferQueue *> *log_buffer_queues = new std::vector<star::LockfreeLogBufferQueue *>();
-                        CHECK(log_buffer_queues != nullptr);
-                        for (auto i = 0; i < context.worker_num; i++) {
-                                star::LockfreeLogBufferQueue *log_buffer_queue = new star::LockfreeLogBufferQueue();
-                                log_buffer_queues->push_back(log_buffer_queue);
-                                context.slave_loggers.push_back(new star::PashaGroupCommitLoggerSlave(log_buffer_queue));
-                        }
-			context.master_logger = new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, context.group_commit_batch_size, context.wal_group_commit_time,
-								context.emulated_persist_latency);
-		}
-		LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
-	} else {
-		std::string redo_filename = context.log_path + "_non_group_commit.txt";
-		std::string logger_type;
-		if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF) {
-			logger_type = "Blackhole Logger";
-			context.master_logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
-		} else {
-                        logger_type = "SimpleWAL Logger";
-			context.master_logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
-		}
-		LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
-	}
-
         check_context(context);
 
 	star::ycsb::Database db;

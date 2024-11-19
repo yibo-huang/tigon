@@ -30,16 +30,53 @@ bool warmed_up = false;
 class Coordinator {
     public:
 	template <class Database, class Context>
-	Coordinator(std::size_t id, Database &db, const Context &context)
+	Coordinator(std::size_t id, Database &db, Context &context)
 		: id(id)
 		, coordinator_num(context.peers.size())
 		, peers(context.peers)
 		, context(context)
 	{
+                // init cxlalloc
                 cxl_memory.init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
 
+                // init CXL transport
                 initCXLTransport();
 
+                // init logger
+                if (context.log_path != "" && context.wal_group_commit_time != 0) {
+                        std::string redo_filename = context.log_path + "_group_commit.txt";
+                        std::string logger_type;
+                        if (context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) { // logging off so that logging and checkpoint threads
+                                                                                                                // will not compete for bandwidth
+                                logger_type = "Blackhole Logger";
+                                context.master_logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
+                        } else {
+                                logger_type = "GroupCommit Logger";
+                                std::vector<star::LockfreeLogBufferQueue *> *log_buffer_queues = new std::vector<star::LockfreeLogBufferQueue *>();
+                                CHECK(log_buffer_queues != nullptr);
+                                for (auto i = 0; i < context.worker_num; i++) {
+                                        star::LockfreeLogBufferQueue *log_buffer_queue = new star::LockfreeLogBufferQueue();
+                                        log_buffer_queues->push_back(log_buffer_queue);
+                                        context.slave_loggers.push_back(new star::PashaGroupCommitLoggerSlave(log_buffer_queue));
+                                }
+                                context.master_logger = new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, context.group_commit_batch_size, context.wal_group_commit_time,
+                                                                        context.emulated_persist_latency);
+                        }
+                        LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
+                } else {
+                        std::string redo_filename = context.log_path + "_non_group_commit.txt";
+                        std::string logger_type;
+                        if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF) {
+                                logger_type = "Blackhole Logger";
+                                context.master_logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
+                        } else {
+                                logger_type = "SimpleWAL Logger";
+                                context.master_logger = new star::SimpleWALLogger(redo_filename, context.emulated_persist_latency);
+                        }
+                        LOG(INFO) << "WAL Group Commiting off. Log to file " << redo_filename << " using " << logger_type;
+                }
+
+                // init workers
 		workerStopFlag.store(false);
 		ioStopFlag.store(false);
 		LOG(INFO) << "Coordinator initializes " << context.worker_num << " workers.";
