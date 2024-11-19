@@ -89,8 +89,15 @@ int main(int argc, char *argv[])
 			context.logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
 		} else {
                         logger_type = "GroupCommit Logger";
-			context.logger = new star::PashaGroupCommitLogger(redo_filename, context.group_commit_batch_size, context.wal_group_commit_time,
-								     context.emulated_persist_latency);
+                        std::vector<star::LockfreeQueue<star::LogBuffer *, 1024> *> *log_buffer_queues = new std::vector<star::LockfreeQueue<star::LogBuffer *, 1024> *>();
+                        CHECK(log_buffer_queues != nullptr);
+                        for (auto i = 0; i < context.worker_num; i++) {
+                                star::LockfreeQueue<star::LogBuffer *, 1024> *log_buffer_queue = new star::LockfreeQueue<star::LogBuffer *, 1024>();
+                                log_buffer_queues->push_back(log_buffer_queue);
+                                context.slave_loggers.push_back(new star::PashaGroupCommitLoggerSlave(log_buffer_queue));
+                        }
+			new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, context.group_commit_batch_size, context.wal_group_commit_time,
+								context.emulated_persist_latency);
 		}
 		LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]"
 			  << " using " << logger_type;

@@ -56,14 +56,17 @@ template <class Workload, class Protocol> class Executor : public Worker {
 		message_stats.resize(messageHandlers.size(), 0);
 		message_sizes.resize(messageHandlers.size(), 0);
 
-		if (context.logger) {
-			DCHECK(context.log_path != "");
+		if (context.logger != nullptr) {
+			CHECK(context.log_path != "");
+                        CHECK(context.slave_loggers.size() == 0);
 			logger = context.logger;
-		} else {
-			if (context.log_path != "") {
-				std::string redo_filename = context.log_path + "_" + std::to_string(id) + ".txt";
-				logger = new SimpleWALLogger(redo_filename.c_str(), context.emulated_persist_latency);
-			}
+		} else if (context.slave_loggers.size() != 0) {
+                        CHECK(context.log_path != "");
+                        CHECK(context.logger == nullptr);
+                        LOG(INFO) << "worker ID " << id;
+			logger = context.slave_loggers[id];
+                } else {
+                        logger = nullptr;
 		}
 	}
 

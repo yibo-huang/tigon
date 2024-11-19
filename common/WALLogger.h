@@ -15,11 +15,61 @@
 #include <atomic>
 
 #include "common/Percentile.h"
+#include "common/LockfreeQueue.h"
 
 #include "BufferedFileWriter.h"
 #include "Time.h"
 namespace star
 {
+
+class DirectFileWriter {
+    public:
+	DirectFileWriter(const char *filename, std::size_t block_size, std::size_t emulated_persist_latency = 0)
+		: block_size(block_size)
+	{
+                CHECK(emulated_persist_latency == 0);
+		long flags = O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT;
+		fd = open(filename, flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+		CHECK(fd >= 0);
+	}
+
+	~DirectFileWriter()
+	{
+	}
+
+	void write(const char *str, long size)
+	{
+                ::write(fd, str, roundUp(size, block_size));
+	}
+
+	std::size_t roundUp(std::size_t numToRound, std::size_t multiple)
+	{
+		if (multiple == 0)
+			return numToRound;
+
+		int remainder = numToRound % multiple;
+		if (remainder == 0)
+			return numToRound;
+
+		return numToRound + multiple - remainder;
+	}
+
+	void sync()
+	{
+		fdatasync(fd);
+	}
+
+	void close()
+	{
+		sync();
+		int err = ::close(fd);
+		CHECK(err == 0);
+	}
+
+    private:
+	int fd;
+	size_t block_size;
+};
 
 class BufferedDirectFileWriter {
     public:
@@ -305,13 +355,67 @@ class GroupCommitLogger : public WALLogger {
 	Percentile<uint64_t> sync_batch_bytes;
 };
 
+struct LogBuffer {
+        static constexpr uint64_t max_buffer_size = 1024 * 1024 * 1;
+
+        char buffer[max_buffer_size];
+        uint64_t size = 0;
+};
+
+class PashaGroupCommitLoggerSlave : public WALLogger {
+    public:
+	PashaGroupCommitLoggerSlave(LockfreeQueue<LogBuffer *, 1024> *log_buffer_queue_ptr)
+		: WALLogger("nothing", 0)
+                , log_buffer_queue(*log_buffer_queue_ptr)
+	{
+                cur_log_buffer = new LogBuffer;
+                CHECK(cur_log_buffer != nullptr);
+	}
+
+	~PashaGroupCommitLoggerSlave() override
+	{
+                delete cur_log_buffer;
+	}
+
+	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+	{
+                CHECK(cur_log_buffer != nullptr);
+
+                if (cur_log_buffer->size + size > LogBuffer::max_buffer_size) {
+                        log_buffer_queue.push(cur_log_buffer);
+                        cur_log_buffer = new LogBuffer;
+                        CHECK(cur_log_buffer != nullptr);
+                }
+
+                memcpy(&cur_log_buffer->buffer[cur_log_buffer->size], str, size);
+                cur_log_buffer->size += size;
+
+                return size;
+	}
+
+        void sync(std::size_t lsn, std::function<void()> on_blocking = []() {}) override
+	{
+		CHECK(0);
+	}
+
+	void close() override
+	{
+	}
+
+    private:
+        LogBuffer *cur_log_buffer = nullptr;
+	LockfreeQueue<LogBuffer *, 1024> &log_buffer_queue;
+};
+
 class PashaGroupCommitLogger : public WALLogger {
     public:
-	PashaGroupCommitLogger(const std::string &filename, std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
+	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeQueue<LogBuffer *, 1024> *> *log_buffer_queues_ptr,
+                          std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
 			  std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
 		: WALLogger(filename, emulated_persist_latency)
                 , committed_txn_cnt(0)
-		, writer(filename.c_str(), block_size, emulated_persist_latency)
+                , file_writer(filename.c_str(), block_size, emulated_persist_latency)
+                , log_buffer_queues(*log_buffer_queues_ptr)
 		, write_lsn(0)
 		, sync_lsn(0)
 		, group_commit_latency_us(group_commit_latency)
@@ -320,6 +424,8 @@ class PashaGroupCommitLogger : public WALLogger {
                 , disk_sync_cnt(0)
 		, last_sync_time(Time::now())
 	{
+                CHECK(emulated_persist_latency == 0);
+
 		std::thread([this]() {
 			while (true) {
 				if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
@@ -336,35 +442,30 @@ class PashaGroupCommitLogger : public WALLogger {
 
 	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
 	{
-                uint64_t end_lsn = 0;
-
-                mutex.lock();
-
-                writer.write(str, size);
-                write_lsn += size;
-                end_lsn = write_lsn;
-
-                if (persist == true) {
-                        cur_grouped_txn_cnt++;
-                }
-
-                mutex.unlock();
-
-		return end_lsn;
+                CHECK(0);
 	}
 
 	void do_sync()
 	{
-		mutex.lock();
-		if (sync_lsn < write_lsn) {
-			writer.sync();
-                        sync_lsn = write_lsn;
-                        committed_txn_cnt += cur_grouped_txn_cnt;
-                        cur_grouped_txn_cnt = 0;
-                        disk_sync_cnt++;
-        		last_sync_time = Time::now();
-		}
-                mutex.unlock();
+		for (auto i = 0; i < log_buffer_queues.size(); i++) {
+                        LockfreeQueue<LogBuffer *, 1024> *cur_log_buffer_queue = log_buffer_queues[i];
+                        while (true) {
+                                if (cur_log_buffer_queue->empty() == true) {
+                                        break;
+                                }
+
+                                // get the buffer
+                                LogBuffer *log_buffer = cur_log_buffer_queue->front();
+                                CHECK(log_buffer != nullptr);
+
+                                // release the slot
+                                cur_log_buffer_queue->pop();
+
+                                // write to disk
+                                file_writer.write(log_buffer->buffer, log_buffer->size);
+                                file_writer.sync();
+                        }
+                }
 	}
 
 	void sync(std::size_t lsn, std::function<void()> on_blocking = []() {}) override
@@ -374,7 +475,7 @@ class PashaGroupCommitLogger : public WALLogger {
 
 	void close() override
 	{
-		writer.close();
+                file_writer.close();
 	}
 
         void print_sync_stats() override
@@ -389,7 +490,9 @@ class PashaGroupCommitLogger : public WALLogger {
 
     private:
 	std::mutex mutex;
-	BufferedDirectFileWriter writer;
+        DirectFileWriter file_writer;
+	std::vector<LockfreeQueue<LogBuffer *, 1024> *> &log_buffer_queues;
+
 	uint64_t write_lsn;
 	uint64_t sync_lsn;
 	std::size_t group_commit_latency_us;
