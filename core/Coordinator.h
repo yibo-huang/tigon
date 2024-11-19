@@ -369,8 +369,9 @@ class Coordinator {
                         }
 		}
 
-		if (context.master_logger)
+		if (context.master_logger != nullptr) {
 			context.master_logger->print_sync_stats();
+                }
 
 		measure_round_trip();
 		close_sockets();
@@ -603,7 +604,7 @@ class Coordinator {
 
 	std::size_t id, coordinator_num;
 	const std::vector<std::string> &peers;
-	Context context;
+	Context &context;
 	std::vector<std::vector<Socket> > inSockets, outSockets;
 	std::atomic<bool> workerStopFlag, ioStopFlag;
 	std::vector<std::shared_ptr<Worker> > workers;

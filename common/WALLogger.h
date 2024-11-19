@@ -432,6 +432,7 @@ class PashaGroupCommitLogger : public WALLogger {
                 CHECK(emulated_persist_latency == 0);
 
 		std::thread([this]() {
+                        LOG(INFO) << "logger thread started!";
 			while (true) {
 				if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
 					do_sync();
