@@ -9,6 +9,7 @@
 #include <boost/interprocess/offset_ptr.hpp>
 #include <stddef.h>
 #include <atomic>
+#include <xmmintrin.h>
 #include <glog/logging.h>
 
 namespace star
@@ -88,6 +89,8 @@ class MPSCRingBuffer {
 
                 /* memcpy the data to the target endpoint's receive queue */
                 memcpy(entry->data, data, data_size);
+                clwb(entry->data, data_size);
+
                 entry->remaining_size = data_size;
                 entry->dequeue_offset = 0;
 
@@ -127,6 +130,7 @@ class MPSCRingBuffer {
                 DCHECK(dequeue_size == entry->remaining_size);
 
                 /* memcpy the data to the user-provided buffer and update the metadata */
+                clflush(entry->data, dequeue_size);
                 memcpy(data_buffer, entry->data, dequeue_size);
                 entry->dequeue_offset += dequeue_size;
                 entry->remaining_size -= dequeue_size;
@@ -168,6 +172,36 @@ class MPSCRingBuffer {
         }
 
     private:
+        static constexpr uint64_t cacheline_size = 64;
+
+        inline void clflush(const void *addr, uint64_t len)
+        {
+                /*
+                 * Loop through cache-line-size (typically 64B) aligned chunks
+                 * covering the given range.
+                 */
+                for (uint64_t ptr = (uint64_t)addr & ~(cacheline_size - 1); ptr < (uint64_t)addr + len; ptr += cacheline_size) {
+                        asm volatile ("clflush (%0)" :: "r"(ptr));
+                }
+
+                // make sure clflush completes before memcpy
+                _mm_sfence();
+        }
+
+        inline void clwb(const void *addr, uint64_t len)
+        {
+                /*
+                 * Loop through cache-line-size (typically 64B) aligned chunks
+                 * covering the given range.
+                 */
+                for (uint64_t ptr = (uint64_t)addr & ~(cacheline_size - 1); ptr < (uint64_t)addr + len; ptr += cacheline_size) {
+                        asm volatile ("clwb (%0)" :: "r"(ptr));
+                }
+
+                // make sure clwb completes before memcpy
+                _mm_sfence();
+        }
+
         uint64_t entry_struct_size;
         uint64_t entry_data_size;
         uint64_t entry_num;
