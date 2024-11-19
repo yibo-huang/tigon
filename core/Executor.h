@@ -56,18 +56,19 @@ template <class Workload, class Protocol> class Executor : public Worker {
 		message_stats.resize(messageHandlers.size(), 0);
 		message_sizes.resize(messageHandlers.size(), 0);
 
-		if (context.logger != nullptr) {
-			CHECK(context.log_path != "");
-                        CHECK(context.slave_loggers.size() == 0);
-			logger = context.logger;
-		} else if (context.slave_loggers.size() != 0) {
-                        CHECK(context.log_path != "");
-                        CHECK(context.logger == nullptr);
-                        LOG(INFO) << "worker ID " << id;
-			logger = context.slave_loggers[id];
+                if (context.log_path != "" && context.wal_group_commit_time != 0) {
+                        if (context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) {
+                                logger = context.master_logger;
+                        } else {
+                                logger = context.slave_loggers[id];
+                        }
                 } else {
-                        logger = nullptr;
-		}
+                        if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF) {
+                                logger = context.master_logger;
+                        } else {
+                                logger = context.master_logger;
+                        }
+                }
 	}
 
 	~Executor() = default;

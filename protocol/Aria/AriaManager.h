@@ -44,15 +44,20 @@ template <class Workload> class AriaManager : public star::Manager {
 	{
 		storages.resize(context.batch_size);
 		transactions.resize(context.batch_size);
-		if (context.logger) {
-			DCHECK(context.log_path != "");
-			logger = context.logger;
-		} else {
-			if (context.log_path != "") {
-				std::string redo_filename = context.log_path + "_" + std::to_string(id) + ".txt";
-				logger = new SimpleWALLogger(redo_filename.c_str(), context.emulated_persist_latency);
-			}
-		}
+
+		if (context.log_path != "" && context.wal_group_commit_time != 0) {
+                        if (context.lotus_checkpoint == LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) {
+                                logger = context.master_logger;
+                        } else {
+                                logger = context.slave_loggers[id];
+                        }
+                } else {
+                        if (context.lotus_checkpoint == LotusCheckpointScheme::COW_OFF_CHECKPOINT_OFF_LOGGING_OFF) {
+                                logger = context.master_logger;
+                        } else {
+                                logger = context.master_logger;
+                        }
+                }
 	}
 
 	std::size_t get_partition_id()

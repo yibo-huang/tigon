@@ -332,8 +332,9 @@ class Coordinator {
                         }
 		}
 
-		if (context.logger)
-			context.logger->print_sync_stats();
+		if (context.master_logger)
+			context.master_logger->print_sync_stats();
+
 		measure_round_trip();
 		close_sockets();
 

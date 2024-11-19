@@ -48,7 +48,7 @@ class Context {
 	std::size_t cpu_core_id = 0;
 	std::size_t cross_txn_workers = 0;
 	bool hstore_command_logging = true;
-	star::WALLogger *logger = nullptr;
+	star::WALLogger *master_logger = nullptr;
         std::vector<star::WALLogger *> slave_loggers;
 
 	std::size_t group_commit_batch_size = 7;

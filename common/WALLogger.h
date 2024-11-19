@@ -360,11 +360,14 @@ struct LogBuffer {
 
         char buffer[max_buffer_size];
         uint64_t size = 0;
+        uint64_t grouped_txn_cnt = 0;
 };
+
+using LockfreeLogBufferQueue = LockfreeQueue<LogBuffer *, 1024>;
 
 class PashaGroupCommitLoggerSlave : public WALLogger {
     public:
-	PashaGroupCommitLoggerSlave(LockfreeQueue<LogBuffer *, 1024> *log_buffer_queue_ptr)
+	PashaGroupCommitLoggerSlave(LockfreeLogBufferQueue *log_buffer_queue_ptr)
 		: WALLogger("nothing", 0)
                 , log_buffer_queue(*log_buffer_queue_ptr)
 	{
@@ -390,6 +393,10 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
                 memcpy(&cur_log_buffer->buffer[cur_log_buffer->size], str, size);
                 cur_log_buffer->size += size;
 
+                if (persist == true) {
+                        cur_log_buffer->grouped_txn_cnt++;
+                }
+
                 return size;
 	}
 
@@ -404,24 +411,22 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 
     private:
         LogBuffer *cur_log_buffer = nullptr;
-	LockfreeQueue<LogBuffer *, 1024> &log_buffer_queue;
+	LockfreeLogBufferQueue &log_buffer_queue;
 };
 
 class PashaGroupCommitLogger : public WALLogger {
     public:
-	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeQueue<LogBuffer *, 1024> *> *log_buffer_queues_ptr,
+	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeLogBufferQueue *> *log_buffer_queues_ptr,
                           std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
 			  std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
 		: WALLogger(filename, emulated_persist_latency)
                 , committed_txn_cnt(0)
                 , file_writer(filename.c_str(), block_size, emulated_persist_latency)
                 , log_buffer_queues(*log_buffer_queues_ptr)
-		, write_lsn(0)
-		, sync_lsn(0)
-		, group_commit_latency_us(group_commit_latency)
-		, group_commit_txn_cnt(group_commit_txn_cnt)
-                , cur_grouped_txn_cnt(0)
+                , group_commit_latency_us(group_commit_latency)
+                , group_commit_txn_cnt(0)
                 , disk_sync_cnt(0)
+                , disk_sync_size(0)
 		, last_sync_time(Time::now())
 	{
                 CHECK(emulated_persist_latency == 0);
@@ -447,8 +452,10 @@ class PashaGroupCommitLogger : public WALLogger {
 
 	void do_sync()
 	{
+                LockfreeLogBufferQueue *cur_log_buffer_queue = nullptr;
+
 		for (auto i = 0; i < log_buffer_queues.size(); i++) {
-                        LockfreeQueue<LogBuffer *, 1024> *cur_log_buffer_queue = log_buffer_queues[i];
+                        cur_log_buffer_queue = log_buffer_queues[i];
                         while (true) {
                                 if (cur_log_buffer_queue->empty() == true) {
                                         break;
@@ -464,6 +471,11 @@ class PashaGroupCommitLogger : public WALLogger {
                                 // write to disk
                                 file_writer.write(log_buffer->buffer, log_buffer->size);
                                 file_writer.sync();
+
+                                // statistics
+                                committed_txn_cnt += log_buffer->grouped_txn_cnt;
+                                disk_sync_cnt++;
+                                disk_sync_size += log_buffer->size;
                         }
                 }
 	}
@@ -480,9 +492,9 @@ class PashaGroupCommitLogger : public WALLogger {
 
         void print_sync_stats() override
 	{
-		LOG(INFO) << "total_log_size " << sync_lsn
-                        << " total_committed_txn_count " << committed_txn_cnt
-                        << " disk_sync_cnt " << disk_sync_cnt;
+                LOG(INFO) << "committed_txn_cnt " << committed_txn_cnt
+                          << " disk_sync_cnt " << disk_sync_cnt
+                          << " disk_sync_size " << disk_sync_size;
 	}
 
     public:
@@ -491,15 +503,13 @@ class PashaGroupCommitLogger : public WALLogger {
     private:
 	std::mutex mutex;
         DirectFileWriter file_writer;
-	std::vector<LockfreeQueue<LogBuffer *, 1024> *> &log_buffer_queues;
+	std::vector<LockfreeLogBufferQueue *> &log_buffer_queues;
 
-	uint64_t write_lsn;
-	uint64_t sync_lsn;
-	std::size_t group_commit_latency_us;
-	std::size_t group_commit_txn_cnt;
-        std::size_t cur_grouped_txn_cnt;
-        uint64_t disk_sync_cnt;
-	std::atomic<std::size_t> last_sync_time;
+	std::size_t group_commit_latency_us{ 0 };
+        std::size_t group_commit_txn_cnt{ 0 };
+        uint64_t disk_sync_cnt{ 0 };
+        uint64_t disk_sync_size{ 0 };
+	std::atomic<std::size_t> last_sync_time{ 0 };
 };
 
 class SimpleWALLogger : public WALLogger {
