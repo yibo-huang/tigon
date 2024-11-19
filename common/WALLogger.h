@@ -367,9 +367,10 @@ using LockfreeLogBufferQueue = LockfreeQueue<LogBuffer *, 1024>;
 
 class PashaGroupCommitLoggerSlave : public WALLogger {
     public:
-	PashaGroupCommitLoggerSlave(LockfreeLogBufferQueue *log_buffer_queue_ptr)
+	PashaGroupCommitLoggerSlave(LockfreeLogBufferQueue *log_buffer_queue_ptr, std::atomic<uint64_t> *cxl_global_epoch)
 		: WALLogger("nothing", 0)
                 , log_buffer_queue(*log_buffer_queue_ptr)
+                , cxl_global_epoch(cxl_global_epoch)
 	{
                 cur_log_buffer = new LogBuffer;
                 CHECK(cur_log_buffer != nullptr);
@@ -382,12 +383,17 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 
 	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
 	{
+                uint64_t cur_epoch = cxl_global_epoch->load();
+
                 CHECK(cur_log_buffer != nullptr);
 
-                if (cur_log_buffer->size + size > LogBuffer::max_buffer_size) {
-                        log_buffer_queue.push(cur_log_buffer);
-                        cur_log_buffer = new LogBuffer;
-                        CHECK(cur_log_buffer != nullptr);
+                if (cur_log_buffer->size + size > LogBuffer::max_buffer_size || cur_epoch > last_epoch) {
+                        if (size > 0) {
+                                log_buffer_queue.push(cur_log_buffer);
+                                cur_log_buffer = new LogBuffer;
+                                CHECK(cur_log_buffer != nullptr);
+                        }
+                        last_epoch = cur_epoch;
                 }
 
                 memcpy(&cur_log_buffer->buffer[cur_log_buffer->size], str, size);
@@ -410,19 +416,22 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 	}
 
     private:
-        LogBuffer *cur_log_buffer = nullptr;
+        LogBuffer *cur_log_buffer{ nullptr };
 	LockfreeLogBufferQueue &log_buffer_queue;
+        std::atomic<uint64_t> *cxl_global_epoch{ nullptr };
+        uint64_t last_epoch{ 0 };
 };
 
 class PashaGroupCommitLogger : public WALLogger {
     public:
-	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeLogBufferQueue *> *log_buffer_queues_ptr,
+	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeLogBufferQueue *> *log_buffer_queues_ptr, std::atomic<uint64_t> *cxl_global_epoch,
                           std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
 			  std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
 		: WALLogger(filename, emulated_persist_latency)
                 , committed_txn_cnt(0)
                 , file_writer(filename.c_str(), block_size, emulated_persist_latency)
                 , log_buffer_queues(*log_buffer_queues_ptr)
+                , cxl_global_epoch(cxl_global_epoch)
                 , group_commit_latency_us(group_commit_latency)
                 , group_commit_txn_cnt(0)
                 , disk_sync_cnt(0)
@@ -435,6 +444,7 @@ class PashaGroupCommitLogger : public WALLogger {
                         LOG(INFO) << "logger thread started!";
 			while (true) {
 				if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
+                                        this->cxl_global_epoch->fetch_add(1);
 					do_sync();
 				}
 				std::this_thread::sleep_for(std::chrono::microseconds(2));
@@ -505,6 +515,7 @@ class PashaGroupCommitLogger : public WALLogger {
 	std::mutex mutex;
         DirectFileWriter file_writer;
 	std::vector<LockfreeLogBufferQueue *> &log_buffer_queues;
+        std::atomic<uint64_t> *cxl_global_epoch{ nullptr };
 
 	std::size_t group_commit_latency_us{ 0 };
         std::size_t group_commit_txn_cnt{ 0 };

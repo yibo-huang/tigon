@@ -52,15 +52,27 @@ class Coordinator {
                                 context.master_logger = new star::BlackholeLogger(redo_filename, context.emulated_persist_latency);
                         } else {
                                 logger_type = "GroupCommit Logger";
+
+                                // init CXL global epoch (std::atomic<uint64_t>)
+                                std::atomic<uint64_t> *cxl_global_epoch = nullptr;
+                                if (context.coordinator_id == 0) {
+                                        cxl_global_epoch = reinterpret_cast<std::atomic<uint64_t> *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(std::atomic<uint64_t>), CXLMemory::DATA_ALLOCATION));
+                                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_global_epoch_root_index, cxl_global_epoch);
+                                } else {
+                                        void *tmp = NULL;
+                                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_global_epoch_root_index, &tmp);
+                                        cxl_global_epoch = reinterpret_cast<std::atomic<uint64_t> *>(tmp);
+                                }
+
                                 std::vector<star::LockfreeLogBufferQueue *> *log_buffer_queues = new std::vector<star::LockfreeLogBufferQueue *>();
                                 CHECK(log_buffer_queues != nullptr);
                                 for (auto i = 0; i < context.worker_num; i++) {
                                         star::LockfreeLogBufferQueue *log_buffer_queue = new star::LockfreeLogBufferQueue();
                                         log_buffer_queues->push_back(log_buffer_queue);
-                                        context.slave_loggers.push_back(new star::PashaGroupCommitLoggerSlave(log_buffer_queue));
+                                        context.slave_loggers.push_back(new star::PashaGroupCommitLoggerSlave(log_buffer_queue, cxl_global_epoch));
                                 }
-                                context.master_logger = new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, context.group_commit_batch_size, context.wal_group_commit_time,
-                                                                        context.emulated_persist_latency);
+                                context.master_logger = new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, cxl_global_epoch,
+                                                context.group_commit_batch_size, context.wal_group_commit_time, context.emulated_persist_latency);
                         }
                         LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
                 } else {
