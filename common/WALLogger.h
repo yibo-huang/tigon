@@ -356,7 +356,7 @@ class GroupCommitLogger : public WALLogger {
 };
 
 struct LogBuffer {
-        static constexpr uint64_t max_buffer_size = 1024 * 256 * 1;
+        static constexpr uint64_t max_buffer_size = 1024 * 1024 * 1;
 
         char buffer[max_buffer_size];
         uint64_t size = 0;
@@ -424,7 +424,8 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 
 class PashaGroupCommitLogger : public WALLogger {
     public:
-	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeLogBufferQueue *> *log_buffer_queues_ptr, std::atomic<uint64_t> *cxl_global_epoch,
+	PashaGroupCommitLogger(const std::string &filename, std::vector<LockfreeLogBufferQueue *> *log_buffer_queues_ptr,
+                          std::atomic<uint64_t> *cxl_global_epoch, std::atomic<bool> &stopFlag,
                           std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
 			  std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
 		: WALLogger(filename, emulated_persist_latency)
@@ -437,24 +438,26 @@ class PashaGroupCommitLogger : public WALLogger {
                 , disk_sync_cnt(0)
                 , disk_sync_size(0)
 		, last_sync_time(Time::now())
+                , stopFlag(stopFlag)
 	{
                 CHECK(emulated_persist_latency == 0);
-
-		std::thread([this]() {
-                        LOG(INFO) << "logger thread started!";
-			while (true) {
-				if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
-                                        this->cxl_global_epoch->fetch_add(1);
-					do_sync();
-				}
-				std::this_thread::sleep_for(std::chrono::microseconds(2));
-			}
-		}).detach();
 	}
 
 	~PashaGroupCommitLogger() override
 	{
 	}
+
+        void start()
+        {
+                LOG(INFO) << "logger thread started!";
+                while (stopFlag.load() == false) {
+                        if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
+                                this->cxl_global_epoch->fetch_add(1);
+                                do_sync();
+                        }
+                        std::this_thread::sleep_for(std::chrono::microseconds(2));
+                }
+        }
 
 	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
 	{
@@ -522,6 +525,7 @@ class PashaGroupCommitLogger : public WALLogger {
         uint64_t disk_sync_cnt{ 0 };
         uint64_t disk_sync_size{ 0 };
 	std::atomic<std::size_t> last_sync_time{ 0 };
+        std::atomic<bool> &stopFlag;
 };
 
 class SimpleWALLogger : public WALLogger {

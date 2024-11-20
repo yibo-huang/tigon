@@ -29,7 +29,7 @@ template <class T, std::size_t N = 102400> class LockfreeQueue : public boost::l
 	void push(const T &value)
 	{
 		while (base_type::write_available() == 0) {
-			nop_pause();
+			std::this_thread::yield();
 		}
 		bool ok = base_type::push(value);
 		CHECK(ok);
@@ -38,7 +38,7 @@ template <class T, std::size_t N = 102400> class LockfreeQueue : public boost::l
 	void wait_till_non_empty()
 	{
 		while (base_type::empty()) {
-			nop_pause();
+			std::this_thread::yield();
 		}
 	}
 

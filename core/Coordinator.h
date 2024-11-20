@@ -36,6 +36,10 @@ class Coordinator {
 		, peers(context.peers)
 		, context(context)
 	{
+                // init flags
+                workerStopFlag.store(false);
+		ioStopFlag.store(false);
+
                 // init cxlalloc
                 cxl_memory.init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
 
@@ -71,7 +75,7 @@ class Coordinator {
                                         log_buffer_queues->push_back(log_buffer_queue);
                                         context.slave_loggers.push_back(new star::PashaGroupCommitLoggerSlave(log_buffer_queue, cxl_global_epoch));
                                 }
-                                context.master_logger = new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, cxl_global_epoch,
+                                context.master_logger = new star::PashaGroupCommitLogger(redo_filename, log_buffer_queues, cxl_global_epoch, ioStopFlag,
                                                 context.group_commit_batch_size, context.wal_group_commit_time, context.emulated_persist_latency);
                         }
                         LOG(INFO) << "WAL Group Commiting to file [" << redo_filename << "]" << " using " << logger_type;
@@ -89,8 +93,6 @@ class Coordinator {
                 }
 
                 // init workers
-		workerStopFlag.store(false);
-		ioStopFlag.store(false);
 		LOG(INFO) << "Coordinator initializes " << context.worker_num << " workers.";
 		workers = WorkerFactory::create_workers(id, db, context, workerStopFlag);
 
@@ -187,19 +189,22 @@ class Coordinator {
 
                         // the input thread is always needed
 			iDispatcherThreads.emplace_back(&IncomingDispatcher::start, iDispatchers[i].get());
+                        pin_thread_to_core(iDispatcherThreads[i]);
 
                         // but the output thread is optional
                         if (context.use_output_thread == true) {
 			        oDispatcherThreads.emplace_back(&OutgoingDispatcher::start, oDispatchers[i].get());
+                                pin_thread_to_core(oDispatcherThreads[i]);
                         } else {
                                 CHECK(context.use_cxl_transport == true);
                         }
-
-			if (context.cpu_affinity) {
-				pin_thread_to_core(iDispatcherThreads[i]);
-				pin_thread_to_core(oDispatcherThreads[i]);
-			}
 		}
+
+                std::vector<std::thread> logger_threads;
+                if (context.log_path != "" && context.wal_group_commit_time != 0 && context.lotus_checkpoint != LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) {
+                        logger_threads.emplace_back(&PashaGroupCommitLogger::start, reinterpret_cast<PashaGroupCommitLogger *>(context.master_logger));
+                        pin_thread_to_core(logger_threads[0]);
+                }
 
 		std::vector<std::thread> threads;
 
@@ -208,9 +213,9 @@ class Coordinator {
 		for (auto i = 0u; i < workers.size(); i++) {
 			threads.emplace_back(&Worker::start, workers[i].get());
 
-			if (context.cpu_affinity) {
-				pin_thread_to_core(threads[i]);
-			}
+			if (i != workers.size() - 1) {
+                                pin_thread_to_core(threads[i]);
+                        }
 		}
 
 		// run timeToRun seconds
@@ -380,6 +385,10 @@ class Coordinator {
                                 CHECK(context.use_cxl_transport == true);
                         }
 		}
+
+                if (context.log_path != "" && context.wal_group_commit_time != 0 && context.lotus_checkpoint != LotusCheckpointScheme::COW_ON_CHECKPOINT_ON_LOGGING_OFF) {
+                        logger_threads[0].join();
+                }
 
 		if (context.master_logger != nullptr) {
 			context.master_logger->print_sync_stats();
@@ -595,15 +604,13 @@ class Coordinator {
 
 	void pin_thread_to_core(std::thread &t)
 	{
-#ifndef __APPLE__
-		static std::size_t core_id = context.cpu_core_id;
+		static std::atomic<uint64_t> core_id{ 0 };
 		LOG(INFO) << "pinned thread to core " << core_id;
 		cpu_set_t cpuset;
 		CPU_ZERO(&cpuset);
 		CPU_SET(core_id++, &cpuset);
 		int rc = pthread_setaffinity_np(t.native_handle(), sizeof(cpu_set_t), &cpuset);
 		CHECK(rc == 0);
-#endif
 	}
 
     private:
