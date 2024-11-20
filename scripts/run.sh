@@ -37,12 +37,12 @@ function delete_log_files {
         typeset i=0
 
         echo "deleting log files..."
-        for (( i=0; i < $MAX_HOST_NUM; ++i ))
-        do
-                ssh_command "[ -e $LOG_FILE_NAME ] && rm $LOG_FILE_NAME" $i
-                ssh_command "echo 1 > /proc/sys/vm/drop_caches" $i
-                ssh_command "sync" $i
-        done
+        # for (( i=0; i < $MAX_HOST_NUM; ++i ))
+        # do
+        #         ssh_command "[ -e $LOG_FILE_NAME ] && rm $LOG_FILE_NAME" $i
+        #         ssh_command "echo 1 > /proc/sys/vm/drop_caches" $i
+        #         ssh_command "sync" $i
+        # done
 }
 
 function gather_other_output {
