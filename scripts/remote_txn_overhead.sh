@@ -191,8 +191,8 @@ run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 1 1 N
 run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### TPCC with Network transport ###
-run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 
 
@@ -229,8 +229,8 @@ run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### (write-intensive) YCSB with Uniform Distribution and Network transport ###
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### (write-intensive) YCSB with High-skewness with CXL transport ###
 # run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.99 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL
@@ -264,8 +264,8 @@ run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### (write-intensive) YCSB with High-skewness with Network transport ###
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 
 
@@ -302,8 +302,8 @@ run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### (read-intensive) YCSB with Uniform Distribution and Network transport ###
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### (read-intensive) YCSB with High-skewness with CXL transport ###
 # run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha rmw $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL
@@ -337,8 +337,8 @@ run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 ### (read-intensive) YCSB with High-skewness with Network transport ###
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL
 
 
 
