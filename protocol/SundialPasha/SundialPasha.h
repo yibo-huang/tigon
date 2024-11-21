@@ -162,14 +162,17 @@ template <class Database> class SundialPasha {
 		}
 
 		{
-			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_persistence_time(us); });
-			// Passed validation, persist commit record
-			if (txn.get_logger()) {
-				std::ostringstream ss;
-				ss << commit_tid << true;
-				auto output = ss.str();
-				auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
-			}
+                        // don't write commit log record for read-only transactions
+                        if (txn.writeSet.size() != 0 || txn.insertSet.size() != 0 || txn.deleteSet.size() != 0) {
+                                ScopedTimer t([&, this](uint64_t us) { txn.record_commit_persistence_time(us); });
+                                // Passed validation, persist commit record
+                                if (txn.get_logger()) {
+                                        std::ostringstream ss;
+                                        ss << commit_tid << true;
+                                        auto output = ss.str();
+                                        auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
+                                }
+                        }
 		}
 
                 // commit inserts

@@ -235,15 +235,18 @@ template <class Database> class TwoPL {
 		}
 
 		{
-			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_persistence_time(us); });
-			// Persist commit record
-			if (txn.get_logger()) {
-				std::ostringstream ss;
-				ss << commit_tid << true;
-				auto output = ss.str();
-				auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
-				// txn.get_logger()->sync(lsn, [&](){ txn.remote_request_handler(); });
-			}
+                        // don't write commit log record for read-only transactions
+                        if (txn.writeSet.size() != 0 || txn.insertSet.size() != 0 || txn.deleteSet.size() != 0) {
+                                ScopedTimer t([&, this](uint64_t us) { txn.record_commit_persistence_time(us); });
+                                // Persist commit record
+                                if (txn.get_logger()) {
+                                        std::ostringstream ss;
+                                        ss << commit_tid << true;
+                                        auto output = ss.str();
+                                        auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
+                                        // txn.get_logger()->sync(lsn, [&](){ txn.remote_request_handler(); });
+                                }
+                        }
 		}
 
                 // commit inserts
