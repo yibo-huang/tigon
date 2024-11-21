@@ -11,7 +11,7 @@ def get_row(input):
         # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
         for line in fileinput.FileInput(input[1]):
                 tokens = line.strip().split()
-                if len(tokens) > 7 and tokens[3] == "Coordinator.h:572]":
+                if len(tokens) > 7 and tokens[3] == "Coordinator.h:581]":
                         tputs.append(float(tokens[7]))
 
         return tputs
@@ -63,7 +63,7 @@ if len(sys.argv) != 2:
         print("Usage: " + sys.argv[0] + " res_dir")
         sys.exit(-1)
 
-res_dir = sys.argv[1]
+res_dir = sys.argv[1] + "/micro"
 
 parse_ycsb_remote_txn_overhead(res_dir, "100", "0")
 parse_ycsb_remote_txn_overhead(res_dir, "0", "0")

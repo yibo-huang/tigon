@@ -6,13 +6,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-if len(sys.argv) != 4:
+if len(sys.argv) != 2:
         print("Usage: " + sys.argv[0] + " res_dir")
         sys.exit(-1)
 
-res_dir = sys.argv[1] + "/micro"
-rw_ratio = sys.argv[2]
-zipf_theta = sys.argv[3]
+res_dir = sys.argv[1] + "/macro"
 
 marker_size = 10.0
 marker_edge_width=1.6
@@ -27,7 +25,7 @@ plt.yticks(**basic_font)
 plt.grid(axis='y')
 
 ### plot TPCC ###
-res_csv = res_dir + "/ycsb-micro-" + rw_ratio + "-" + zipf_theta + ".csv"
+res_csv = res_dir + "/tpcc.csv"
 
 # Read the CSV file into a Pandas DataFrame
 res_df = pd.read_csv(res_csv)
@@ -44,7 +42,7 @@ twopl_cxl_y = res_df["TwoPL-CXL"]
 twopl_net_y = res_df["TwoPL-NET"]
 # motor_y = res_df["Motor-RDMA(28thd)"]
 
-plt.xlabel("Multi-host Transaction Percentage", **basic_font)
+plt.xlabel("Multi-partition Transaction Percentage", **basic_font)
 plt.ylabel("Throughput (txns/sec)", **basic_font)
 
 # Configure axis range
@@ -82,4 +80,4 @@ plt.plot(x, twopl_net_y, color="#4372c4", marker="s", markersize=marker_size, li
 # Configure legend
 ax.legend(loc='upper center', frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
 
-plt.savefig(res_dir + "/ycsb-micro-" + rw_ratio + "-" + zipf_theta + ".pdf", format="pdf", bbox_inches="tight")
+plt.savefig(res_dir + "/tpcc.pdf", format="pdf", bbox_inches="tight")

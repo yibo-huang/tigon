@@ -107,7 +107,7 @@ function run_remote_txn_overhead_ycsb {
 
 
 ########### Microbenchmark BEGIN ###########
-typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/microbenchmark
+typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/micro
 mkdir -p $RESULT_DIR
 
 # YCSB: read-only + uniform distribution + varying percentages of remote operations
@@ -144,7 +144,7 @@ run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM scan 0
 
 
 ########### End-to-End Performance BEGIN ###########
-typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/macrobenchmark
+typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/macro
 mkdir -p $RESULT_DIR
 
 # TPCC
