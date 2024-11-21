@@ -3,38 +3,50 @@ import os
 import re
 import sys
 
-# Any sequence of non-whitespace characters, to handle floating point
-# numbers like 3e06 or 1.2.
-NUMBER = "[^\\s]+"
-LOCAL = re.compile(
-    " ".join(
-        ["local CXL memory usage:"]
-        + [
-            f"{name}: (?P<{name}>{NUMBER})"
-            for name in [
-                "size_index_usage",
-                "size_metadata_usage",
-                "size_data_usage",
-                "size_transport_usage",
-            ]
-        ]
-    )
-)
-GLOBAL = re.compile(
-    " ".join(
-        ["Global Stats:"]
-        + [
-            f"{name}: (?P<{name}>{NUMBER})"
-            for name in [
-                "total_commit",
-                "total_size_index_usage",
-                "total_size_metadata_usage",
-                "total_size_data_usage",
-                "total_size_transport_usage",
-            ]
-        ]
-    )
-)
+
+def capture(name: str) -> str:
+    # Any sequence of non-whitespace characters, to handle floating point
+    # numbers like 3e06 or 1.2.
+    NUMBER = "[^\\s,]+"
+    return f"{name}: (?P<{name}>{NUMBER})"
+
+
+CAPTURES = [
+    re.compile(
+        " ".join(
+            ["local CXL memory usage:"]
+            + list(
+                map(
+                    capture,
+                    [
+                        "size_index_usage",
+                        "size_metadata_usage",
+                        "size_data_usage",
+                        "size_transport_usage",
+                    ],
+                )
+            )
+        )
+    ),
+    re.compile(
+        " ".join(
+            ["Global Stats:"]
+            + list(
+                map(
+                    capture,
+                    [
+                        "total_commit",
+                        "total_size_index_usage",
+                        "total_size_metadata_usage",
+                        "total_size_data_usage",
+                        "total_size_transport_usage",
+                    ],
+                )
+            )
+        )
+    ),
+    re.compile(capture("abort_rate")),
+]
 
 
 class Log:
@@ -92,8 +104,10 @@ class Log:
         return out
 
     def parse(data: str):
-        union = LOCAL.search(data).groupdict() | GLOBAL.search(data).groupdict()
-        return {k: int(float(v)) for k, v in union.items()}
+        union = {}
+        for capture in CAPTURES:
+            union |= capture.search(data).groupdict()
+        return {k: float(v) for k, v in union.items()}
 
 
 class Benchmark(Enum):
