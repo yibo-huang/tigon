@@ -3,7 +3,9 @@ import os
 import re
 import sys
 
-NUMBER = "\\d+\\.?\\d*"
+# Any sequence of non-whitespace characters, to handle floating point
+# numbers like 3e06 or 1.2.
+NUMBER = "[^\\s]+"
 LOCAL = re.compile(
     " ".join(
         ["local CXL memory usage:"]
@@ -59,6 +61,27 @@ class Log:
 
     def __repr__(self):
         return "Log { " + ", ".join([f"{k}: {v}" for k, v in vars(self).items()]) + " }"
+
+    def name(self):
+        # FIXME: update for TPCC
+        assert self.benchmark == Benchmark.YCSB
+
+        if self.protocol == "TwoPLPasha":
+            return "Tigon"
+
+        suffix = None
+        match (self.use_cxl_trans, self.use_output_thread):
+            case (True, False):
+                suffix = "CXL-improved"
+            case (True, True):
+                suffix = "CXL"
+            case (False, True):
+                suffix = "NET"
+            case (False, False):
+                raise ValueError(
+                    "Invalid configuration: no CXL transport or output thread"
+                )
+        return f"{self.protocol}-{suffix}"
 
     def parse_all(data: str):
         out = {}
