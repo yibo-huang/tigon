@@ -110,30 +110,51 @@ function run_remote_txn_overhead_ycsb {
 typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/micro
 mkdir -p $RESULT_DIR
 
-# YCSB: read-only + uniform distribution + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
+# YCSB: read-only + high-skewness (0.7) + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 100 0 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL             # TwoPL-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # TwoPL-CXL
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # TwoPL-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL             # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # TwoPL-NET
 
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 100 0 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # Sundial-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL       # Sundial-CXL
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL       # Sundial-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL       # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL       # Sundial-NET
 
-# YCSB: write-only + uniform distribution + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
+# YCSB: read-only + high-skewness (0.99) + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0.99 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
 
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 0 0 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL               # TwoPL-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-CXL
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 100 0.99 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL             # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # TwoPL-NET
 
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 0 0 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL             # Sundial-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-CXL
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 100 0.99 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL       # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL       # Sundial-NET
 
-# YCSB: scan-only + uniform distribution + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM scan 0 0 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
+# YCSB: write-only + high-skewness (0.7) + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL               # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-NET
+
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL             # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-NET
+
+# YCSB: write-only + high-skewness (0.99) + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0.99 1 0 LRU OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL
+
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 0 0.99 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL               # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-NET
+
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 0 0.99 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL             # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-NET
+
+# YCSB: scan-only + high-skewness + varying percentages of remote operations
 
 # YCSB: insert-only + pre-determined pattern + varying percentages of remote operations
 
