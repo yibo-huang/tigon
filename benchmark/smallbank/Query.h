@@ -77,7 +77,9 @@ class makeBalanceQuery {
                 account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
 
                 // get the global key based on the generated partition ID
-                // account_id = context.getGlobalKeyID(key, query.parts[0]);
+                account_id = context.getGlobalAccountID(account_id, query.parts[0]);
+
+                query.account_id = account_id;
 
 		return query;
 	}

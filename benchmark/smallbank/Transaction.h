@@ -113,11 +113,28 @@ template <class Transaction> class Balance : public Transaction {
                 storage->cleanup();
 		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
 
+                // Balance, or Bal(N), is a parameterized transaction that represents calculating the total balance for a customer.
+                // It looks up Account to get the CustomerlD value for N, and then returns the sum of savings and checking balances for that CustomerID.
+
+                uint64_t account_id = query.account_id;
+
+                CHECK(context.getPartitionID(account_id) == query.get_part(0));
+
+                int savingsTableID = savings::tableID;
+                storage->savings_key.ACCOUNT_ID = account_id;
+                this->search_for_read(savingsTableID, context.getPartitionID(account_id), storage->savings_key, storage->savings_value, 0);
+
+                int checkingTableID = checking::tableID;
+                storage->checking_key.ACCOUNT_ID = account_id;
+                this->search_for_read(checkingTableID, context.getPartitionID(account_id), storage->checking_key, storage->checking_value, 0);
+
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
 			return TransactionResult::ABORT;
 		}
 		t_local_work.reset();
+
+                auto sum = storage->savings_value.BALANCE + storage->checking_value.BALANCE;
 
 		return TransactionResult::READY_TO_COMMIT;
 	}
