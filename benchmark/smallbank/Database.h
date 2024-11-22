@@ -100,16 +100,16 @@ class Database {
                         // savings table
 			auto savingsTableID = smallbank::savings::tableID;
 			if (context.protocol == "Sundial") {
-				tbl_smallbank_vec.push_back(
+				tbl_savings_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncSundial> >(savingsTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
-                                tbl_smallbank_vec.push_back(
+                                tbl_savings_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncSundialPasha> >(savingsTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
-                                tbl_smallbank_vec.push_back(
+                                tbl_savings_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncTwoPL> >(savingsTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
-                                tbl_smallbank_vec.push_back(
+                                tbl_savings_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncTwoPLPasha> >(savingsTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				CHECK(0);
@@ -120,16 +120,16 @@ class Database {
                         // checking table
 			auto checkingTableID = smallbank::checking::tableID;
 			if (context.protocol == "Sundial") {
-				tbl_smallbank_vec.push_back(
+				tbl_checking_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncSundial> >(checkingTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
-                                tbl_smallbank_vec.push_back(
+                                tbl_checking_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncSundialPasha> >(checkingTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
-                                tbl_smallbank_vec.push_back(
+                                tbl_checking_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncTwoPL> >(checkingTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
-                                tbl_smallbank_vec.push_back(
+                                tbl_checking_vec.push_back(
 					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncTwoPLPasha> >(checkingTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				CHECK(0);
@@ -143,11 +143,12 @@ class Database {
 
 		auto tFunc = [](std::unique_ptr<ITable> &table) { return table.get(); };
 
-		std::transform(tbl_smallbank_vec.begin(), tbl_smallbank_vec.end(), std::back_inserter(tbl_vecs[0]), tFunc);
+		std::transform(tbl_savings_vec.begin(), tbl_savings_vec.end(), std::back_inserter(tbl_vecs[0]), tFunc);
+		std::transform(tbl_checking_vec.begin(), tbl_checking_vec.end(), std::back_inserter(tbl_vecs[1]), tFunc);
 
 		using std::placeholders::_1;
-		initTables(
-			"smallbank", [&context, this](std::size_t partitionID) { smallbankInit(context, partitionID); }, partitionNum, threadsNum, partitioner.get());
+		initTables("savings", [&context, this](std::size_t partitionID) { savingsInit(context, partitionID); }, partitionNum, threadsNum, partitioner.get());
+		initTables("checking", [&context, this](std::size_t partitionID) { checkingInit(context, partitionID); }, partitionNum, threadsNum, partitioner.get());
 	}
 
 	void apply_operation(const Operation &operation)
@@ -259,10 +260,10 @@ class Database {
         }
 
     private:
-	void smallbankInit(const Context &context, std::size_t partitionID)
+	void savingsInit(const Context &context, std::size_t partitionID)
 	{
 		Random random;
-		ITable *table = tbl_smallbank_vec[partitionID].get();
+		ITable *table = tbl_savings_vec[partitionID].get();
 
 		std::size_t accountsPerPartition = context.accountsPerPartition;
 		std::size_t partitionNum = context.partition_num;
@@ -283,6 +284,30 @@ class Database {
                 CHECK(success == true);
 	}
 
+        void checkingInit(const Context &context, std::size_t partitionID)
+	{
+		Random random;
+		ITable *table = tbl_checking_vec[partitionID].get();
+
+		std::size_t accountsPerPartition = context.accountsPerPartition;
+		std::size_t partitionNum = context.partition_num;
+		std::size_t totalAccounts = accountsPerPartition * partitionNum;
+
+                for (auto i = partitionID * accountsPerPartition; i < (partitionID + 1) * accountsPerPartition; i++) {
+                        checking::key key(i);
+                        checking::value value(1000000000ull);    // same as Motor
+
+                        bool success = table->insert(&key, &value);
+                        CHECK(success == true);
+                }
+
+                // insert a max key that represents the upper bound (for next-key locking)
+                checking::key max_key(UINT64_MAX);
+                checking::value dummy_value;
+                bool success = table->insert(&max_key, &dummy_value);
+                CHECK(success == true);
+	}
+
     public:
         // for correctness test
         std::atomic<uint64_t> global_total_commit{ 0 };
@@ -294,7 +319,8 @@ class Database {
 	WALLogger *checkpoint_file_writer = nullptr;
 
 	std::vector<std::vector<ITable *> > tbl_vecs;
-	std::vector<std::unique_ptr<ITable> > tbl_smallbank_vec;
+	std::vector<std::unique_ptr<ITable> > tbl_savings_vec;
+	std::vector<std::unique_ptr<ITable> > tbl_checking_vec;
 
         std::vector<std::vector<CXLTableBase *> > cxl_tbl_vecs;
 };
