@@ -16,8 +16,11 @@ struct Storage {
 	savings::key savings_key;
 	savings::value savings_value;
 
-        checking::key checking_key;
-	checking::value checking_value;
+        checking::key first_checking_key;
+	checking::value first_checking_value;
+
+        checking::key second_checking_key;
+	checking::value second_checking_value;
 
         void cleanup()
         {
