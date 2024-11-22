@@ -1,49 +1,44 @@
 #!/usr/bin/env python3
 
-import parse
+import copy
+import common
 import sys
 import csv
 import os
 
 
-ORDER = {
-    name: index
-    for index, name in enumerate(
-        [
-            "Tigon",
-            "Sundial-CXL-improved",
-            "Sundial-CXL",
-            "Sundial-NET",
-            "TwoPL-CXL-improved",
-            "TwoPL-CXL",
-            "TwoPL-NET",
-        ]
-    )
-}
-
-
-def get_row(input):
-    # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
-    row = [input.name()]
-
-    for cross_ratio in input.data.keys():
-        data = input.data[cross_ratio]
-
-        row.append(data["total_commit"])
-    return row
+CROSS_RATIOS = list(range(0, 101, 10))
+ORDER = [
+    "Tigon",
+    "Sundial-CXL-improved",
+    "Sundial-CXL",
+    "Sundial-NET",
+    "TwoPL-CXL-improved",
+    "TwoPL-CXL",
+    "TwoPL-NET",
+]
 
 
 def emit(inputs, output):
-    row = list()
-    rows = list()
+    rows = []
 
     # write header row first
-    rows.append(["Remote_Ratio"] + list(inputs[0].data.keys()))
+    rows.append(["Remote_Ratio"] + CROSS_RATIOS)
+
+    # group by name and sort by cross ratio
+    groups = {
+        name: list(
+            sorted(
+                [(input, output) for input, output in inputs if input.name() == name],
+                key=lambda key: key[0].cross_ratio,
+            )
+        )
+        for name in ORDER
+    }
 
     # read all the files and construct the row
-    for input in inputs:
-        row = get_row(input)
-        rows.append(row)
+    for name, group in groups.items():
+        rows.append([name] + [output.total_commit for _, output in group])
 
     # convert rows into columns
     rows = zip(*rows)
@@ -53,24 +48,40 @@ def emit(inputs, output):
 
 
 def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
-    output = os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv")
     paths = [
         os.path.join(res_dir, path)
         for path in os.listdir(res_dir)
         if path.endswith(".txt")
     ]
 
-    logs = sorted(
-        filter(
-            lambda log: log.rw_ratio == rw_ratio
-            and log.zipf_theta == zipf_theta
-            and log.workload == "rmw",
-            map(parse.Log, paths),
-        ),
-        key=lambda log: ORDER[log.name()],
-    )
+    logs = []
 
-    emit(list(logs), output)
+    for path in paths:
+        base = common.Input.parse(path)
+
+        if (
+            base.read_write_ratio != rw_ratio
+            or base.zipf_theta != zipf_theta
+            or base.workload != common.YcsbWorkload.RMW
+        ):
+            continue
+
+        data = None
+        with open(path) as file:
+            data = file.read()
+
+        for cross_ratio, log in zip(
+            CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
+        ):
+            args = copy.deepcopy(base)
+            args.cross_ratio = cross_ratio
+            output = common.Output.parse(log)
+            logs.append((args, output))
+
+    emit(
+        logs,
+        os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv"),
+    )
 
 
 if len(sys.argv) != 2:
