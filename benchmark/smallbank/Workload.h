@@ -53,10 +53,12 @@ template <class Transaction> class Workload {
                 std::string transactionType;
 		random.set_seed(random_seed);
                 if (context.workloadType == SmallBankWorkloadType::MIXED) {
-                        if (x <= 15) {
+                        if (x <= 20) {
                                 p = std::make_unique<Balance<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
-                        } else if (x <= 30) {
+                        } else if (x <= 40) {
                                 p = std::make_unique<DepositChecking<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                        } else if (x <= 60) {
+                                p = std::make_unique<TransactSaving<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
                         } else {
                                 p = std::make_unique<DepositChecking<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
                         }

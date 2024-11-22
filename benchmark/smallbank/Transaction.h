@@ -237,7 +237,7 @@ template <class Transaction> class DepositChecking : public Transaction {
 
                 CHECK(context.getPartitionID(account_id) == query.get_part(0));
 
-                if (query.deposit_amount < 0) {
+                if (query.amount < 0) {
                         return TransactionResult::ABORT_NORETRY;
                 }
 
@@ -252,7 +252,7 @@ template <class Transaction> class DepositChecking : public Transaction {
 		}
 		t_local_work.reset();
 
-                storage->checking_value.BALANCE += query.deposit_amount;
+                storage->checking_value.BALANCE += query.amount;
 
 		return TransactionResult::READY_TO_COMMIT;
 	}
@@ -269,6 +269,123 @@ template <class Transaction> class DepositChecking : public Transaction {
 	Storage *storage = nullptr;
 	std::size_t partition_id, granule_id;
 	DepositCheckingQuery query;
+};
+
+template <class Transaction> class TransactSaving : public Transaction {
+    public:
+	using DatabaseType = Database;
+	using ContextType = typename DatabaseType::ContextType;
+	using RandomType = typename DatabaseType::RandomType;
+	using StorageType = Storage;
+
+	TransactSaving(std::size_t coordinator_id, std::size_t partition_id, std::size_t granule_id, DatabaseType &db, const ContextType &context,
+			RandomType &random, Partitioner &partitioner, std::size_t ith_replica = 0)
+		: Transaction(coordinator_id, partition_id, partitioner, ith_replica)
+		, db(db)
+		, context(context)
+		, random(random)
+		, partition_id(partition_id)
+		, granule_id(granule_id)
+		, query(makeTransactSavingQuery()(context, partition_id, granule_id, random))
+	{
+		storage = get_storage();
+	}
+
+        virtual ~TransactSaving()
+	{
+		put_storage(storage);
+		storage = nullptr;
+	}
+
+	virtual int32_t get_partition_count() override
+	{
+		return query.number_of_parts();
+	}
+
+	virtual int32_t get_partition(int ith_partition) override
+	{
+		return query.get_part(ith_partition);
+	}
+
+	virtual int32_t get_partition_granule_count(int ith_partition) override
+	{
+		return query.get_part_granule_count(ith_partition);
+	}
+
+	virtual int32_t get_granule(int ith_partition, int j) override
+	{
+		return query.get_granule(ith_partition, j);
+	}
+
+	virtual bool is_single_partition() override
+	{
+		return query.cross_partition == false;
+	}
+
+	virtual const std::string serialize(std::size_t ith_replica = 0) override
+	{
+		std::string res;
+		Encoder encoder(res);
+		encoder << this->transaction_id << this->straggler_wait_time << ith_replica << this->txn_random_seed_start << partition_id << granule_id;
+		encoder << get_partition_count();
+		// int granules_count = 0;
+		// for (int32_t i = 0; i < get_partition_count(); ++i)
+		//   granules_count += get_partition_granule_count(i);
+		// for (int32_t i = 0; i < get_partition_count(); ++i)
+		//   encoder << get_partition(i);
+		// encoder << granules_count;
+		// for (int32_t i = 0; i < get_partition_count(); ++i)
+		//   for (int32_t j = 0; j < get_partition_granule_count(i); ++j)
+		//     encoder << get_granule(i, j);
+		Transaction::serialize_lock_status(encoder);
+		return res;
+	}
+
+	TransactionResult execute(std::size_t worker_id) override
+	{
+                storage->cleanup();
+		ScopedTimer t_local_work([&, this](uint64_t us) { this->record_local_work_time(us); });
+
+                // DepositChecking, or DC(N,V), is a parameterized transaction that represents making a deposit on the checking account of a customer.
+                // Its operation is to look up the Account table to get CustomerID corresponding to the name N and increase the checking balance by V for that CustomerID.
+                // If the value V is negative or if the name N is not found in the table, the transaction will rollback.
+
+                uint64_t account_id = query.account_id;
+
+                CHECK(context.getPartitionID(account_id) == query.get_part(0));
+
+                int savingsTableID = savings::tableID;
+                storage->savings_key.ACCOUNT_ID = account_id;
+                this->search_for_update(savingsTableID, context.getPartitionID(account_id), storage->savings_key, storage->savings_value, 0);
+                this->update(savingsTableID, context.getPartitionID(account_id), storage->savings_key, storage->savings_value, 0);
+
+		t_local_work.end();
+		if (this->process_requests(worker_id)) {
+			return TransactionResult::ABORT;
+		}
+		t_local_work.reset();
+
+                storage->savings_value.BALANCE += query.amount;
+
+                if (storage->savings_value.BALANCE < 0) {
+                        return TransactionResult::ABORT_NORETRY;
+                }
+
+		return TransactionResult::READY_TO_COMMIT;
+	}
+
+	void reset_query() override
+	{
+		query = makeTransactSavingQuery()(context, partition_id, granule_id, random);
+	}
+
+    private:
+	DatabaseType &db;
+	const ContextType &context;
+	RandomType random;
+	Storage *storage = nullptr;
+	std::size_t partition_id, granule_id;
+	TransactSavingQuery query;
 };
 
 } // namespace smallbank
