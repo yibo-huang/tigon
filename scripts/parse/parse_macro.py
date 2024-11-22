@@ -93,22 +93,21 @@ def parse_tpcc_remote_txn_overhead(res_dir):
     emit_tpcc_remote_txn_overhead(groups, res_dir + "/tpcc.csv")
 
 
-def emit_smallbank_remote_txn_overhead(inputs, output):
-    rows = []
+def dump_smallbank_remote_txn_overhead(groups):
+    output = next(iter(groups.values()))[0][1]
+    rows = [["system", "remote_ratio"] + list(vars(output).keys())]
 
+    # read all the files and construct the row
+    for name, group in groups.items():
+        for input, output in group:
+            rows.append([name, input.cross_ratio] + list(vars(output).values()))
+
+    csv.writer(sys.stdout).writerows(rows)
+
+
+def emit_smallbank_remote_txn_overhead(groups, output):
     # write header row first
-    rows.append(["Remote_Ratio"] + CROSS_RATIOS)
-
-    # group by name and sort by cross ratio
-    groups = {
-        name: list(
-            sorted(
-                [(input, output) for input, output in inputs if input.name() == name],
-                key=lambda key: key[0].cross_ratio,
-            )
-        )
-        for name in common.ORDER
-    }
+    rows = [["Remote_Ratio"] + CROSS_RATIOS]
 
     # read all the files and construct the row
     for name, group in groups.items():
@@ -148,9 +147,22 @@ def parse_smallbank_remote_txn_overhead(res_dir):
             output = common.Output.parse(log)
             experiments.append((args, output))
 
-    emit_smallbank_remote_txn_overhead(
-        experiments, os.path.join(res_dir + "/smallbank.csv")
-    )
+    # group by name and sort by cross ratio
+    groups = {
+        name: list(
+            sorted(
+                [
+                    (input, output)
+                    for input, output in experiments
+                    if input.name() == name
+                ],
+                key=lambda key: key[0].cross_ratio,
+            )
+        )
+        for name in common.ORDER
+    }
+
+    emit_smallbank_remote_txn_overhead(groups, os.path.join(res_dir + "/smallbank.csv"))
 
 
 if len(sys.argv) != 2:
