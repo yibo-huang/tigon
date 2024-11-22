@@ -190,7 +190,7 @@ class YcsbInput(Input):
             ("host_num", int),
             ("worker_num", int),
             ("read_write_ratio", int),
-            ("zipf_theta", int),
+            ("zipf_theta", float),
             ("use_cxl_trans", lambda value: value == "1"),
             ("use_output_thread", lambda value: value == "1"),
             ("migration_policy", MigrationPolicy),
