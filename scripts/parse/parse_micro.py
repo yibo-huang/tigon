@@ -8,15 +8,6 @@ import os
 
 
 CROSS_RATIOS = list(range(0, 101, 10))
-ORDER = [
-    "Tigon",
-    "Sundial-CXL-improved",
-    "Sundial-CXL",
-    "Sundial-NET",
-    "TwoPL-CXL-improved",
-    "TwoPL-CXL",
-    "TwoPL-NET",
-]
 
 
 def emit(inputs, output):
@@ -33,7 +24,7 @@ def emit(inputs, output):
                 key=lambda key: key[0].cross_ratio,
             )
         )
-        for name in ORDER
+        for name in common.ORDER
     }
 
     # read all the files and construct the row

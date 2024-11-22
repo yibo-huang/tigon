@@ -3,6 +3,16 @@ import re
 import os
 import sys
 
+ORDER = [
+    "Tigon",
+    "Sundial-CXL-improved",
+    "Sundial-CXL",
+    "Sundial-NET",
+    "TwoPL-CXL-improved",
+    "TwoPL-CXL",
+    "TwoPL-NET",
+]
+
 
 class Protocol(StrEnum):
     SUNDIAL_PASHA = "SundialPasha"
@@ -121,7 +131,7 @@ class TpccInput(Input):
     def __init__(
         self,
         *args,
-        workload: TpccWorkload,
+        workload: TpccWorkload = TpccWorkload.MIXED,
         neworder_dist: int = 0,
         payment_dist: int = 0,
         **kwargs,
@@ -136,7 +146,6 @@ class TpccInput(Input):
         params = [
             ("benchmark", Benchmark),
             ("protocol", Protocol),
-            ("workload", TpccWorkload),
             ("host_num", int),
             ("worker_num", int),
             ("use_cxl_trans", lambda value: value == "1"),
