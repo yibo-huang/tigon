@@ -10,6 +10,7 @@
 
 #include "benchmark/tpcc/Workload.h"
 #include "benchmark/ycsb/Workload.h"
+#include "benchmark/smallbank/Workload.h"
 
 #include "protocol/Silo/Silo.h"
 #include "protocol/Silo/SiloExecutor.h"
@@ -63,6 +64,11 @@ template <> class InferType<star::tpcc::Context> {
 template <> class InferType<star::ycsb::Context> {
     public:
 	template <class Transaction> using WorkloadType = star::ycsb::Workload<Transaction>;
+};
+
+template <> class InferType<star::smallbank::Context> {
+    public:
+	template <class Transaction> using WorkloadType = star::smallbank::Workload<Transaction>;
 };
 
 class WorkerFactory {
