@@ -10,7 +10,36 @@ import os
 CROSS_RATIOS = list(range(0, 101, 10))
 
 
-def emit(inputs, output):
+def dump_ycsb_remote_txn_overhead(experiments):
+    rows = []
+
+    # write header row first
+    rows.append(["system", "remote_ratio"] + list(vars(experiments[0][1]).keys()))
+
+    # group by name and sort by cross ratio
+    groups = {
+        name: list(
+            sorted(
+                [
+                    (input, output)
+                    for input, output in experiments
+                    if input.name() == name
+                ],
+                key=lambda key: key[0].cross_ratio,
+            )
+        )
+        for name in common.ORDER
+    }
+
+    for name, group in groups.items():
+        for input, output in group:
+            # dump all captured outputs
+            rows.append([name, input.cross_ratio] + list(vars(output).values()))
+
+    csv.writer(sys.stdout).writerows(rows)
+
+
+def emit_ycsb_remote_txn_overhead(experiments, output):
     rows = []
 
     # write header row first
@@ -20,7 +49,11 @@ def emit(inputs, output):
     groups = {
         name: list(
             sorted(
-                [(input, output) for input, output in inputs if input.name() == name],
+                [
+                    (input, output)
+                    for input, output in experiments
+                    if input.name() == name
+                ],
                 key=lambda key: key[0].cross_ratio,
             )
         )
@@ -69,7 +102,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
             output = common.Output.parse(log)
             experiments.append((args, output))
 
-    emit(
+    emit_ycsb_remote_txn_overhead(
         experiments,
         os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv"),
     )
