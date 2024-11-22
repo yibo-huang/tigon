@@ -45,7 +45,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
         if path.endswith(".txt")
     ]
 
-    logs = []
+    experiments = []
 
     for path in paths:
         base = common.Input.parse(path)
@@ -67,10 +67,10 @@ def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
             args = copy.deepcopy(base)
             args.cross_ratio = cross_ratio
             output = common.Output.parse(log)
-            logs.append((args, output))
+            experiments.append((args, output))
 
     emit(
-        logs,
+        experiments,
         os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv"),
     )
 

@@ -8,8 +8,10 @@ import csv
 
 REMOTE_RATIOS = [(0, 0), (10, 15), (20, 30), (30, 45), (40, 60), (50, 75), (60, 90)]
 
+CROSS_RATIOS = list(range(0, 101, 10))
 
-def emit(experiments, path):
+
+def emit_tpcc_remote_txn_overhead(experiments, path):
     # write header row first
     rows = [
         ["Remote_Ratio"]
@@ -73,7 +75,36 @@ def parse_tpcc_remote_txn_overhead(res_dir):
             output = common.Output.parse(log)
             experiments.append((input, output))
 
-    emit(experiments, res_dir + "/tpcc.csv")
+    emit_tpcc_remote_txn_overhead(experiments, res_dir + "/tpcc.csv")
+
+
+def emit_smallbank_remote_txn_overhead(inputs, output):
+    rows = []
+
+    # write header row first
+    rows.append(["Remote_Ratio"] + CROSS_RATIOS)
+
+    # group by name and sort by cross ratio
+    groups = {
+        name: list(
+            sorted(
+                [(input, output) for input, output in inputs if input.name() == name],
+                key=lambda key: key[0].cross_ratio,
+            )
+        )
+        for name in common.ORDER
+    }
+
+    # read all the files and construct the row
+    for name, group in groups.items():
+        rows.append([name] + [output.total_commit for _, output in group])
+
+    # convert rows into columns
+    rows = zip(*rows)
+
+    with open(output, "w") as file:
+        csv.writer(file).writerows(rows)
+
 
 def parse_smallbank_remote_txn_overhead(res_dir):
     paths = [
@@ -94,16 +125,15 @@ def parse_smallbank_remote_txn_overhead(res_dir):
         with open(path) as file:
             data = file.read()
 
-        for (neworder_dist, payment_dist), log in zip(
-            REMOTE_RATIOS, data.split("initializing cxl memory...")[1:]
+        for cross_ratio, log in zip(
+            CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
         ):
-            input = copy.deepcopy(base)
-            input.neworder_dist = neworder_dist
-            input.payment_dist = payment_dist
+            args = copy.deepcopy(base)
+            args.cross_ratio = cross_ratio
             output = common.Output.parse(log)
-            experiments.append((input, output))
+            experiments.append((args, output))
 
-    emit(experiments, res_dir + "/smallbank.csv")
+    emit_smallbank_remote_txn_overhead(experiments, os.path.join(res_dir + "/smallbank.csv"))
 
 
 if len(sys.argv) != 2:
