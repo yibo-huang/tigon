@@ -11,7 +11,22 @@ REMOTE_RATIOS = [(0, 0), (10, 15), (20, 30), (30, 45), (40, 60), (50, 75), (60, 
 CROSS_RATIOS = list(range(0, 101, 10))
 
 
-def emit_tpcc_remote_txn_overhead(experiments, path):
+def dump_tpcc_remote_txn_overhead(groups):
+    output = next(iter(groups.values()))[0][1]
+    rows = [["system", "neworder_dist", "payment_dist"] + list(vars(output).keys())]
+
+    # read all the files and construct the row
+    for name, group in groups.items():
+        for input, output in group:
+            rows.append(
+                [name, input.neworder_dist, input.payment_dist]
+                + list(vars(output).values())
+            )
+
+    csv.writer(sys.stdout).writerows(rows)
+
+
+def emit_tpcc_remote_txn_overhead(groups, path):
     # write header row first
     rows = [
         ["Remote_Ratio"]
@@ -20,21 +35,6 @@ def emit_tpcc_remote_txn_overhead(experiments, path):
             for neworder_dist, payment_dist in REMOTE_RATIOS
         ]
     ]
-
-    # group by name and sort by neworder_dist
-    groups = {
-        name: list(
-            sorted(
-                [
-                    (input, output)
-                    for input, output in experiments
-                    if input.name() == name
-                ],
-                key=lambda experiment: experiment[0].neworder_dist,
-            )
-        )
-        for name in common.ORDER
-    }
 
     # read all the files and construct the row
     for name, group in groups.items():
@@ -75,7 +75,22 @@ def parse_tpcc_remote_txn_overhead(res_dir):
             output = common.Output.parse(log)
             experiments.append((input, output))
 
-    emit_tpcc_remote_txn_overhead(experiments, res_dir + "/tpcc.csv")
+    # group by name and sort by neworder_dist
+    groups = {
+        name: list(
+            sorted(
+                [
+                    (input, output)
+                    for input, output in experiments
+                    if input.name() == name
+                ],
+                key=lambda experiment: experiment[0].neworder_dist,
+            )
+        )
+        for name in common.ORDER
+    }
+
+    emit_tpcc_remote_txn_overhead(groups, res_dir + "/tpcc.csv")
 
 
 def emit_smallbank_remote_txn_overhead(inputs, output):
@@ -133,7 +148,9 @@ def parse_smallbank_remote_txn_overhead(res_dir):
             output = common.Output.parse(log)
             experiments.append((args, output))
 
-    emit_smallbank_remote_txn_overhead(experiments, os.path.join(res_dir + "/smallbank.csv"))
+    emit_smallbank_remote_txn_overhead(
+        experiments, os.path.join(res_dir + "/smallbank.csv")
+    )
 
 
 if len(sys.argv) != 2:
