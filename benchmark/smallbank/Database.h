@@ -313,8 +313,6 @@ class Database {
         std::atomic<uint64_t> global_total_commit{ 0 };
 
     private:
-        static constexpr uint64_t cxl_hashtable_bkt_cnt = 50000;
-
 	std::vector<ThreadPool *> threadpools;
 	WALLogger *checkpoint_file_writer = nullptr;
 
@@ -324,5 +322,5 @@ class Database {
 
         std::vector<std::vector<CXLTableBase *> > cxl_tbl_vecs;
 };
-} // namespace ycsb
+} // namespace smallbank
 } // namespace star
