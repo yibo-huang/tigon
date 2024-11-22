@@ -29,6 +29,7 @@ function kill_prev_exps {
         do
                 ssh_command "pkill bench_tpcc" $i
                 ssh_command "pkill bench_ycsb" $i
+                ssh_command "pkill bench_smallbank" $i
         done
 }
 
