@@ -62,7 +62,7 @@ template <class Transaction> class Workload {
                         } else if (x <= 80) {
                                 p = std::make_unique<Amalgamate<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
                         } else {
-                                p = std::make_unique<DepositChecking<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                                p = std::make_unique<WriteCheck<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
                         }
                 } else {
                         CHECK(0);
