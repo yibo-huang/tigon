@@ -56,6 +56,10 @@ def parse_tpcc_remote_txn_overhead(res_dir):
 
     for path in paths:
         base = common.Input.parse(path)
+
+        if base.benchmark != common.Benchmark.TPCC:
+            continue
+
         data = None
         with open(path) as file:
             data = file.read()
@@ -71,6 +75,36 @@ def parse_tpcc_remote_txn_overhead(res_dir):
 
     emit(experiments, res_dir + "/tpcc.csv")
 
+def parse_smallbank_remote_txn_overhead(res_dir):
+    paths = [
+        os.path.join(res_dir, path)
+        for path in os.listdir(res_dir)
+        if path.endswith(".txt")
+    ]
+
+    experiments = []
+
+    for path in paths:
+        base = common.Input.parse(path)
+
+        if base.benchmark != common.Benchmark.SMALLBANK:
+            continue
+
+        data = None
+        with open(path) as file:
+            data = file.read()
+
+        for (neworder_dist, payment_dist), log in zip(
+            REMOTE_RATIOS, data.split("initializing cxl memory...")[1:]
+        ):
+            input = copy.deepcopy(base)
+            input.neworder_dist = neworder_dist
+            input.payment_dist = payment_dist
+            output = common.Output.parse(log)
+            experiments.append((input, output))
+
+    emit(experiments, res_dir + "/smallbank.csv")
+
 
 if len(sys.argv) != 2:
     print("Usage: " + sys.argv[0] + " res_dir")
@@ -79,4 +113,4 @@ if len(sys.argv) != 2:
 res_dir = sys.argv[1] + "/macro"
 
 parse_tpcc_remote_txn_overhead(res_dir)
-parse_tpcc_remote_txn_overhead(res_dir)
+parse_smallbank_remote_txn_overhead(res_dir)
