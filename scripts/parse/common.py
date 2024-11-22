@@ -24,6 +24,7 @@ class Protocol(StrEnum):
 class Benchmark(StrEnum):
     TPCC = auto()
     YCSB = auto()
+    SMALLBANK = auto()
 
 
 class TpccWorkload(StrEnum):
@@ -102,6 +103,10 @@ class Input:
             return TpccInput.parse(name)
         elif name.startswith("ycsb"):
             return YcsbInput.parse(name)
+        elif name.startswith("smallbank"):
+            return SmallbankInput.parse(name)
+        else:
+            raise ValueError(f"Unknown benchmark name {name.split('-')[0]}")
 
     def __repr__(self):
         return (
@@ -196,6 +201,38 @@ class YcsbInput(Input):
             ("logging_type", LoggingType),
         ]
         return YcsbInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
+
+
+class SmallbankInput(Input):
+    def __init__(
+        self,
+        *args,
+        keys: int,
+        cross_ratio: int = 0,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.keys = keys
+        self.cross_ratio = cross_ratio
+
+    def parse(path: str):
+        args = os.path.basename(path).rstrip(".txt").split("-")
+        params = [
+            ("benchmark", Benchmark),
+            ("protocol", Protocol),
+            ("host_num", int),
+            ("worker_num", int),
+            ("keys", int),
+            ("use_cxl_trans", lambda value: value == "1"),
+            ("use_output_thread", lambda value: value == "1"),
+            ("migration_policy", MigrationPolicy),
+            ("when_to_move_out", WhenToMoveOut),
+            ("max_migrated_rows_size", int),
+            ("scc_mechanism", SccMechanism),
+            ("pre_migrate", PreMigrate),
+            ("logging_type", LoggingType),
+        ]
+        return SmallbankInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
 
 def capture(name: str) -> str:
