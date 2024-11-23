@@ -101,16 +101,16 @@ class Database {
 			auto savingsTableID = smallbank::savings::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_savings_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncSundial> >(savingsTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncSundial> >(savingsTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
                                 tbl_savings_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncSundialPasha> >(savingsTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncSundialPasha> >(savingsTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
                                 tbl_savings_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncTwoPL> >(savingsTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncTwoPL> >(savingsTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
                                 tbl_savings_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncTwoPLPasha> >(savingsTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::savings::key, smallbank::savings::value, smallbank::savings::KeyComparator, smallbank::savings::ValueComparator, MetaInitFuncTwoPLPasha> >(savingsTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				CHECK(0);
 			} else {
@@ -121,16 +121,16 @@ class Database {
 			auto checkingTableID = smallbank::checking::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_checking_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncSundial> >(checkingTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncSundial> >(checkingTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
                                 tbl_checking_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncSundialPasha> >(checkingTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncSundialPasha> >(checkingTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
                                 tbl_checking_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncTwoPL> >(checkingTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncTwoPL> >(checkingTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
                                 tbl_checking_vec.push_back(
-					std::make_unique<TableBTreeOLC<smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncTwoPLPasha> >(checkingTableID, partitionID));
+					std::make_unique<TableHashMap<997, smallbank::checking::key, smallbank::checking::value, smallbank::checking::KeyComparator, smallbank::checking::ValueComparator, MetaInitFuncTwoPLPasha> >(checkingTableID, partitionID));
 			} else if (context.protocol != "HStore") {
 				CHECK(0);
 			} else {
@@ -138,7 +138,7 @@ class Database {
 			}
 		}
 
-		// there is 2 tables in smallbank
+		// there are 2 tables in smallbank
 		tbl_vecs.resize(2);
 
 		auto tFunc = [](std::unique_ptr<ITable> &table) { return table.get(); };
