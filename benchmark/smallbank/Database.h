@@ -194,24 +194,24 @@ class Database {
 
                         auto savingsTableID = savings::tableID;
                         cxl_tbl_vecs[savingsTableID].resize(partitionNum);
-                        auto savings_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<savings::key, savings::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
-                                        sizeof(CXLTableBTreeOLC<savings::key, savings::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
+                        auto savings_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                auto cxl_table = &savings_cxl_btreetables[i];
-                                new(cxl_table) CXLTableBTreeOLC<savings::key, savings::KeyComparator>::CXLBTree();
+                                auto cxl_table = &savings_cxl_hashtables[i];
+                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
                                 cxl_table_ptrs[savingsTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
-                                cxl_tbl_vecs[savingsTableID][i] = new CXLTableBTreeOLC<savings::key, savings::KeyComparator>(cxl_table, savingsTableID, i);
+                                cxl_tbl_vecs[savingsTableID][i] = new CXLTableHashMap<savings::key>(cxl_table, savingsTableID, i);
                         }
 
                         auto checkingTableID = checking::tableID;
                         cxl_tbl_vecs[checkingTableID].resize(partitionNum);
-                        auto checking_cxl_btreetables = reinterpret_cast<CXLTableBTreeOLC<checking::key, checking::KeyComparator>::CXLBTree *>(cxl_memory.cxlalloc_malloc_wrapper(
-                                        sizeof(CXLTableBTreeOLC<checking::key, checking::KeyComparator>::CXLBTree) * partitionNum, CXLMemory::INDEX_ALLOCATION));
+                        auto checking_cxl_hashtables = reinterpret_cast<CCHashTable *>(cxl_memory.cxlalloc_malloc_wrapper(
+                                        sizeof(CCHashTable) * partitionNum, CXLMemory::INDEX_ALLOCATION));
                         for (int i = 0; i < partitionNum; i++) {
-                                auto cxl_table = &checking_cxl_btreetables[i];
-                                new(cxl_table) CXLTableBTreeOLC<checking::key, checking::KeyComparator>::CXLBTree();
+                                auto cxl_table = &checking_cxl_hashtables[i];
+                                new(cxl_table) CCHashTable(cxl_hashtable_bkt_cnt);
                                 cxl_table_ptrs[checkingTableID * partitionNum + i] = reinterpret_cast<void *>(cxl_table);
-                                cxl_tbl_vecs[checkingTableID][i] = new CXLTableBTreeOLC<checking::key, checking::KeyComparator>(cxl_table, checkingTableID, i);
+                                cxl_tbl_vecs[checkingTableID][i] = new CXLTableHashMap<checking::key>(cxl_table, checkingTableID, i);
                         }
 
                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_data_migration_root_index, cxl_table_ptrs);
@@ -225,15 +225,15 @@ class Database {
                         auto savingsTableID = savings::tableID;
                         cxl_tbl_vecs[savingsTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<savings::key, savings::KeyComparator>::CXLBTree *>(cxl_table_ptrs[savingsTableID * partitionNum + i].get());
-                                cxl_tbl_vecs[savingsTableID][i] = new CXLTableBTreeOLC<savings::key, savings::KeyComparator>(cxl_table, savingsTableID, i);
+                                auto cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[savingsTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[savingsTableID][i] = new CXLTableHashMap<savings::key>(cxl_table, savingsTableID, i);
                         }
 
                         auto checkingTableID = checking::tableID;
                         cxl_tbl_vecs[checkingTableID].resize(partitionNum);
                         for (int i = 0; i < partitionNum; i++) {
-                                auto cxl_table = reinterpret_cast<CXLTableBTreeOLC<checking::key, checking::KeyComparator>::CXLBTree *>(cxl_table_ptrs[checkingTableID * partitionNum + i].get());
-                                cxl_tbl_vecs[checkingTableID][i] = new CXLTableBTreeOLC<checking::key, checking::KeyComparator>(cxl_table, checkingTableID, i);
+                                auto cxl_table = reinterpret_cast<CCHashTable *>(cxl_table_ptrs[checkingTableID * partitionNum + i].get());
+                                cxl_tbl_vecs[checkingTableID][i] = new CXLTableHashMap<checking::key>(cxl_table, checkingTableID, i);
                         }
                         LOG(INFO) << "SmallBank retrieves data migration metadata";
                 }
@@ -313,6 +313,8 @@ class Database {
         std::atomic<uint64_t> global_total_commit{ 0 };
 
     private:
+        static constexpr uint64_t cxl_hashtable_bkt_cnt = 500000;
+
 	std::vector<ThreadPool *> threadpools;
 	WALLogger *checkpoint_file_writer = nullptr;
 
