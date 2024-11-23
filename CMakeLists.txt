@@ -71,6 +71,9 @@ target_link_libraries(bench_ycsb misc_cpp cxlalloc_static)
 add_executable(bench_smallbank bench_smallbank.cpp)
 target_link_libraries(bench_smallbank misc_cpp cxlalloc_static)
 
+add_executable(bench_tatp bench_tatp.cpp)
+target_link_libraries(bench_tatp misc_cpp cxlalloc_static)
+
 # add_executable(btreeolc_test btreeolc_test.cpp ${CMAKE_SOURCE_DIR}/common/btree_olc/BTreeOLC.cpp)
 # target_link_libraries(btreeolc_test gtest glog gflags)
 

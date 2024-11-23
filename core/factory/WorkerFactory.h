@@ -11,6 +11,7 @@
 #include "benchmark/tpcc/Workload.h"
 #include "benchmark/ycsb/Workload.h"
 #include "benchmark/smallbank/Workload.h"
+#include "benchmark/tatp/Workload.h"
 
 #include "protocol/Silo/Silo.h"
 #include "protocol/Silo/SiloExecutor.h"
@@ -69,6 +70,11 @@ template <> class InferType<star::ycsb::Context> {
 template <> class InferType<star::smallbank::Context> {
     public:
 	template <class Transaction> using WorkloadType = star::smallbank::Workload<Transaction>;
+};
+
+template <> class InferType<star::tatp::Context> {
+    public:
+	template <class Transaction> using WorkloadType = star::tatp::Workload<Transaction>;
 };
 
 class WorkerFactory {
