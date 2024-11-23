@@ -71,10 +71,14 @@ class makeGetSubsciberDataQuery {
                         query.cross_partition = false;
                 }
 
-                uint64_t subscriber_id = 0;
+                uint32_t subscriber_id = 0;
 
                 // generate an subscriber ID in a partition
-                subscriber_id = random.uniform_dist(0, static_cast<uint64_t>(context.numSubScriberPerPartition) - 1);
+                if (context.isUniform) {
+                        subscriber_id = random.uniform_dist(0, static_cast<uint32_t>(context.numSubScriberPerPartition) - 1);
+                } else {
+                        subscriber_id = Zipf::globalZipf().value(random.next_double());
+                }
 
                 // get the global key based on the generated partition ID
                 subscriber_id = context.getGlobalAccountID(subscriber_id, query.parts[0]);

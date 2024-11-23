@@ -41,6 +41,8 @@ class Context : public star::Context {
 		CHECK(0);
 	}
 
+        bool isUniform = true;
+
         int crossPartitionProbability = 0; // out of 100
 	std::size_t numSubScriberPerPartition = 250000;
 };

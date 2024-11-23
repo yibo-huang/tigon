@@ -127,7 +127,7 @@ template <class Transaction> class GetSubsciberData : public Transaction {
 		}
 		t_local_work.reset();
 
-                // do some computation
+                // read the data - already did
 
 		return TransactionResult::READY_TO_COMMIT;
 	}

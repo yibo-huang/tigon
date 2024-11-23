@@ -390,7 +390,7 @@ function run_exp_ycsb {
 }
 
 function run_exp_smallbank {
-        if [ $# != 21 ]; then
+        if [ $# != 22 ]; then
                 print_usage
                 exit -1
         fi
@@ -398,23 +398,24 @@ function run_exp_smallbank {
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
         typeset KEYS=$4
-        typeset CROSS_RATIO=$5
-        typeset USE_CXL_TRANS=$6
-        typeset USE_OUTPUT_THREAD=$7
-        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$8
-        typeset CXL_TRANS_ENTRY_NUM=$9
-        typeset MIGRATION_POLICY=${10}
-        typeset WHEN_TO_MOVE_OUT=${11}
-        typeset MAX_MIGRATED_ROWS_SIZE=${12}
-        typeset SCC_MECH=${13}
-        typeset PRE_MIGRATE=${14}
-        typeset TIME_TO_RUN=${15}
-        typeset TIME_TO_WARMUP=${16}
-        typeset LOG_PATH=${17}
-        typeset LOTUS_CHECKPOINT=${18}
-        typeset WAL_GROUP_COMMIT_TIME=${19}
-        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${20}
-        typeset GATHER_OUTPUT=${21}
+        typeset ZIPF_THETA=$5
+        typeset CROSS_RATIO=$6
+        typeset USE_CXL_TRANS=$7
+        typeset USE_OUTPUT_THREAD=$8
+        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$9
+        typeset CXL_TRANS_ENTRY_NUM=${10}
+        typeset MIGRATION_POLICY=${11}
+        typeset WHEN_TO_MOVE_OUT=${12}
+        typeset MAX_MIGRATED_ROWS_SIZE=${13}
+        typeset SCC_MECH=${14}
+        typeset PRE_MIGRATE=${15}
+        typeset TIME_TO_RUN=${16}
+        typeset TIME_TO_WARMUP=${17}
+        typeset LOG_PATH=${18}
+        typeset LOTUS_CHECKPOINT=${19}
+        typeset WAL_GROUP_COMMIT_TIME=${20}
+        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
+        typeset GATHER_OUTPUT=${22}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* 1)    # one partition per host
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -437,7 +438,7 @@ function run_exp_smallbank {
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
-                                --protocol=SundialPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -450,7 +451,7 @@ function run_exp_smallbank {
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
-                        --protocol=SundialPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
         elif [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
@@ -462,7 +463,7 @@ function run_exp_smallbank {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=Sundial --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=Sundial --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -472,7 +473,7 @@ function run_exp_smallbank {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=Sundial --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=Sundial --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
         elif [ $PROTOCOL = "TwoPLPasha" ]; then
                 # launch 1-$HOST_NUM processes
@@ -487,7 +488,7 @@ function run_exp_smallbank {
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
-                                --protocol=TwoPLPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -500,7 +501,7 @@ function run_exp_smallbank {
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
-                        --protocol=TwoPLPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
                 # launch 1-$HOST_NUM processes
@@ -512,7 +513,7 @@ function run_exp_smallbank {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=TwoPL --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=TwoPL --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -522,7 +523,7 @@ function run_exp_smallbank {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=TwoPL --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=TwoPL --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
         else
                 echo "Protocol not supported!"
                 exit -1
@@ -536,7 +537,7 @@ function run_exp_smallbank {
 }
 
 function run_exp_tatp {
-        if [ $# != 21 ]; then
+        if [ $# != 22 ]; then
                 print_usage
                 exit -1
         fi
@@ -544,23 +545,24 @@ function run_exp_tatp {
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
         typeset KEYS=$4
-        typeset CROSS_RATIO=$5
-        typeset USE_CXL_TRANS=$6
-        typeset USE_OUTPUT_THREAD=$7
-        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$8
-        typeset CXL_TRANS_ENTRY_NUM=$9
-        typeset MIGRATION_POLICY=${10}
-        typeset WHEN_TO_MOVE_OUT=${11}
-        typeset MAX_MIGRATED_ROWS_SIZE=${12}
-        typeset SCC_MECH=${13}
-        typeset PRE_MIGRATE=${14}
-        typeset TIME_TO_RUN=${15}
-        typeset TIME_TO_WARMUP=${16}
-        typeset LOG_PATH=${17}
-        typeset LOTUS_CHECKPOINT=${18}
-        typeset WAL_GROUP_COMMIT_TIME=${19}
-        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${20}
-        typeset GATHER_OUTPUT=${21}
+        typeset ZIPF_THETA=$5
+        typeset CROSS_RATIO=$6
+        typeset USE_CXL_TRANS=$7
+        typeset USE_OUTPUT_THREAD=$8
+        typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$9
+        typeset CXL_TRANS_ENTRY_NUM=${10}
+        typeset MIGRATION_POLICY=${11}
+        typeset WHEN_TO_MOVE_OUT=${12}
+        typeset MAX_MIGRATED_ROWS_SIZE=${13}
+        typeset SCC_MECH=${14}
+        typeset PRE_MIGRATE=${15}
+        typeset TIME_TO_RUN=${16}
+        typeset TIME_TO_WARMUP=${17}
+        typeset LOG_PATH=${18}
+        typeset LOTUS_CHECKPOINT=${19}
+        typeset WAL_GROUP_COMMIT_TIME=${20}
+        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
+        typeset GATHER_OUTPUT=${22}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* 1)    # one partition per host
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -583,7 +585,7 @@ function run_exp_tatp {
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
-                                --protocol=SundialPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -596,7 +598,7 @@ function run_exp_tatp {
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
-                        --protocol=SundialPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
         elif [ $PROTOCOL = "Sundial" ]; then
                 # launch 1-$HOST_NUM processes
@@ -608,7 +610,7 @@ function run_exp_tatp {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=Sundial --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=Sundial --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -618,7 +620,7 @@ function run_exp_tatp {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=Sundial --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=Sundial --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
         elif [ $PROTOCOL = "TwoPLPasha" ]; then
                 # launch 1-$HOST_NUM processes
@@ -633,7 +635,7 @@ function run_exp_tatp {
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                                 --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
-                                --protocol=TwoPLPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -646,7 +648,7 @@ function run_exp_tatp {
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --max_migrated_rows_size=$MAX_MIGRATED_ROWS_SIZE
                         --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
-                        --protocol=TwoPLPasha --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
         elif [ $PROTOCOL = "TwoPL" ]; then
                 # launch 1-$HOST_NUM processes
@@ -658,7 +660,7 @@ function run_exp_tatp {
                                 --partitioner=hash --hstore_command_logging=false
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                                --protocol=TwoPL --keys=$KEYS --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
+                                --protocol=TwoPL --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
 
                 # launch the first process
@@ -668,7 +670,7 @@ function run_exp_tatp {
                         --partitioner=hash --hstore_command_logging=false
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
-                        --protocol=TwoPL --keys=$KEYS --cross_ratio=$CROSS_RATIO" 0
+                        --protocol=TwoPL --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
         else
                 echo "Protocol not supported!"
                 exit -1
@@ -807,7 +809,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "SmallBank" ]; then
-        if [ $# != 17 ]; then
+        if [ $# != 18 ]; then
                 print_usage
                 exit -1
         fi
@@ -816,18 +818,19 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
         typeset HOST_NUM=$3
         typeset WORKER_NUM=$4
         typeset KEYS=$5
-        typeset CROSS_RATIO=$6
-        typeset USE_CXL_TRANS=$7
-        typeset USE_OUTPUT_THREAD=$8
-        typeset MIGRATION_POLICY=$9
-        typeset WHEN_TO_MOVE_OUT=${10}
-        typeset MAX_MIGRATED_ROWS=${11}
-        typeset SCC_MECH=${12}
-        typeset PRE_MIGRATE=${13}
-        typeset TIME_TO_RUN=${14}
-        typeset TIME_TO_WARMUP=${15}
-        typeset LOGGING_TYPE=${16}
-        typeset GATHER_OUTPUT=${17}
+        typeset ZIPF_THETA=$6
+        typeset CROSS_RATIO=$7
+        typeset USE_CXL_TRANS=$8
+        typeset USE_OUTPUT_THREAD=$9
+        typeset MIGRATION_POLICY=${10}
+        typeset WHEN_TO_MOVE_OUT=${11}
+        typeset MAX_MIGRATED_ROWS=${12}
+        typeset SCC_MECH=${13}
+        typeset PRE_MIGRATE=${14}
+        typeset TIME_TO_RUN=${15}
+        typeset TIME_TO_WARMUP=${16}
+        typeset LOGGING_TYPE=${17}
+        typeset GATHER_OUTPUT=${18}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -857,10 +860,10 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
                 exit -1
         fi
 
-        run_exp_smallbank $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $GATHER_OUTPUT
+        run_exp_smallbank $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "TATP" ]; then
-        if [ $# != 17 ]; then
+        if [ $# != 18 ]; then
                 print_usage
                 exit -1
         fi
@@ -869,18 +872,19 @@ elif [ $RUN_TYPE = "TATP" ]; then
         typeset HOST_NUM=$3
         typeset WORKER_NUM=$4
         typeset KEYS=$5
-        typeset CROSS_RATIO=$6
-        typeset USE_CXL_TRANS=$7
-        typeset USE_OUTPUT_THREAD=$8
-        typeset MIGRATION_POLICY=$9
-        typeset WHEN_TO_MOVE_OUT=${10}
-        typeset MAX_MIGRATED_ROWS=${11}
-        typeset SCC_MECH=${12}
-        typeset PRE_MIGRATE=${13}
-        typeset TIME_TO_RUN=${14}
-        typeset TIME_TO_WARMUP=${15}
-        typeset LOGGING_TYPE=${16}
-        typeset GATHER_OUTPUT=${17}
+        typeset ZIPF_THETA=$6
+        typeset CROSS_RATIO=$7
+        typeset USE_CXL_TRANS=$8
+        typeset USE_OUTPUT_THREAD=$9
+        typeset MIGRATION_POLICY=${10}
+        typeset WHEN_TO_MOVE_OUT=${11}
+        typeset MAX_MIGRATED_ROWS=${12}
+        typeset SCC_MECH=${13}
+        typeset PRE_MIGRATE=${14}
+        typeset TIME_TO_RUN=${15}
+        typeset TIME_TO_WARMUP=${16}
+        typeset LOGGING_TYPE=${17}
+        typeset GATHER_OUTPUT=${18}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -910,7 +914,7 @@ elif [ $RUN_TYPE = "TATP" ]; then
                 exit -1
         fi
 
-        run_exp_tatp $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $GATHER_OUTPUT
+        run_exp_tatp $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
@@ -965,20 +969,9 @@ elif [ $RUN_TYPE = "CI" ]; then
         typeset HOST_NUM=$2
         typeset WORKER_NUM=$3
 
-        run_exp_tpcc SundialPasha $HOST_NUM $WORKER_NUM mixed 10 15 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_tpcc TwoPLPasha $HOST_NUM $WORKER_NUM mixed 10 15 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_tpcc Sundial $HOST_NUM $WORKER_NUM mixed 10 15 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_tpcc TwoPL $HOST_NUM $WORKER_NUM mixed 10 15 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
+        echo "CI under construction!"
 
-        run_exp_ycsb SundialPasha $HOST_NUM $WORKER_NUM rmw 40960 50 0 10 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_ycsb TwoPLPasha $HOST_NUM $WORKER_NUM rmw 40960 50 0 10 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_ycsb Sundial $HOST_NUM $WORKER_NUM rmw 40960 50 0 10 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_ycsb TwoPL $HOST_NUM $WORKER_NUM rmw 40960 50 0 10 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-
-        run_exp_ycsb TwoPLPasha $HOST_NUM $WORKER_NUM mixed 40960 50 0 10 1 $PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE $PASHA_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-        run_exp_ycsb TwoPL $HOST_NUM $WORKER_NUM mixed 40960 50 0 0 1 $BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE $BASELINE_CXL_TRANS_ENTRY_NUM LRU OnDemand 1000 WriteThrough None 10 5 0
-
-        exit 0
+        exit -1
 elif [ $RUN_TYPE = "COLLECT_OUTPUTS" ]; then
         if [ $# != 2 ]; then
                 print_usage

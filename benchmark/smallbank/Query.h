@@ -74,7 +74,11 @@ class makeBalanceQuery {
                 uint64_t account_id = 0;
 
                 // generate an account ID in a partition
-                account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                if (context.isUniform) {
+                        account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                } else {
+                        account_id = Zipf::globalZipf().value(random.next_double());
+                }
 
                 // get the global key based on the generated partition ID
                 account_id = context.getGlobalAccountID(account_id, query.parts[0]);
@@ -146,7 +150,11 @@ class makeDepositCheckingQuery {
                 uint64_t account_id = 0;
 
                 // generate an account ID in a partition
-                account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                if (context.isUniform) {
+                        account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                } else {
+                        account_id = Zipf::globalZipf().value(random.next_double());
+                }
 
                 // get the global key based on the generated partition ID
                 account_id = context.getGlobalAccountID(account_id, query.parts[0]);
@@ -221,7 +229,11 @@ class makeTransactSavingQuery {
                 uint64_t account_id = 0;
 
                 // generate an account ID in a partition
-                account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                if (context.isUniform) {
+                        account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                } else {
+                        account_id = Zipf::globalZipf().value(random.next_double());
+                }
 
                 // get the global key based on the generated partition ID
                 account_id = context.getGlobalAccountID(account_id, query.parts[0]);
@@ -296,11 +308,21 @@ class makeAmalgamateQuery {
                 uint64_t first_account_id = 0, second_account_id = 0;
 
                 // generate two distinct account IDs in a partition
-                first_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
-                while (true) {
-                        second_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
-                        if (second_account_id != first_account_id) {
-                                break;
+                if (context.isUniform) {
+                        first_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                        while (true) {
+                                second_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                                if (second_account_id != first_account_id) {
+                                        break;
+                                }
+                        }
+                } else {
+                        first_account_id = Zipf::globalZipf().value(random.next_double());
+                        while (true) {
+                                second_account_id = Zipf::globalZipf().value(random.next_double());
+                                if (second_account_id != first_account_id) {
+                                        break;
+                                }
                         }
                 }
 
@@ -376,7 +398,11 @@ class makeWriteCheckQuery {
                 uint64_t account_id = 0;
 
                 // generate an account ID in a partition
-                account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                if (context.isUniform) {
+                        account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                } else {
+                        account_id = Zipf::globalZipf().value(random.next_double());
+                }
 
                 // get the global key based on the generated partition ID
                 account_id = context.getGlobalAccountID(account_id, query.parts[0]);
@@ -452,11 +478,21 @@ class makeSendPaymentQuery {
                 uint64_t first_account_id = 0, second_account_id = 0;
 
                 // generate two distinct account IDs in a partition
-                first_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
-                while (true) {
-                        second_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
-                        if (second_account_id != first_account_id) {
-                                break;
+                if (context.isUniform) {
+                        first_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                        while (true) {
+                                second_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                                if (second_account_id != first_account_id) {
+                                        break;
+                                }
+                        }
+                } else {
+                        first_account_id = Zipf::globalZipf().value(random.next_double());
+                        while (true) {
+                                second_account_id = Zipf::globalZipf().value(random.next_double());
+                                if (second_account_id != first_account_id) {
+                                        break;
+                                }
                         }
                 }
 

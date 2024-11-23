@@ -6,6 +6,7 @@
 
 DEFINE_int32(cross_ratio, 0, "cross partition transaction ratio");
 DEFINE_int32(keys, 10000000, "number of accounts in a partition");
+DEFINE_double(zipf, 0, "skew factor");
 
 bool do_tid_check = false;
 
@@ -30,9 +31,15 @@ int main(int argc, char *argv[])
 
 	context.granules_per_partition = FLAGS_granule_count;
 
+        if (FLAGS_zipf > 0) {
+		context.isUniform = false;
+		star::Zipf::globalZipf().init(context.numSubScriberPerPartition, FLAGS_zipf);
+	}
+
 	LOG(INFO) << "crossPartitionProbability = " << context.crossPartitionProbability;
         LOG(INFO) << "numSubScriberPerPartition = " << context.numSubScriberPerPartition;
-	LOG(INFO) << "granules_per_partition " << context.granules_per_partition;
+	LOG(INFO) << "granules_per_partition = " << context.granules_per_partition;
+        LOG(INFO) << "Zipf Theta = " << FLAGS_zipf;
 
         check_context(context);
 
