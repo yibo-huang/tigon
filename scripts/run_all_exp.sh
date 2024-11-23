@@ -147,7 +147,7 @@ function run_remote_txn_overhead_smallbank {
 
 
 ########### Microbenchmark BEGIN ###########
-typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/micro
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/micro
 mkdir -p $RESULT_DIR
 
 # YCSB: read-only + high-skewness (0.7) + varying percentages of remote operations
@@ -205,7 +205,7 @@ run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0
 
 
 ########### End-to-End Performance BEGIN ###########
-typeset RESULT_DIR=$SCRIPT_DIR/../results/$current_date_time/macro
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/macro
 mkdir -p $RESULT_DIR
 
 # TPCC
