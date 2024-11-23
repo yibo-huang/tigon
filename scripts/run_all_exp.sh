@@ -124,7 +124,7 @@ function run_remote_txn_overhead_smallbank {
         typeset PRE_MIGRATE=${11}
         typeset LOGGING_TYPE=${12}
 
-        typeset KEYS=5000000
+        typeset KEYS=1000000
         typeset TIME_TO_RUN=10
         typeset TIME_TO_WARMUP=5
 
