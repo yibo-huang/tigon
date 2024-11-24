@@ -470,7 +470,7 @@ template <class Transaction> class Amalgamate : public Transaction {
                 uint64_t second_account_id = query.second_account_id;
 
                 CHECK(context.getPartitionID(first_account_id) == query.get_part(0));
-                CHECK(context.getPartitionID(second_account_id) == query.get_part(0));
+                CHECK(context.getPartitionID(second_account_id) == query.get_part(1));
 
                 int checkingTableID = checking::tableID;
                 storage->first_checking_key.ACCOUNT_ID = first_account_id;
@@ -718,7 +718,7 @@ template <class Transaction> class SendPayment : public Transaction {
                 uint64_t second_account_id = query.second_account_id;
 
                 CHECK(context.getPartitionID(first_account_id) == query.get_part(0));
-                CHECK(context.getPartitionID(second_account_id) == query.get_part(0));
+                CHECK(context.getPartitionID(second_account_id) == query.get_part(1));
 
                 int checkingTableID = checking::tableID;
                 storage->first_checking_key.ACCOUNT_ID = first_account_id;

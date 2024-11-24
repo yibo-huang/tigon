@@ -55,21 +55,9 @@ class makeBalanceQuery {
 		query.part_granule_count[0] = 0;
 		int crossPartition = random.uniform_dist(1, 100);
 
-                // pick a partition first
-                if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
-                        int32_t pid = -1;
-                        while (true) {
-                                pid = random.uniform_dist(0, context.partition_num - 1);
-                                if (pid != partitionID) {
-                                        break;
-                                }
-                        }
-                        query.parts[0] = pid;
-                        query.cross_partition = true;
-                } else {
-		        query.parts[0] = partitionID;
-                        query.cross_partition = false;
-                }
+                // always pick the local partition
+                query.parts[0] = partitionID;
+                query.cross_partition = false;
 
                 uint64_t account_id = 0;
 
@@ -131,21 +119,9 @@ class makeDepositCheckingQuery {
 		query.part_granule_count[0] = 0;
 		int crossPartition = random.uniform_dist(1, 100);
 
-                // pick a partition first
-                if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
-                        int32_t pid = -1;
-                        while (true) {
-                                pid = random.uniform_dist(0, context.partition_num - 1);
-                                if (pid != partitionID) {
-                                        break;
-                                }
-                        }
-                        query.parts[0] = pid;
-                        query.cross_partition = true;
-                } else {
-		        query.parts[0] = partitionID;
-                        query.cross_partition = false;
-                }
+                // always pick the local partition
+                query.parts[0] = partitionID;
+                query.cross_partition = false;
 
                 uint64_t account_id = 0;
 
@@ -210,21 +186,9 @@ class makeTransactSavingQuery {
 		query.part_granule_count[0] = 0;
 		int crossPartition = random.uniform_dist(1, 100);
 
-                // pick a partition first
-                if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
-                        int32_t pid = -1;
-                        while (true) {
-                                pid = random.uniform_dist(0, context.partition_num - 1);
-                                if (pid != partitionID) {
-                                        break;
-                                }
-                        }
-                        query.parts[0] = pid;
-                        query.cross_partition = true;
-                } else {
-		        query.parts[0] = partitionID;
-                        query.cross_partition = false;
-                }
+                // always pick the local partition
+                query.parts[0] = partitionID;
+                query.cross_partition = false;
 
                 uint64_t account_id = 0;
 
@@ -285,12 +249,15 @@ class makeAmalgamateQuery {
 	AmalgamateQuery operator()(const Context &context, uint32_t partitionID, uint32_t granuleID, Random &random) const
 	{
 		AmalgamateQuery query;
-		query.num_parts = 1;
 		query.part_granule_count[0] = 0;
 		int crossPartition = random.uniform_dist(1, 100);
 
-                // pick a partition first
+                // the first account is always chosen from local partition
+                query.parts[0] = partitionID;
+
+                // pick the second partition
                 if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
+                        // choose a different partition
                         int32_t pid = -1;
                         while (true) {
                                 pid = random.uniform_dist(0, context.partition_num - 1);
@@ -298,37 +265,40 @@ class makeAmalgamateQuery {
                                         break;
                                 }
                         }
-                        query.parts[0] = pid;
+                        query.parts[1] = pid;
                         query.cross_partition = true;
+                        query.num_parts = 2;
                 } else {
-		        query.parts[0] = partitionID;
+                        // choose local partition
+		        query.parts[1] = partitionID;
                         query.cross_partition = false;
+                        query.num_parts = 1;
                 }
 
                 uint64_t first_account_id = 0, second_account_id = 0;
 
-                // generate two distinct account IDs in a partition
+                // generate two distinct account IDs
                 if (context.isUniform) {
                         first_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                        first_account_id = context.getGlobalAccountID(first_account_id, query.parts[0]);
                         while (true) {
                                 second_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                                second_account_id = context.getGlobalAccountID(second_account_id, query.parts[1]);
                                 if (second_account_id != first_account_id) {
                                         break;
                                 }
                         }
                 } else {
                         first_account_id = Zipf::globalZipf().value(random.next_double());
+                        first_account_id = context.getGlobalAccountID(first_account_id, query.parts[0]);
                         while (true) {
                                 second_account_id = Zipf::globalZipf().value(random.next_double());
+                                second_account_id = context.getGlobalAccountID(second_account_id, query.parts[1]);
                                 if (second_account_id != first_account_id) {
                                         break;
                                 }
                         }
                 }
-
-                // get the global key based on the generated partition ID
-                first_account_id = context.getGlobalAccountID(first_account_id, query.parts[0]);
-                second_account_id = context.getGlobalAccountID(second_account_id, query.parts[0]);
 
                 query.first_account_id = first_account_id;
                 query.second_account_id = second_account_id;
@@ -379,21 +349,9 @@ class makeWriteCheckQuery {
 		query.part_granule_count[0] = 0;
 		int crossPartition = random.uniform_dist(1, 100);
 
-                // pick a partition first
-                if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
-                        int32_t pid = -1;
-                        while (true) {
-                                pid = random.uniform_dist(0, context.partition_num - 1);
-                                if (pid != partitionID) {
-                                        break;
-                                }
-                        }
-                        query.parts[0] = pid;
-                        query.cross_partition = true;
-                } else {
-		        query.parts[0] = partitionID;
-                        query.cross_partition = false;
-                }
+                // always pick the local partition
+                query.parts[0] = partitionID;
+                query.cross_partition = false;
 
                 uint64_t account_id = 0;
 
@@ -455,12 +413,15 @@ class makeSendPaymentQuery {
 	SendPaymentQuery operator()(const Context &context, uint32_t partitionID, uint32_t granuleID, Random &random) const
 	{
 		SendPaymentQuery query;
-		query.num_parts = 1;
 		query.part_granule_count[0] = 0;
 		int crossPartition = random.uniform_dist(1, 100);
 
-                // pick a partition first
+                // the first account is always chosen from local partition
+                query.parts[0] = partitionID;
+
+                // pick the second partition
                 if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
+                        // choose a different partition
                         int32_t pid = -1;
                         while (true) {
                                 pid = random.uniform_dist(0, context.partition_num - 1);
@@ -468,37 +429,40 @@ class makeSendPaymentQuery {
                                         break;
                                 }
                         }
-                        query.parts[0] = pid;
+                        query.parts[1] = pid;
                         query.cross_partition = true;
+                        query.num_parts = 2;
                 } else {
-		        query.parts[0] = partitionID;
+                        // choose local partition
+		        query.parts[1] = partitionID;
                         query.cross_partition = false;
+                        query.num_parts = 1;
                 }
 
                 uint64_t first_account_id = 0, second_account_id = 0;
 
-                // generate two distinct account IDs in a partition
+                // generate two distinct account IDs
                 if (context.isUniform) {
                         first_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                        first_account_id = context.getGlobalAccountID(first_account_id, query.parts[0]);
                         while (true) {
                                 second_account_id = random.uniform_dist(0, static_cast<uint64_t>(context.accountsPerPartition) - 1);
+                                second_account_id = context.getGlobalAccountID(second_account_id, query.parts[1]);
                                 if (second_account_id != first_account_id) {
                                         break;
                                 }
                         }
                 } else {
                         first_account_id = Zipf::globalZipf().value(random.next_double());
+                        first_account_id = context.getGlobalAccountID(first_account_id, query.parts[0]);
                         while (true) {
                                 second_account_id = Zipf::globalZipf().value(random.next_double());
+                                second_account_id = context.getGlobalAccountID(second_account_id, query.parts[1]);
                                 if (second_account_id != first_account_id) {
                                         break;
                                 }
                         }
                 }
-
-                // get the global key based on the generated partition ID
-                first_account_id = context.getGlobalAccountID(first_account_id, query.parts[0]);
-                second_account_id = context.getGlobalAccountID(second_account_id, query.parts[0]);
 
                 query.first_account_id = first_account_id;
                 query.second_account_id = second_account_id;
