@@ -96,5 +96,8 @@ if len(sys.argv) != 2:
 
 res_dir = sys.argv[1] + "/micro"
 
-parse_ycsb_remote_txn_overhead(res_dir, 100, 0)
-parse_ycsb_remote_txn_overhead(res_dir, 0, 0)
+parse_ycsb_remote_txn_overhead(res_dir, 100, 0.99)
+parse_ycsb_remote_txn_overhead(res_dir, 100, 0.7)
+
+parse_ycsb_remote_txn_overhead(res_dir, 0, 0.99)
+parse_ycsb_remote_txn_overhead(res_dir, 0, 0.7)
