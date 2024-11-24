@@ -308,6 +308,27 @@ class TwoPLPashaRWKey {
                 this->inserted_cxl_row = cxl_row;
         }
 
+        // cached rows
+        std::tuple<star::ITable::MetaDataType *, void *> get_cached_local_row()
+	{
+                return this->cached_local_row;
+	}
+
+        void set_cached_local_row(std::tuple<star::ITable::MetaDataType *, void *> cached_local_row)
+	{
+                this->cached_local_row = cached_local_row;
+	}
+
+        char *get_cached_migrated_row()
+	{
+                return this->cached_migrated_row;
+	}
+
+        void set_cached_migrated_row(char *cached_migrated_row)
+	{
+                this->cached_migrated_row = cached_migrated_row;
+	}
+
     private:
 	/*
 	 * A bitvec is a 64-bit word.
@@ -349,6 +370,10 @@ class TwoPLPashaRWKey {
 
         // for remote insert
         char *inserted_cxl_row = nullptr;
+
+        // local cache to avoid extra index search
+        std::tuple<star::ITable::MetaDataType *, void *> cached_local_row;
+        char *cached_migrated_row = nullptr;
 
     public:
 	static constexpr uint64_t TABLE_ID_MASK = 0x1f;

@@ -363,11 +363,13 @@ class TwoPLPashaTransaction {
 			}
 
 			const TwoPLPashaRWKey &readKey = readSet[i];
+                        std::tuple<star::ITable::MetaDataType *, void *> cached_row;
 			bool success = false, remote = false;
 			auto tid = lock_request_handler(readKey.get_table_id(), readKey.get_partition_id(), i, readKey.get_key(), readKey.get_value(),
-							readSet[i].get_local_index_read_bit(), readSet[i].get_write_lock_request_bit(), success, remote);
+							readSet[i].get_local_index_read_bit(), readSet[i].get_write_lock_request_bit(), cached_row, success, remote);
 
 			if (!remote) {
+                                readSet[i].set_cached_local_row(cached_row);
 				if (success) {
 					readSet[i].set_tid(tid);
 					if (readSet[i].get_read_lock_request_bit() && !readSet[i].get_local_index_read_bit()) {
@@ -524,7 +526,7 @@ process_net_req_and_ret:
 
 	// table id, partition id, key, value, local_index_read?, write_lock?,
 	// success?, remote?
-	std::function<uint64_t(std::size_t, std::size_t, uint32_t, const void *, void *, bool, bool, bool &, bool &)> lock_request_handler;
+	std::function<uint64_t(std::size_t, std::size_t, uint32_t, const void *, void *, bool, bool, std::tuple<star::ITable::MetaDataType *, void *> &, bool &, bool &)> lock_request_handler;
         // table id, partition id, key_offset, min_key, max_key, results
 	std::function<bool(std::size_t, std::size_t, uint32_t, const void *, const void *, uint64_t, int, void *, ITable::row_entity &, bool &)> scanRequestHandler;
         // table id, partition id, key_offset, key, value

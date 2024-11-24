@@ -87,8 +87,7 @@ template <class Database> class TwoPLPasha {
                                 // release the read lock for the next row
                                 if (insertKey.get_next_row_locked() == true) {
                                         auto next_row_entity = insertKey.get_next_row_entity();
-                                        auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
+                                        std::atomic<uint64_t> *next_key_meta = next_row_entity.meta;
                                         CHECK(next_key_meta != nullptr);
                                         TwoPLPashaHelper::write_lock_release(*next_key_meta);
                                 }
@@ -113,10 +112,9 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
 			if (readKey.get_read_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
-					auto key = readKey.get_key();
-					std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
-					TwoPLPashaHelper::read_lock_release(*meta);
+					auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+					TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
 					auto key = readKey.get_key();
                                         char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
@@ -128,11 +126,9 @@ template <class Database> class TwoPLPasha {
                         // release write locks in the writeSet
 			if (readKey.get_write_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
-					auto key = readKey.get_key();
-					auto value = readKey.get_value();
-					std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
-					TwoPLPashaHelper::write_lock_release(*meta);
+					auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+					TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row));
 				} else {
 					auto key = readKey.get_key();
                                         char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
@@ -156,9 +152,8 @@ template <class Database> class TwoPLPasha {
                         if (scanKey.get_next_row_locked() == true) {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         auto next_row_entity = scanKey.get_next_row_entity();
-                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
+                                        std::atomic<uint64_t> *meta = next_row_entity.meta;
+                                        CHECK(meta != nullptr);
                                         if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
@@ -192,9 +187,8 @@ template <class Database> class TwoPLPasha {
                                 // release read locks
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         }
 				} else {
@@ -210,9 +204,8 @@ template <class Database> class TwoPLPasha {
                                 // release write locks
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         }
 				} else {
@@ -325,15 +318,14 @@ template <class Database> class TwoPLPasha {
                                 CHECK(update_key_info_success == true);
 
                                 // make the placeholder as valid
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);      // cannot use cached row
+                                CHECK(meta != nullptr);
                                 TwoPLPashaHelper::modify_tuple_valid_bit(*meta, true);
 
                                 // release the read lock for the next row
                                 if (insertKey.get_next_row_locked() == true) {
                                         auto next_row_entity = insertKey.get_next_row_entity();
-                                        auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
+                                        std::atomic<uint64_t> *next_key_meta = next_row_entity.meta;
                                         CHECK(next_key_meta != nullptr);
                                         TwoPLPashaHelper::read_lock_release(*next_key_meta);
                                 }
@@ -477,28 +469,29 @@ template <class Database> class TwoPLPasha {
 			}
 		}
 
-		for (auto i = 0u; i < writeSet.size(); i++) {
-			auto &writeKey = writeSet[i];
-			auto tableId = writeKey.get_table_id();
-			auto partitionId = writeKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
+                for (auto i = 0u; i < readSet.size(); i++) {
+                        if (readSet[i].get_write_lock_bit()) {
+                                auto &writeKey = readSet[i];
+                                auto tableId = writeKey.get_table_id();
+                                auto partitionId = writeKey.get_partition_id();
+                                auto table = db.find_table(tableId, partitionId);
 
-			// write
-			if (partitioner.has_master_partition(partitionId)) {
-				auto key = writeKey.get_key();
-				auto value = writeKey.get_value();
-                                auto value_size = table->value_size();
-				auto row = table->search(key);
-                                twopl_pasha_global_helper->update(row, value, value_size);
-			} else {
-				auto key = writeKey.get_key();
-				auto value = writeKey.get_value();
-                                auto value_size = table->value_size();
-				char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
-                                CHECK(migrated_row != nullptr);
-                                twopl_pasha_global_helper->remote_update(migrated_row, value, value_size);
-			}
-		}
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto value = writeKey.get_value();
+                                        auto value_size = table->value_size();
+                                        auto cached_row = writeKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+                                        twopl_pasha_global_helper->update(cached_row, value, value_size);
+                                } else {
+                                        auto key = writeKey.get_key();
+                                        auto value = writeKey.get_value();
+                                        auto value_size = table->value_size();
+                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+                                        CHECK(migrated_row != nullptr);
+                                        twopl_pasha_global_helper->remote_update(migrated_row, value, value_size);
+                                }
+                        }
+                }
 
                 // apply writes for "scan for update"
                 for (auto i = 0u; i < scanSet.size(); i++) {
@@ -515,7 +508,8 @@ template <class Database> class TwoPLPasha {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
                                                 auto value = scan_results[i].data;
                                                 auto value_size = table->value_size();
-                                                auto row = table->search(key);
+                                                std::tuple<MetaDataType *, void *> row = std::make_tuple(scan_results[i].meta, scan_results[i].data);
+                                                CHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
                                                 twopl_pasha_global_helper->update(row, value, value_size);
                                         }
                                 } else {
@@ -598,7 +592,7 @@ template <class Database> class TwoPLPasha {
 
 	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages)
 	{
-		// release read locks
+		// release read locks & write locks
 		auto &readSet = txn.readSet;
 
 		for (auto i = 0u; i < readSet.size(); i++) {
@@ -608,10 +602,9 @@ template <class Database> class TwoPLPasha {
 			auto table = db.find_table(tableId, partitionId);
 			if (readKey.get_read_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
-					auto key = readKey.get_key();
-					std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
-					TwoPLPashaHelper::read_lock_release(*meta);
+					auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+					TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
 					auto key = readKey.get_key();
 					char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
@@ -619,27 +612,18 @@ template <class Database> class TwoPLPasha {
                                         twopl_pasha_global_helper->remote_read_lock_release(migrated_row);
 				}
 			}
-		}
 
-		// release write lock
-		auto &writeSet = txn.writeSet;
-
-		for (auto i = 0u; i < writeSet.size(); i++) {
-			auto &writeKey = writeSet[i];
-			auto tableId = writeKey.get_table_id();
-			auto partitionId = writeKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-			// write
-			if (partitioner.has_master_partition(partitionId)) {
-				auto key = writeKey.get_key();
-				std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != nullptr);
-				TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
-			} else {
-				auto key = writeKey.get_key();
-                                char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
-                                CHECK(migrated_row != nullptr);
-                                twopl_pasha_global_helper->remote_write_lock_release(migrated_row, commit_tid);
+                        if (readKey.get_write_lock_bit()) {
+				if (partitioner.has_master_partition(partitionId)) {
+                                        auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+                                        TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row), commit_tid);
+                                } else {
+                                        auto key = readKey.get_key();
+                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+                                        CHECK(migrated_row != nullptr);
+                                        twopl_pasha_global_helper->remote_write_lock_release(migrated_row, commit_tid);
+                                }
 			}
 		}
 
@@ -656,9 +640,8 @@ template <class Database> class TwoPLPasha {
                         if (insertKey.get_next_row_locked() == true) {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         auto next_row_entity = insertKey.get_next_row_entity();
-                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
+                                        std::atomic<uint64_t> *meta = next_row_entity.meta;
+                                        CHECK(meta != nullptr);
                                         TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
                                 } else {
                                         auto next_row_entity = insertKey.get_next_row_entity();
@@ -685,9 +668,8 @@ template <class Database> class TwoPLPasha {
                         if (scanKey.get_next_row_locked() == true) {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         auto next_row_entity = scanKey.get_next_row_entity();
-                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
+                                        std::atomic<uint64_t> *meta = next_row_entity.meta;
+                                        CHECK(meta != nullptr);
                                         if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         } else if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
@@ -723,8 +705,8 @@ template <class Database> class TwoPLPasha {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLPashaHelper::read_lock_release(*meta);
                                         }
                                 } else {
@@ -739,8 +721,8 @@ template <class Database> class TwoPLPasha {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         }
                                 } else {
@@ -755,8 +737,8 @@ template <class Database> class TwoPLPasha {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLPashaHelper::write_lock_release(*meta);
                                         }
                                 } else {
