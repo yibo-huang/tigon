@@ -116,8 +116,7 @@ template <class Database> class TwoPLPasha {
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
 					TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
-					auto key = readKey.get_key();
-                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+                                        char *migrated_row = readKey.get_cached_migrated_row();
                                         CHECK(migrated_row != nullptr);
                                         TwoPLPashaHelper::remote_read_lock_release(migrated_row);
 				}
@@ -130,8 +129,7 @@ template <class Database> class TwoPLPasha {
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
 					TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row));
 				} else {
-					auto key = readKey.get_key();
-                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+					char *migrated_row = readKey.get_cached_migrated_row();
                                         CHECK(migrated_row != nullptr);
                                         TwoPLPashaHelper::remote_write_lock_release(migrated_row);
 				}
@@ -486,7 +484,7 @@ template <class Database> class TwoPLPasha {
                                         auto key = writeKey.get_key();
                                         auto value = writeKey.get_value();
                                         auto value_size = table->value_size();
-                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+                                        char *migrated_row = writeKey.get_cached_migrated_row();
                                         CHECK(migrated_row != nullptr);
                                         twopl_pasha_global_helper->remote_update(migrated_row, value, value_size);
                                 }
@@ -606,8 +604,7 @@ template <class Database> class TwoPLPasha {
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
 					TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
-					auto key = readKey.get_key();
-					char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+					char *migrated_row = readKey.get_cached_migrated_row();
                                         CHECK(migrated_row != nullptr);
                                         twopl_pasha_global_helper->remote_read_lock_release(migrated_row);
 				}
@@ -619,8 +616,7 @@ template <class Database> class TwoPLPasha {
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
                                         TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row), commit_tid);
                                 } else {
-                                        auto key = readKey.get_key();
-                                        char *migrated_row = twopl_pasha_global_helper->get_migrated_row(tableId, partitionId, key, false);
+                                        char *migrated_row = readKey.get_cached_migrated_row();
                                         CHECK(migrated_row != nullptr);
                                         twopl_pasha_global_helper->remote_write_lock_release(migrated_row, commit_tid);
                                 }

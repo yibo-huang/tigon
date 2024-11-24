@@ -245,6 +245,7 @@ class TwoPLPashaMessageHandler {
 
                         if (success) {
                                 readKey.set_tid(tid);
+                                readKey.set_cached_migrated_row(migrated_row);
                                 CHECK(readKey.get_local_index_read_bit() == 0);
                                 if (readKey.get_read_lock_request_bit()) {
                                         readKey.set_read_lock_bit();
