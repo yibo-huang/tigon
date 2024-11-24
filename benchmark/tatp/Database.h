@@ -395,11 +395,28 @@ class Database {
                 for (auto i = partitionID * numSubScriberPerPartition; i < (partitionID + 1) * numSubScriberPerPartition; i++) {
                         DCHECK(context.getPartitionID(i) == partitionID);
 
-                        uint64_t record_num = random.uniform_dist(1, 4);
+                        // uint64_t record_num = random.uniform_dist(1, 4);
+                        uint64_t record_num = 4;        // FIXME: TATP may fail a search, but our system currently does not support failed search
+                        std::vector<uint8_t> used_ai_types;
                         for (auto j = 0; j < record_num; j++) {
                                 access_info::key key;
                                 key.S_ID = i;
-                                key.AI_TYPE = random.uniform_dist(1, 4);
+
+                                uint64_t unique_ai_type = 0;
+                                while (true) {
+                                        unique_ai_type = random.uniform_dist(1, 4);
+                                        bool used = false;
+                                        for (auto k = 0; k < used_ai_types.size(); k++) {
+                                                if (unique_ai_type == used_ai_types[k]) {
+                                                        used = true;
+                                                }
+                                        }
+                                        if (used == false) {
+                                                used_ai_types.push_back(unique_ai_type);
+                                                key.AI_TYPE = unique_ai_type;
+                                                break;
+                                        }
+                                }
 
                                 access_info::value value;
                                 value.DATA_1 = random.uniform_dist(0, 255);

@@ -16,6 +16,9 @@ struct Storage {
 	subscriber::key subscriber_key;
 	subscriber::value subscriber_value;
 
+        access_info::key access_info_key;
+	access_info::value access_info_value;
+
         void cleanup()
         {
                 // do nothing

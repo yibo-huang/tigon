@@ -55,8 +55,10 @@ template <class Transaction> class Workload {
                 if (context.workloadType == TATPWorkloadType::MIXED) {
                         if (x <= 35) {
                                 p = std::make_unique<GetSubsciberData<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                        } else if (x <= 80) {
+                                p = std::make_unique<GetAccessData<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
                         } else {
-                                p = std::make_unique<GetSubsciberData<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
+                                p = std::make_unique<GetAccessData<Transaction> >(coordinator_id, partition_id, granule_id, db, context, random, partitioner);
                         }
                 } else {
                         CHECK(0);
