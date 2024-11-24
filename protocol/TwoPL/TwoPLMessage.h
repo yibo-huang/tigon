@@ -534,7 +534,7 @@ class TwoPLMessageHandler {
 			std::ostringstream ss;
 			ss << commit_tid << true;
 			auto output = ss.str();
-			auto lsn = txn->get_logger()->write(output.c_str(), output.size(), false);
+			auto lsn = txn->get_logger()->write(output.c_str(), output.size(), false, txn->startTime);
 			// txn->get_logger()->sync(lsn, );
 		}
 	}
@@ -618,7 +618,7 @@ class TwoPLMessageHandler {
 			std::ostringstream ss;
 			ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size << std::string((char *)value, value_size);
 			output += ss.str();
-			// txn->get_logger()->write(output.c_str(), output.size(), false);
+			// txn->get_logger()->write(output.c_str(), output.size(), false, txn->startTime);
 		}
 
 		// prepare response message header
@@ -637,7 +637,7 @@ class TwoPLMessageHandler {
 			std::ostringstream ss;
 			ss << success;
 			output += ss.str();
-			txn->get_logger()->write(output.c_str(), output.size(), true);
+			txn->get_logger()->write(output.c_str(), output.size(), true, txn->startTime);
 		}
 
 		if (txn->get_logger()) {
@@ -727,7 +727,7 @@ class TwoPLMessageHandler {
 		//    std::ostringstream ss;
 		//    ss << commit_tid << std::string((const char *)key, key_size) << std::string(valueStringPiece.data(), field_size);
 		//    auto output = ss.str();
-		//    txn->get_logger()->write(output.c_str(), output.size(), sync_redo);
+		//    txn->get_logger()->write(output.c_str(), output.size(), sync_redo, txn->startTime);
 		//  }
 
 		// if (txn->get_logger() && sync_redo) {

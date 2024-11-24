@@ -392,7 +392,7 @@ class SiloGCMessageHandler {
 			std::ostringstream ss;
 			ss << success;
 			auto output = ss.str();
-			txn->get_logger()->write(output.c_str(), output.size(), last_validation, [&]() { txn->remote_request_handler(0); });
+			txn->get_logger()->write(output.c_str(), output.size(), last_validation, txn->startTime, [&]() { txn->remote_request_handler(0); });
 		}
 
 		if (txn->get_logger() && last_validation) {

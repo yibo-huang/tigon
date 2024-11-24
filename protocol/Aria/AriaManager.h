@@ -85,7 +85,7 @@ template <class Workload> class AriaManager : public star::Manager {
 				}
 			}
 
-			this->logger->write(txn_command_data.data(), txn_command_data.size(), true);
+			this->logger->write(txn_command_data.data(), txn_command_data.size(), true, std::chrono::steady_clock::now());
 		}
 		for (auto i = id; i < transactions.size(); i += context.worker_num) {
 			transactions[i]->record_commit_persistence_time(commit_persistence_time);

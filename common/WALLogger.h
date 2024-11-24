@@ -203,7 +203,7 @@ class WALLogger {
 	}
 
 	virtual size_t write(
-		const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) = 0;
+		const char *str, long size, bool persist, std::chrono::steady_clock::time_point txn_start_time, std::function<void()> on_blocking = []() {}) = 0;
 	virtual void sync(
 		size_t lsn, std::function<void()> on_blocking = []() {}) = 0;
 	virtual void close() = 0;
@@ -227,7 +227,7 @@ class BlackholeLogger : public WALLogger {
 	}
 
 	size_t write(
-		const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+		const char *str, long size, bool persist, std::chrono::steady_clock::time_point txn_start_time, std::function<void()> on_blocking = []() {}) override
 	{
 		return 0;
 	}
@@ -273,7 +273,7 @@ class GroupCommitLogger : public WALLogger {
 	}
 
 	std::size_t write(
-		const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+		const char *str, long size, bool persist, std::chrono::steady_clock::time_point txn_start_time, std::function<void()> on_blocking = []() {}) override
 	{
 		uint64_t end_lsn;
 		{
@@ -360,7 +360,10 @@ struct LogBuffer {
 
         char buffer[max_buffer_size];
         uint64_t size = 0;
+
+        // statistics
         uint64_t grouped_txn_cnt = 0;
+        std::vector<std::chrono::steady_clock::time_point> txn_start_times;
 };
 
 using LockfreeLogBufferQueue = LockfreeQueue<LogBuffer *, 1024>;
@@ -381,7 +384,7 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
                 delete cur_log_buffer;
 	}
 
-	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+	std::size_t write(const char *str, long size, bool persist, std::chrono::steady_clock::time_point txn_start_time, std::function<void()> on_blocking = []() {}) override
 	{
                 uint64_t cur_epoch = cxl_global_epoch->load();
 
@@ -401,6 +404,7 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 
                 if (persist == true) {
                         cur_log_buffer->grouped_txn_cnt++;
+                        cur_log_buffer->txn_start_times.push_back(txn_start_time);
                 }
 
                 return size;
@@ -434,7 +438,6 @@ class PashaGroupCommitLogger : public WALLogger {
                 , log_buffer_queues(*log_buffer_queues_ptr)
                 , cxl_global_epoch(cxl_global_epoch)
                 , group_commit_latency_us(group_commit_latency)
-                , group_commit_txn_cnt(0)
                 , disk_sync_cnt(0)
                 , disk_sync_size(0)
 		, last_sync_time(Time::now())
@@ -459,7 +462,7 @@ class PashaGroupCommitLogger : public WALLogger {
                 }
         }
 
-	std::size_t write(const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+	std::size_t write(const char *str, long size, bool persist, std::chrono::steady_clock::time_point txn_start_time, std::function<void()> on_blocking = []() {}) override
 	{
                 CHECK(0);
 	}
@@ -487,7 +490,12 @@ class PashaGroupCommitLogger : public WALLogger {
                                 file_writer.sync();
 
                                 // statistics
+                                auto commit_time = std::chrono::steady_clock::now();
                                 committed_txn_cnt += log_buffer->grouped_txn_cnt;
+                                for (auto i = 0; i < log_buffer->txn_start_times.size(); i++) {
+                                        auto cur_latency = std::chrono::duration_cast<std::chrono::microseconds>(commit_time - log_buffer->txn_start_times[i]).count();
+                                        txn_latency.add(cur_latency);
+                                }
                                 disk_sync_cnt++;
                                 disk_sync_size += log_buffer->size;
                         }
@@ -506,13 +514,14 @@ class PashaGroupCommitLogger : public WALLogger {
 
         void print_sync_stats() override
 	{
-                LOG(INFO) << "committed_txn_cnt " << committed_txn_cnt
+                LOG(INFO) << "Group Commit Stats: "
+                          << txn_latency.nth(50) << " us (50%) " << txn_latency.nth(75) << " us (75%) "
+                          << txn_latency.nth(95) << " us (95%) " << txn_latency.nth(99) << " us (99%) "
+			  << " avg " << txn_latency.avg() << " us."
+                          << " committed_txn_cnt " << committed_txn_cnt
                           << " disk_sync_cnt " << disk_sync_cnt
                           << " disk_sync_size " << disk_sync_size;
 	}
-
-    public:
-        std::size_t committed_txn_cnt;
 
     private:
 	std::mutex mutex;
@@ -520,10 +529,13 @@ class PashaGroupCommitLogger : public WALLogger {
 	std::vector<LockfreeLogBufferQueue *> &log_buffer_queues;
         std::atomic<uint64_t> *cxl_global_epoch{ nullptr };
 
+        // statistics
 	std::size_t group_commit_latency_us{ 0 };
-        std::size_t group_commit_txn_cnt{ 0 };
         uint64_t disk_sync_cnt{ 0 };
         uint64_t disk_sync_size{ 0 };
+        uint64_t committed_txn_cnt{ 0 };
+        Percentile<uint64_t> txn_latency;
+
 	std::atomic<std::size_t> last_sync_time{ 0 };
         std::atomic<bool> &stopFlag;
 };
@@ -541,7 +553,7 @@ class SimpleWALLogger : public WALLogger {
 	}
 
 	std::size_t write(
-		const char *str, long size, bool persist, std::function<void()> on_blocking = []() {}) override
+		const char *str, long size, bool persist, std::chrono::steady_clock::time_point txn_start_time, std::function<void()> on_blocking = []() {}) override
 	{
 		std::lock_guard<std::mutex> g(mtx);
 		writer.write(str, size);

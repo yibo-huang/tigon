@@ -163,7 +163,7 @@ class Database {
 					},
 					[&, this, write_buffer_threshold, table]() { // Called when the table is unlocked
 						if (checkpoint_buffer.size() >= write_buffer_threshold) {
-							this->checkpoint_file_writer->write(&checkpoint_buffer[0], checkpoint_buffer.size(), false);
+							this->checkpoint_file_writer->write(&checkpoint_buffer[0], checkpoint_buffer.size(), false, std::chrono::steady_clock::now());
 							checkpoint_buffer.clear();
 						}
 						// checkpoint_buffer.clear();

@@ -112,7 +112,7 @@ template <class Database> class Silo {
 				std::ostringstream ss;
 				ss << commit_tid << true;
 				auto output = ss.str();
-				auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
+				auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true, txn.startTime);
 			}
 		}
 
@@ -244,7 +244,7 @@ template <class Database> class Silo {
 				ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
 				   << std::string((char *)value, value_size);
 				auto output = ss.str();
-				txn.get_logger()->write(output.c_str(), output.size(), false);
+				txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
 			}
 		} else {
 			std::vector<std::vector<SiloRWKey> > readSetGroupByCoordinator(context.coordinator_num);
@@ -317,7 +317,7 @@ template <class Database> class Silo {
 						ss << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
 						   << std::string((char *)value, value_size);
 						auto output = ss.str();
-						txn.get_logger()->write(output.c_str(), output.size(), false);
+						txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
 					}
 
 				} else {

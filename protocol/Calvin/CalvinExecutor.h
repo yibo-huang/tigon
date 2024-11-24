@@ -387,7 +387,7 @@ template <class Workload> class CalvinExecutor : public Worker {
 			prepare_transaction(*transactions[i]);
 		}
 
-		this->logger->write(txn_command_data.data(), txn_command_data.size(), true);
+		this->logger->write(txn_command_data.data(), txn_command_data.size(), true, std::chrono::steady_clock::now());
 	}
 
 	void prepare_transaction(TransactionType &txn)

@@ -2069,7 +2069,7 @@ class HStoreExecutor : public Executor<Workload, HStore<typename Workload::Datab
 			std::ostringstream ss;
 			ss << commit_tid << true;
 			auto output = ss.str();
-			auto lsn = this->logger->write(output.c_str(), output.size(), false, [&, this]() { handle_requests(); });
+			auto lsn = this->logger->write(output.c_str(), output.size(), false, std::chrono::steady_clock::now(), [&, this]() { handle_requests(); });
 			// txn->get_logger()->sync(lsn, );
 		}
 	}
@@ -2527,7 +2527,7 @@ class HStoreExecutor : public Executor<Workload, HStore<typename Workload::Datab
 		std::string data;
 		std::swap(command_buffer_data, data);
 		command_buffer_data.clear();
-		this->logger->write(data.data(), data.size(), true, work_while_io);
+		this->logger->write(data.data(), data.size(), true, std::chrono::steady_clock::now(), work_while_io);
 	}
 
 	void persist_and_clear_command_buffer(bool continue_work = false)
@@ -2552,9 +2552,9 @@ class HStoreExecutor : public Executor<Workload, HStore<typename Workload::Datab
 		//   }
 		// }
 		if (continue_work) {
-			this->logger->write(data.data(), data.size(), true, [&, this]() { handle_requests(false); });
+			this->logger->write(data.data(), data.size(), true, std::chrono::steady_clock::now(), [&, this]() { handle_requests(false); });
 		} else {
-			this->logger->write(data.data(), data.size(), true, [&, this]() {});
+			this->logger->write(data.data(), data.size(), true, std::chrono::steady_clock::now(), [&, this]() {});
 		}
 	}
 

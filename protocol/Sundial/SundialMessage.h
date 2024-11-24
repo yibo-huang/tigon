@@ -396,7 +396,7 @@ class SundialMessageHandler {
 			std::ostringstream ss;
 			ss << success;
 			output += ss.str();
-			txn->get_logger()->write(output.c_str(), output.size(), true);
+			txn->get_logger()->write(output.c_str(), output.size(), true, txn->startTime);
 		}
 
 		if (txn->get_logger()) {
@@ -474,7 +474,7 @@ class SundialMessageHandler {
 			std::ostringstream ss;
 			ss << commit_ts << true;
 			auto output = ss.str();
-			auto lsn = txn->get_logger()->write(output.c_str(), output.size(), false);
+			auto lsn = txn->get_logger()->write(output.c_str(), output.size(), false, txn->startTime);
 			// txn->get_logger()->sync(lsn, );
 		}
 	}

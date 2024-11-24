@@ -170,7 +170,7 @@ template <class Database> class SundialPasha {
                                         std::ostringstream ss;
                                         ss << commit_tid << true;
                                         auto output = ss.str();
-                                        auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true);
+                                        auto lsn = txn.get_logger()->write(output.c_str(), output.size(), true, txn.startTime);
                                 }
                         }
 		}
@@ -334,7 +334,7 @@ template <class Database> class SundialPasha {
                                         int log_type = 0;       // 0 stands for write
 					ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
 					auto output = ss.str();
-					txn.get_logger()->write(output.c_str(), output.size(), false);
+					txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
 				}
 
                                 // Redo logging for inserts
@@ -355,7 +355,7 @@ template <class Database> class SundialPasha {
                                         int log_type = 1;       // 1 stands for insert
                                         ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
                                         auto output = ss.str();
-                                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                                        txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                                 }
 
                                 // Redo logging for deletes
@@ -376,7 +376,7 @@ template <class Database> class SundialPasha {
                                         int log_type = 2;       // 2 stands for delete
                                         ss << log_type << tableId << partitionId << std::string((char *)key, key_size);     // do not need to log value for deletes
                                         auto output = ss.str();
-                                        txn.get_logger()->write(output.c_str(), output.size(), false);
+                                        txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                                 }
 			}
 		} else {
@@ -492,7 +492,7 @@ template <class Database> class SundialPasha {
                                                 ss << log_type << tableId << partitionId << key_size << std::string((char *)key, key_size) << value_size
                                                         << std::string((char *)value, value_size);
                                                 auto output = ss.str();
-                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                                txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                                         }
 
                                         // Redo logging for inserts
@@ -513,7 +513,7 @@ template <class Database> class SundialPasha {
                                                 int log_type = 1;       // 1 stands for insert
                                                 ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
                                                 auto output = ss.str();
-                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                                txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                                         }
 
                                         // Redo logging for deletes
@@ -534,7 +534,7 @@ template <class Database> class SundialPasha {
                                                 int log_type = 2;       // 2 stands for delete
                                                 ss << log_type << tableId << partitionId << std::string((char *)key, key_size);     // do not need to log value for deletes
                                                 auto output = ss.str();
-                                                txn.get_logger()->write(output.c_str(), output.size(), false);
+                                                txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                                         }
                                 }
 			}
