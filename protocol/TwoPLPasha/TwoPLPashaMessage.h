@@ -238,9 +238,9 @@ class TwoPLPashaMessageHandler {
                 } else {
                         // perform execution phase operations
                         if (readKey.get_write_lock_request_bit()) {
-                                tid = TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(migrated_row, success);
+                                tid = twopl_pasha_global_helper->remote_take_write_lock_and_read(migrated_row, readKey.get_value(), value_size, true, success);
                         } else {
-                                tid = TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(migrated_row, success);
+                                tid = twopl_pasha_global_helper->remote_take_read_lock_and_read(migrated_row, readKey.get_value(), value_size, true, success);
                         }
 
                         if (success) {
@@ -252,7 +252,6 @@ class TwoPLPashaMessageHandler {
                                 if (readKey.get_write_lock_request_bit()) {
                                         readKey.set_write_lock_bit();
                                 }
-                                twopl_pasha_global_helper->remote_read(migrated_row, readKey.get_value(), value_size);
 
                                 // mark it as reference counted so that we know if we need to release it upon commit/abort
                                 readKey.set_reference_counted();

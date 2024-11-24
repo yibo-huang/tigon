@@ -94,25 +94,22 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
 				remote = false;
 
-				std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                if (meta == nullptr) {
-                                        return 0;
-                                }
+				auto row = table->search(key);
+                                CHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
+
+                                uint64_t tid = 0;
 
 				if (write_lock) {
-					TwoPLPashaHelper::write_lock(*meta, success);
+					tid = twopl_pasha_global_helper->take_write_lock_and_read(row, value, table->value_size(), success);
 				} else {
-					TwoPLPashaHelper::read_lock(*meta, success);
+					tid = twopl_pasha_global_helper->take_read_lock_and_read(row, value, table->value_size(), success);
 				}
 
-				if (success) {
-                                        auto value_bytes = table->value_size();
-                                        auto row = table->search(key);
-                                        return twopl_pasha_global_helper->read(row, value, value_bytes, this->n_local_cxl_access);
+				if (success == true) {
+					return tid;
 				} else {
 					return 0;
 				}
-
 			} else {
                                 // statistics
                                 this->n_remote_access.fetch_add(1);
@@ -135,13 +132,13 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         txn.readSet[key_offset].set_reference_counted();
 
                                         if (write_lock) {
-                                                TwoPLPashaHelper::remote_write_lock(migrated_row, success);
+                                                twopl_pasha_global_helper->remote_take_write_lock_and_read(migrated_row, value, table->value_size(), false, success);
                                         } else {
-                                                TwoPLPashaHelper::remote_read_lock(migrated_row, success);
+                                                twopl_pasha_global_helper->remote_take_read_lock_and_read(migrated_row, value, table->value_size(), false, success);
                                         }
 
-                                        if (success) {
-                                                return twopl_pasha_global_helper->remote_read(migrated_row, value, table->value_size());
+                                        if (success == true) {
+                                                return tid;
                                         } else {
                                                 return 0;
                                         }

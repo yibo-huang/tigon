@@ -279,6 +279,72 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
+        uint64_t take_read_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value = 0, new_value = 0;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *src = std::get<1>(row);
+
+                        if (lmeta->is_valid == false) {
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
+                        old_value = lmeta->tid;
+
+                        // can we get the lock?
+                        if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
+                        // OK, we can get the lock
+                        new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                        lmeta->tid = new_value;
+                        success = true;
+
+                        // read the data
+                        std::memcpy(dest, src, size);
+                } else {
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
+                        void *src = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
+                        smeta->lock();
+
+                        if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
+                                smeta->unlock();
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
+                        old_value = smeta->tid;
+
+                        // can we get the lock?
+                        if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                                success = false;
+                                smeta->unlock();
+                                goto out_unlock_lmeta;
+                        }
+
+                        // OK, we can get the lock
+                        new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                        smeta->tid = new_value;
+                        success = true;
+
+                        // read the data
+                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+
+                        smeta->unlock();
+                }
+
+out_unlock_lmeta:
+                lmeta->unlock();
+		return remove_lock_bit(old_value);
+	}
+
         static uint64_t remote_read_lock(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
@@ -304,6 +370,46 @@ out_unlock_lmeta:
                 new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
                 smeta->tid = new_value;
                 success = true;
+
+                smeta->unlock();
+
+		return remove_lock_bit(old_value);
+	}
+
+        uint64_t remote_take_read_lock_and_read(char *row, void *dest, std::size_t size, bool inc_ref_cnt, bool &success)
+	{
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                void *src = row + sizeof(TwoPLPashaMetadataShared);
+                uint64_t old_value = 0, new_value = 0;
+
+		smeta->lock();
+
+                // because this function is only called by remote point queries,
+                // which are assumed to always succeed,
+                // so this assertion should always hold
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
+
+                old_value = smeta->tid;
+
+                // can we get the lock?
+                if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+                success = true;
+
+                // read the data
+                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+
+                // increase reference counting only if we get the lock
+                if (inc_ref_cnt == true) {
+                        smeta->ref_cnt++;
+                }
 
                 smeta->unlock();
 
@@ -399,6 +505,72 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
+        uint64_t take_write_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+                uint64_t old_value = 0, new_value = 0;
+
+                lmeta->lock();
+                if (lmeta->is_migrated == false) {
+                        void *src = std::get<1>(row);
+
+                        if (lmeta->is_valid == false) {
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
+                        old_value = lmeta->tid;
+
+                        // can we get the lock?
+                        if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
+                        // OK, we can get the lock
+                        new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                        lmeta->tid = new_value;
+                        success = true;
+
+                        // read the data
+                        std::memcpy(dest, src, size);
+                } else {
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
+                        void *src = lmeta->migrated_row + sizeof(TwoPLPashaMetadataShared);
+                        smeta->lock();
+
+                        if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
+                                smeta->unlock();
+                                success = false;
+                                goto out_unlock_lmeta;
+                        }
+
+                        old_value = smeta->tid;
+
+                        // can we get the lock?
+                        if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                                success = false;
+                                smeta->unlock();
+                                goto out_unlock_lmeta;
+                        }
+
+                        // OK, we can get the lock
+                        new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                        smeta->tid = new_value;
+                        success = true;
+
+                        // read the data
+                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+
+                        smeta->unlock();
+                }
+
+out_unlock_lmeta:
+                lmeta->unlock();
+		return remove_lock_bit(old_value);
+	}
+
         static uint64_t remote_write_lock(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
@@ -424,6 +596,46 @@ out_unlock_lmeta:
                 new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
                 smeta->tid = new_value;
                 success = true;
+
+                smeta->unlock();
+
+		return remove_lock_bit(old_value);
+	}
+
+        uint64_t remote_take_write_lock_and_read(char *row, void *dest, std::size_t size, bool inc_ref_cnt, bool &success)
+	{
+		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
+                void *src = row + sizeof(TwoPLPashaMetadataShared);
+                uint64_t old_value = 0, new_value = 0;
+
+		smeta->lock();
+
+                // because this function is only called by remote point queries,
+                // which are assumed to always succeed,
+                // so this assertion should always hold
+                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
+
+                old_value = smeta->tid;
+
+                // can we get the lock?
+                if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                smeta->tid = new_value;
+                success = true;
+
+                // read the data
+                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+
+                // increase reference counting only if we get the lock
+                if (inc_ref_cnt == true) {
+                        smeta->ref_cnt++;
+                }
 
                 smeta->unlock();
 

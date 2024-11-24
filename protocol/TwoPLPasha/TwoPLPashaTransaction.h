@@ -363,7 +363,7 @@ class TwoPLPashaTransaction {
 			}
 
 			const TwoPLPashaRWKey &readKey = readSet[i];
-			bool success, remote;
+			bool success = false, remote = false;
 			auto tid = lock_request_handler(readKey.get_table_id(), readKey.get_partition_id(), i, readKey.get_key(), readKey.get_value(),
 							readSet[i].get_local_index_read_bit(), readSet[i].get_write_lock_request_bit(), success, remote);
 
