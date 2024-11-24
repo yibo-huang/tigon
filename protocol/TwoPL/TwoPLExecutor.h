@@ -51,21 +51,22 @@ class TwoPLExecutor : public Executor<Workload, TwoPL<typename Workload::Databas
 			if (this->partitioner->has_master_partition(partition_id)) {
 				remote = false;
 
-				std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != nullptr);
+				auto row = table->search(key);
+                                CHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
+
+                                uint64_t tid = 0;
 
 				if (write_lock) {
-					TwoPLHelper::write_lock(*meta, success);
+					tid = TwoPLHelper::take_write_lock_and_read(row, value, table->value_size(), success);
 				} else {
-					TwoPLHelper::read_lock(*meta, success);
+					tid = TwoPLHelper::take_read_lock_and_read(row, value, table->value_size(), success);
 				}
 
-				if (success) {
-					return this->protocol.search(table_id, partition_id, key, value);
+				if (success == true) {
+					return tid;
 				} else {
 					return 0;
 				}
-
 			} else {
 				remote = true;
 

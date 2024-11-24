@@ -160,6 +160,74 @@ out_unlock_lmeta:
 		return remove_lock_bit(old_value);
 	}
 
+        static uint64_t take_read_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+                void *src = std::get<1>(row);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value = 0, new_value = 0;
+
+                lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
+                old_value = lmeta->tid;
+
+                // can we get the lock?
+                if (is_write_locked(old_value) || read_lock_num(old_value) == read_lock_max()) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (1ull << READ_LOCK_BIT_OFFSET);
+                lmeta->tid = new_value;
+                success = true;
+
+                // read the data
+                std::memcpy(dest, src, size);
+
+out_unlock_lmeta:
+                lmeta->unlock();
+		return remove_lock_bit(old_value);
+	}
+
+        static uint64_t take_write_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success)
+	{
+                MetaDataType &meta = *std::get<0>(row);
+                void *src = std::get<1>(row);
+                TwoPLMetadata *lmeta = reinterpret_cast<TwoPLMetadata *>(meta.load());
+                uint64_t old_value = 0, new_value = 0;
+
+                lmeta->lock();
+                if (lmeta->is_valid == false) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
+                old_value = lmeta->tid;
+
+                // can we get the lock?
+                if (is_read_locked(old_value) || is_write_locked(old_value)) {
+                        success = false;
+                        goto out_unlock_lmeta;
+                }
+
+                // OK, we can get the lock
+                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+                lmeta->tid = new_value;
+                success = true;
+
+                // read the data
+                std::memcpy(dest, src, size);
+
+out_unlock_lmeta:
+                lmeta->unlock();
+		return remove_lock_bit(old_value);
+	}
+
 	static uint64_t write_lock(std::atomic<uint64_t> &meta)
 	{
 		uint64_t ret = 0;
