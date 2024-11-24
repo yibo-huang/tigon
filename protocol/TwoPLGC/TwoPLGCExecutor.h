@@ -34,16 +34,13 @@ class TwoPLGCExecutor : public group_commit::Executor<Workload, TwoPLGC<typename
 	{
 	}
 
-	~
+	~TwoPLGCExecutor() = default;
 
-		TwoPLGCExecutor() = default;
-
-	void setupHandlers(TransactionType &txn)
-
-		override
+	void setupHandlers(TransactionType &txn) override
 	{
 		txn.lock_request_handler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset, const void *key, void *value,
-							bool local_index_read, bool write_lock, bool &success, bool &remote) -> uint64_t {
+							bool local_index_read, bool write_lock, std::tuple<star::ITable::MetaDataType *, void *> &cached_row,
+                                                        bool &success, bool &remote) -> uint64_t {
 			if (local_index_read) {
 				success = true;
 				remote = false;

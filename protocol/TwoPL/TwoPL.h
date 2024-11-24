@@ -95,8 +95,7 @@ template <class Database> class TwoPL {
                                 // release the read lock for the next row
                                 if (insertKey.get_next_row_locked() == true) {
                                         auto next_row_entity = insertKey.get_next_row_entity();
-                                        auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
+                                        std::atomic<uint64_t> *next_key_meta = next_row_entity.meta;
                                         CHECK(next_key_meta != nullptr);
                                         TwoPLHelper::write_lock_release(*next_key_meta);
                                 }
@@ -121,9 +120,9 @@ template <class Database> class TwoPL {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
 					auto value = readKey.get_value();
-					std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != nullptr);
-					TwoPLHelper::read_lock_release(*meta);
+					auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+					TwoPLHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
 					auto coordinatorID = partitioner.master_coordinator(partitionId);
 					txn.network_size += MessageFactoryType::new_abort_message(*messages[coordinatorID], *table, readKey.get_key(), false);
@@ -134,9 +133,9 @@ template <class Database> class TwoPL {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto key = readKey.get_key();
 					auto value = readKey.get_value();
-					std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != nullptr);
-					TwoPLHelper::write_lock_release(*meta);
+					auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+					TwoPLHelper::write_lock_release(*std::get<0>(cached_row));
 				} else {
 					auto coordinatorID = partitioner.master_coordinator(partitionId);
 					txn.network_size += MessageFactoryType::new_abort_message(*messages[coordinatorID], *table, readKey.get_key(), true);
@@ -158,8 +157,8 @@ template <class Database> class TwoPL {
                         if (scanKey.get_next_row_locked() == true) {
                                 auto next_row_entity = scanKey.get_next_row_entity();
                                 auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
+                                std::atomic<uint64_t> *meta = next_row_entity.meta;
+                                CHECK(meta != nullptr);
                                 if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_READ) {
                                         TwoPLHelper::read_lock_release(*meta);
                                 } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_UPDATE) {
@@ -177,9 +176,8 @@ template <class Database> class TwoPL {
                                 // release read locks
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLHelper::read_lock_release(*meta);
                                         }
 				} else {
@@ -192,9 +190,8 @@ template <class Database> class TwoPL {
                                 // release write locks
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLHelper::write_lock_release(*meta);
                                         }
 				} else {
@@ -261,15 +258,14 @@ template <class Database> class TwoPL {
 			if (partitioner.has_master_partition(partitionId)) {
                                 // make the placeholder as valid
 				auto key = insertKey.get_key();
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
+                                std::atomic<uint64_t> *meta = table->search_metadata(key);      // cannot use the cached row
+                                CHECK(meta != nullptr);
                                 TwoPLHelper::mark_tuple_as_valid(*meta);
 
                                 // release the read lock for the next row
                                 if (insertKey.get_next_row_locked() == true) {
                                         auto next_row_entity = insertKey.get_next_row_entity();
-                                        auto next_key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *next_key_meta = table->search_metadata(next_key);
+                                        std::atomic<uint64_t> *next_key_meta = next_row_entity.meta;
                                         CHECK(next_key_meta != nullptr);
                                         TwoPLHelper::read_lock_release(*next_key_meta);
                                 }
@@ -451,7 +447,7 @@ template <class Database> class TwoPL {
                                                 auto key = reinterpret_cast<const void *>(scan_results[i].key);
                                                 auto value = scan_results[i].data;
                                                 auto value_size = table->value_size();
-                                                auto row = table->search(key);
+                                                std::tuple<MetaDataType *, void *> row = std::make_tuple(scan_results[i].meta, scan_results[i].data);
                                                 TwoPLHelper::update(row, value, value_size);
                                         }
                                 } else {
@@ -655,7 +651,7 @@ template <class Database> class TwoPL {
 
 	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages)
 	{
-		// release read locks
+		// release read locks & write locks
 		auto &readSet = txn.readSet;
 
 		for (auto i = 0u; i < readSet.size(); i++) {
@@ -665,11 +661,9 @@ template <class Database> class TwoPL {
 			auto table = db.find_table(tableId, partitionId);
 			if (readKey.get_read_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
-					auto key = readKey.get_key();
-					auto value = readKey.get_value();
-					std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != nullptr);
-					TwoPLHelper::read_lock_release(*meta);
+					auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+					TwoPLHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
 					// txn.pendingResponses++;
 					auto coordinatorID = partitioner.master_coordinator(partitionId);
@@ -677,28 +671,19 @@ template <class Database> class TwoPL {
 						MessageFactoryType::new_release_read_lock_message(*messages[coordinatorID], *table, readKey.get_key());
 				}
 			}
-		}
 
-		// release write lock
-		auto &writeSet = txn.writeSet;
-		for (auto i = 0u; i < writeSet.size(); i++) {
-			auto &writeKey = writeSet[i];
-			auto tableId = writeKey.get_table_id();
-			auto partitionId = writeKey.get_partition_id();
-			auto table = db.find_table(tableId, partitionId);
-			// write
-			if (partitioner.has_master_partition(partitionId)) {
-				auto key = writeKey.get_key();
-				auto value = writeKey.get_value();
-				std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != nullptr);
-				TwoPLHelper::write_lock_release(*meta, commit_tid);
-			} else {
-				// txn.pendingResponses++;
-				auto coordinatorID = partitioner.master_coordinator(partitionId);
-				txn.network_size +=
-					MessageFactoryType::new_release_write_lock_message(*messages[coordinatorID], *table, writeKey.get_key(), commit_tid);
-			}
+                        if (readKey.get_write_lock_bit()) {
+                                if (partitioner.has_master_partition(partitionId)) {
+                                        auto cached_row = readKey.get_cached_local_row();
+                                        CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+                                        TwoPLHelper::write_lock_release(*std::get<0>(cached_row), commit_tid);
+                                } else {
+                                        // txn.pendingResponses++;
+                                        auto coordinatorID = partitioner.master_coordinator(partitionId);
+                                        txn.network_size +=
+                                                MessageFactoryType::new_release_write_lock_message(*messages[coordinatorID], *table, readKey.get_key(), commit_tid);
+                                }
+                        }
 		}
 
                 // release write locks for the next keys of inserts
@@ -714,9 +699,8 @@ template <class Database> class TwoPL {
                         if (insertKey.get_next_row_locked() == true) {
                                 if (partitioner.has_master_partition(partitionId)) {
                                         auto next_row_entity = insertKey.get_next_row_entity();
-                                        auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                        std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                        CHECK(meta != 0);
+                                        std::atomic<uint64_t> *meta = next_row_entity.meta;
+                                        CHECK(meta != nullptr);
                                         TwoPLHelper::write_lock_release(*meta, commit_tid);
                                 } else {
                                         // not supported
@@ -740,9 +724,8 @@ template <class Database> class TwoPL {
                         CHECK(scanKey.get_next_row_locked() == true);
                         if (scanKey.get_next_row_locked() == true) {
                                 auto next_row_entity = scanKey.get_next_row_entity();
-                                auto key = reinterpret_cast<const void *>(next_row_entity.key);
-                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                CHECK(meta != 0);
+                                std::atomic<uint64_t> *meta = next_row_entity.meta;
+                                CHECK(meta != nullptr);
                                 if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_READ) {
                                         TwoPLHelper::read_lock_release(*meta);
                                 } else if (scanKey.get_request_type() == TwoPLRWKey::SCAN_FOR_UPDATE) {
@@ -760,9 +743,8 @@ template <class Database> class TwoPL {
                                 // release read locks
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLHelper::read_lock_release(*meta);
                                         }
 				} else {
@@ -773,9 +755,8 @@ template <class Database> class TwoPL {
                                 // release write locks for updates
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLHelper::write_lock_release(*meta);
                                         }
 				} else {
@@ -786,9 +767,8 @@ template <class Database> class TwoPL {
                                 // release write locks for updates
 				if (partitioner.has_master_partition(partitionId)) {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                auto key = reinterpret_cast<const void *>(scan_results[i].key);
-                                                std::atomic<uint64_t> *meta = table->search_metadata(key);
-                                                CHECK(meta != 0);
+                                                std::atomic<uint64_t> *meta = scan_results[i].meta;
+                                                CHECK(meta != nullptr);
                                                 TwoPLHelper::write_lock_release(*meta);
                                         }
 				} else {

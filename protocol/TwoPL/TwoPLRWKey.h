@@ -271,6 +271,17 @@ class TwoPLRWKey {
                 this->require_lock_next_row = true;
 	}
 
+        // cached rows
+        std::tuple<star::ITable::MetaDataType *, void *> get_cached_local_row()
+	{
+                return this->cached_local_row;
+	}
+
+        void set_cached_local_row(std::tuple<star::ITable::MetaDataType *, void *> cached_local_row)
+	{
+                this->cached_local_row = cached_local_row;
+	}
+
         // processed or not
         bool get_processed() const
 	{
@@ -315,6 +326,9 @@ class TwoPLRWKey {
         ITable::row_entity next_row_entity;
         bool require_lock_next_row = false;
         bool is_next_row_locked = false;
+
+        // local cache to avoid extra index search
+        std::tuple<star::ITable::MetaDataType *, void *> cached_local_row;
 
         bool processed = false;
 
