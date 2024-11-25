@@ -239,14 +239,19 @@ class SmallbankInput(Input):
         return SmallbankInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
 
-# Any sequence of non-whitespace characters, to handle floating point
-# numbers like 3e06 or 1.2.
-NUMBER = "[^\\s,]+"
-
-
-def capture(name: str, rename: Optional[str] = None, sep: str = ": ") -> str:
+def capture(
+    name: str,
+    rename: Optional[str] = None,
+    sep: str = ": ",
+    prefix: str = "",
+    suffix: str = "",
+) -> str:
     rename = rename or name
-    return f"{name}{sep}(?P<{rename}>{NUMBER})"
+
+    # Any sequence of non-whitespace characters, to handle floating point
+    # numbers like 3e06 or 1.2.
+    NUMBER = "[^\\s,]+"
+    return f"{prefix}{name}{sep}(?P<{rename}>{NUMBER}){suffix}"
 
 
 CAPTURES = {
@@ -290,14 +295,26 @@ CAPTURES = {
                 capture("network size", rename="network_size"),
                 capture("avg network size", rename="avg_network_size"),
                 capture("si_in_serializable")
-                + f" (?P<si_in_serializable_pct>{NUMBER}) %",
-                capture("local", rename="local_pct") + " %",
+                + capture("", rename="si_in_serializable_pct", sep="", suffix=" %"),
+                capture("local", rename="local_pct", suffix=" %"),
                 capture("local_access"),
                 capture("local_cxl_access")
-                + f" \\((?P<local_cxl_acccess_pct>{NUMBER})%\\)",
+                + capture(
+                    "",
+                    rename="local_cxl_acccess_pct",
+                    sep="",
+                    prefix="\\(",
+                    suffix="%\\)",
+                ),
                 capture("remote_access"),
                 capture("remote_access_with_req")
-                + f" \\((?P<remote_access_with_req_pct>{NUMBER})%\\)",
+                + capture(
+                    "",
+                    rename="remote_access_with_req_pct",
+                    sep="",
+                    prefix="\\(",
+                    suffix="%\\)",
+                ),
                 capture("data_move_in"),
                 capture("data_move_out"),
             ]
@@ -305,11 +322,16 @@ CAPTURES = {
     ),
     "WALLogger": re.compile(
         " ".join(
-            [
-                capture("committed_txn_cnt", sep=" "),
-                capture("disk_sync_cnt", sep=" "),
-                capture("disk_sync_size", sep=" "),
-            ]
+            list(
+                map(
+                    lambda key: capture(key, sep=" "),
+                    [
+                        "committed_txn_cnt",
+                        "disk_sync_cnt",
+                        "disk_sync_size",
+                    ],
+                )
+            )
         )
     ),
 }
