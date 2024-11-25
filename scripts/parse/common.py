@@ -246,7 +246,7 @@ def capture(
     prefix: str = "",
     suffix: str = "",
 ) -> str:
-    rename = rename or name
+    rename = rename or name.replace(" ", "_")
 
     # Any sequence of non-whitespace characters, to handle floating point
     # numbers like 3e06 or 1.2.
@@ -255,8 +255,10 @@ def capture(
 
 
 CAPTURES = {
-    "Local CXL": re.compile(
-        " ".join(
+    # Name is used only for debugging
+    name: re.compile(pattern)
+    for name, pattern in {
+        "Local CXL": " ".join(
             ["local CXL memory usage:"]
             + list(
                 map(
@@ -269,10 +271,8 @@ CAPTURES = {
                     ],
                 )
             )
-        )
-    ),
-    "Global": re.compile(
-        " ".join(
+        ),
+        "Global": " ".join(
             ["Global Stats:"]
             + list(
                 map(
@@ -286,16 +286,16 @@ CAPTURES = {
                     ],
                 )
             )
-        )
-    ),
-    "Coordinator": re.compile(
-        ", ".join(
+        ),
+        "Coordinator": ", ".join(
             [
                 capture("abort_rate"),
-                capture("network size", rename="network_size"),
-                capture("avg network size", rename="avg_network_size"),
+                capture("network size"),
+                capture("avg network size"),
                 capture("si_in_serializable")
-                + capture("", rename="si_in_serializable_pct", sep="", suffix=" %"),
+                + capture(
+                    "", rename="si_in_serializable_pct", prefix=" ", sep="", suffix=" %"
+                ),
                 capture("local", rename="local_pct", suffix=" %"),
                 capture("local_access"),
                 capture("local_cxl_access")
@@ -303,7 +303,7 @@ CAPTURES = {
                     "",
                     rename="local_cxl_acccess_pct",
                     sep="",
-                    prefix="\\(",
+                    prefix=" \\(",
                     suffix="%\\)",
                 ),
                 capture("remote_access"),
@@ -312,16 +312,14 @@ CAPTURES = {
                     "",
                     rename="remote_access_with_req_pct",
                     sep="",
-                    prefix="\\(",
+                    prefix=" \\(",
                     suffix="%\\)",
                 ),
                 capture("data_move_in"),
                 capture("data_move_out"),
             ]
-        )
-    ),
-    "WALLogger": re.compile(
-        " ".join(
+        ),
+        "WALLogger": " ".join(
             list(
                 map(
                     lambda key: capture(key, sep=" "),
@@ -332,8 +330,52 @@ CAPTURES = {
                     ],
                 )
             )
-        )
-    ),
+        ),
+        # Note: per worker
+        "LOCAL": "LOCAL "
+        + " us,  ".join(
+            list(
+                map(
+                    lambda key: capture(
+                        key, rename=f"local_{key.replace(' ', '_')}", sep=" "
+                    ),
+                    [
+                        "txn stall",
+                        "local_work",
+                        "remote_work",
+                        "commit_work",
+                        "commit_prepare",
+                        "commit_persistence",
+                        "commit_write_back",
+                        "commit_replication",
+                        "commit_release_lock",
+                    ],
+                )
+            )
+        ),
+        # Note: per worker
+        "DIST": "DIST "
+        + " us,  ".join(
+            list(
+                map(
+                    lambda key: capture(
+                        key, rename=f"dist_{key.replace(' ', '_')}", sep=" "
+                    ),
+                    [
+                        "txn stall",
+                        "local_work",
+                        "remote_work",
+                        "commit_work",
+                        "commit_prepare",
+                        "commit_persistence",
+                        "commit_write_back",
+                        "commit_replication",
+                        "commit_release_lock",
+                    ],
+                )
+            )
+        ),
+    }.items()
 }
 
 
