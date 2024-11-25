@@ -363,11 +363,11 @@ struct LogBuffer {
         uint64_t size = 0;
 
         // statistics
-        uint64_t grouped_txn_cnt = 0;
         std::vector<uint64_t> txn_latency_until_publish;
 };
 
-using LockfreeLogBufferQueue = LockfreeQueue<LogBuffer *, 1024>;
+static constexpr uint64_t max_log_buffer_queue_size = 128;
+using LockfreeLogBufferQueue = LockfreeQueue<LogBuffer *, max_log_buffer_queue_size>;
 
 class PashaGroupCommitLoggerSlave : public WALLogger {
     public:
@@ -406,7 +406,6 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
                 if (persist == true) {
                         auto latency = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - txn_start_time).count();
                         cur_log_buffer->txn_latency_until_publish.push_back(latency);
-                        cur_log_buffer->grouped_txn_cnt++;
                 }
 
                 return size;
@@ -473,8 +472,10 @@ class PashaGroupCommitLogger : public WALLogger {
 	void do_sync()
 	{
                 LockfreeLogBufferQueue *cur_log_buffer_queue = nullptr;
+                auto begin_time = std::chrono::steady_clock::now();     // used for calculating queuing up time
+                uint64_t flushed_log_buffer_num = 0;
 
-		for (auto i = 0; i < log_buffer_queues.size(); i++) {
+                for (auto i = 0; i < log_buffer_queues.size(); i++) {
                         cur_log_buffer_queue = log_buffer_queues[i];
                         while (true) {
                                 if (cur_log_buffer_queue->empty() == true) {
@@ -494,6 +495,10 @@ class PashaGroupCommitLogger : public WALLogger {
                                 file_writer.sync();
                                 auto sync_end_time = std::chrono::steady_clock::now();
 
+                                // calculate queuing up time
+                                auto queuing_up_time = std::chrono::duration_cast<std::chrono::microseconds>(sync_start_time - begin_time).count();
+                                queuing_latency.add(queuing_up_time);
+
                                 // collect disk sync stats
                                 auto sync_latency = std::chrono::duration_cast<std::chrono::microseconds>(sync_end_time - sync_start_time).count();
                                 disk_sync_latency.add(sync_latency);
@@ -501,10 +506,16 @@ class PashaGroupCommitLogger : public WALLogger {
                                 disk_sync_size += log_buffer->size;
 
                                 // calculate transaction latency and collect stats
-                                committed_txn_cnt += log_buffer->grouped_txn_cnt;
+                                committed_txn_cnt += log_buffer->txn_latency_until_publish.size();
                                 for (auto i = 0; i < log_buffer->txn_latency_until_publish.size(); i++) {
-                                        uint64_t cur_txn_latency = log_buffer->txn_latency_until_publish[i] + sync_latency;
-                                        txn_latency.add(cur_txn_latency);
+                                        auto latency = log_buffer->txn_latency_until_publish[i] + sync_latency + queuing_up_time;
+                                        txn_latency.add(latency);
+                                }
+
+                                // refresh begin time here because VM has clock drift between threads
+                                flushed_log_buffer_num++;
+                                if (flushed_log_buffer_num >= (max_log_buffer_queue_size * log_buffer_queues.size())) {
+                                        begin_time = std::chrono::steady_clock::now();
                                 }
                         }
                 }
@@ -525,13 +536,18 @@ class PashaGroupCommitLogger : public WALLogger {
                 LOG(INFO) << "Group Commit Stats: "
                           << txn_latency.nth(50) << " us (50%) " << txn_latency.nth(75) << " us (75%) "
                           << txn_latency.nth(95) << " us (95%) " << txn_latency.nth(99) << " us (99%) "
-			  << " avg " << txn_latency.avg() << " us."
+			  << txn_latency.avg() << " us (avg)"
                           << " committed_txn_cnt " << committed_txn_cnt;
+
+                LOG(INFO) << "Queuing Stats: "
+                          << queuing_latency.nth(50) << " us (50%) " << queuing_latency.nth(75) << " us (75%) "
+                          << queuing_latency.nth(95) << " us (95%) " << queuing_latency.nth(99) << " us (99%) "
+			  << queuing_latency.avg() << " us (avg)";
 
                 LOG(INFO) << "Disk Sync Stats: "
                           << disk_sync_latency.nth(50) << " us (50%) " << disk_sync_latency.nth(75) << " us (75%) "
                           << disk_sync_latency.nth(95) << " us (95%) " << disk_sync_latency.nth(99) << " us (99%) "
-			  << " avg " << disk_sync_latency.avg() << " us."
+			  << disk_sync_latency.avg() << " us (avg)"
                           << " disk_sync_cnt " << disk_sync_cnt
                           << " disk_sync_size " << disk_sync_size
                           << " current global epoch " << this->cxl_global_epoch->load();
@@ -542,9 +558,10 @@ class PashaGroupCommitLogger : public WALLogger {
         DirectFileWriter file_writer;
 	std::vector<LockfreeLogBufferQueue *> &log_buffer_queues;
         std::atomic<uint64_t> *cxl_global_epoch{ nullptr };
+	std::size_t group_commit_latency_us{ 0 };
 
         // statistics
-	std::size_t group_commit_latency_us{ 0 };
+        Percentile<uint64_t> queuing_latency;
         uint64_t disk_sync_cnt{ 0 };
         uint64_t disk_sync_size{ 0 };
         Percentile<uint64_t> disk_sync_latency;
