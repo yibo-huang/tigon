@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.11
 
+import argparse
 import os
 import copy
 import common
@@ -9,6 +10,30 @@ import csv
 REMOTE_RATIOS = [(0, 0), (10, 15), (20, 30), (30, 45), (40, 60), (50, 75), (60, 90)]
 
 CROSS_RATIOS = list(range(0, 101, 10))
+
+
+def main():
+    args = common.parse_cli()
+    res_dir = args.res_dir + "/macro"
+    benchmarks = args.benchmark if len(args.benchmark) > 0 else ["tpcc", "smallbank"]
+
+    tpcc = parse_tpcc_remote_txn_overhead(res_dir)
+    smallbank = parse_smallbank_remote_txn_overhead(res_dir)
+
+    for benchmark in benchmarks:
+        match (benchmark, args.dump):
+            case ("tpcc", True):
+                dump_tpcc_remote_txn_overhead(tpcc)
+            case ("tpcc", False):
+                emit_tpcc_remote_txn_overhead(tpcc, res_dir + "/tpcc.csv")
+            case ("smallbank", True):
+                dump_smallbank_remote_txn_overhead(smallbank)
+            case ("smallbank", False):
+                emit_smallbank_remote_txn_overhead(
+                    smallbank, os.path.join(res_dir + "/smallbank.csv")
+                )
+            case (benchmark, _):
+                raise ValueError(f"Unrecognized benchmark {benchmark}")
 
 
 def dump_tpcc_remote_txn_overhead(groups):
@@ -47,7 +72,7 @@ def emit_tpcc_remote_txn_overhead(groups, path):
         csv.writer(file).writerows(rows)
 
 
-def parse_tpcc_remote_txn_overhead(res_dir):
+def parse_tpcc_remote_txn_overhead(res_dir: str):
     paths = [
         os.path.join(res_dir, path)
         for path in os.listdir(res_dir)
@@ -76,7 +101,7 @@ def parse_tpcc_remote_txn_overhead(res_dir):
             experiments.append((input, output))
 
     # group by name and sort by neworder_dist
-    groups = {
+    return {
         name: list(
             sorted(
                 [
@@ -89,8 +114,6 @@ def parse_tpcc_remote_txn_overhead(res_dir):
         )
         for name in common.ORDER
     }
-
-    emit_tpcc_remote_txn_overhead(groups, res_dir + "/tpcc.csv")
 
 
 def dump_smallbank_remote_txn_overhead(groups):
@@ -120,7 +143,7 @@ def emit_smallbank_remote_txn_overhead(groups, output):
         csv.writer(file).writerows(rows)
 
 
-def parse_smallbank_remote_txn_overhead(res_dir):
+def parse_smallbank_remote_txn_overhead(res_dir: str):
     paths = [
         os.path.join(res_dir, path)
         for path in os.listdir(res_dir)
@@ -148,7 +171,7 @@ def parse_smallbank_remote_txn_overhead(res_dir):
             experiments.append((args, output))
 
     # group by name and sort by cross ratio
-    groups = {
+    return {
         name: list(
             sorted(
                 [
@@ -162,14 +185,6 @@ def parse_smallbank_remote_txn_overhead(res_dir):
         for name in common.ORDER
     }
 
-    emit_smallbank_remote_txn_overhead(groups, os.path.join(res_dir + "/smallbank.csv"))
 
-
-if len(sys.argv) != 2:
-    print("Usage: " + sys.argv[0] + " res_dir")
-    sys.exit(-1)
-
-res_dir = sys.argv[1] + "/macro"
-
-parse_tpcc_remote_txn_overhead(res_dir)
-parse_smallbank_remote_txn_overhead(res_dir)
+if __name__ == "__main__":
+    main()

@@ -1,3 +1,4 @@
+import argparse
 from enum import auto, StrEnum
 import re
 import os
@@ -310,6 +311,22 @@ class Output:
         for capture in CAPTURES:
             union |= capture.search(data).groupdict()
         return Output(**{k: float(v) for k, v in union.items()})
+
+
+def parse_cli():
+    parser = argparse.ArgumentParser(
+        description="Parse Pasha logs for benchmarks",
+    )
+    parser.add_argument("res_dir", help="Path to results directory")
+    parser.add_argument("--dump", action="store_true", help="Dump statistics to stdout")
+    parser.add_argument(
+        "-b",
+        "--benchmark",
+        action="append",
+        help="Select benchmark to parse",
+        default=[],
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
