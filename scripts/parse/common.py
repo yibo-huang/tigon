@@ -250,7 +250,7 @@ def capture(
 
     # Any sequence of non-whitespace characters, to handle floating point
     # numbers like 3e06 or 1.2.
-    NUMBER = "[^\\s,]+"
+    NUMBER = "[^\\s,%]+"
     return f"{prefix}{name}{sep}(?P<{rename}>{NUMBER}){suffix}"
 
 
@@ -375,6 +375,16 @@ CAPTURES = {
                 )
             )
         ),
+        "SCCManager": "software cache-coherence statistics: "
+        + " ".join(
+            [
+                capture("num_clflush"),
+                capture("num_clwb"),
+                capture("num_cache_hit"),
+                capture("num_cache_miss"),
+                capture("cache hit rate", rename="cache_hit_rate_pct", suffix="%"),
+            ]
+        ),
     }.items()
 }
 
@@ -382,12 +392,14 @@ CAPTURES = {
 Output: TypeAlias = SimpleNamespace
 
 
-def parse_output(data: str) -> Output:
+def parse_output(data: str, path: str = None) -> Output:
     union = {}
     for name, regex in CAPTURES.items():
         matches = regex.search(data)
         if matches is None:
-            raise ValueError(f"Failed to match {name} regex on {data}")
+            print(f"Failed to match {name} regex in {path}", file=sys.stderr)
+            union |= {name: float("NaN") for name in regex.groupindex}
+            continue
         union |= matches.groupdict()
     return Output(**{k: float(v) for k, v in union.items()})
 

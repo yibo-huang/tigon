@@ -77,7 +77,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
         ):
             input = copy.deepcopy(base)
             input.cross_ratio = cross_ratio
-            output = common.parse_output(log)
+            output = common.parse_output(log, path)
             experiments.append((input, output))
 
     # group by name and sort by cross ratio
