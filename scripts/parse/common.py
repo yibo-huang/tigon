@@ -1,3 +1,5 @@
+from typing import Optional, TypeAlias
+from types import SimpleNamespace
 import argparse
 import csv
 from enum import auto, StrEnum
@@ -237,15 +239,18 @@ class SmallbankInput(Input):
         return SmallbankInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
 
-def capture(name: str) -> str:
-    # Any sequence of non-whitespace characters, to handle floating point
-    # numbers like 3e06 or 1.2.
-    NUMBER = "[^\\s,]+"
-    return f"{name}: (?P<{name}>{NUMBER})"
+# Any sequence of non-whitespace characters, to handle floating point
+# numbers like 3e06 or 1.2.
+NUMBER = "[^\\s,]+"
 
 
-CAPTURES = [
-    re.compile(
+def capture(name: str, rename: Optional[str] = None, sep: str = ": ") -> str:
+    rename = rename or name
+    return f"{name}{sep}(?P<{rename}>{NUMBER})"
+
+
+CAPTURES = {
+    "Local CXL": re.compile(
         " ".join(
             ["local CXL memory usage:"]
             + list(
@@ -261,7 +266,7 @@ CAPTURES = [
             )
         )
     ),
-    re.compile(
+    "Global": re.compile(
         " ".join(
             ["Global Stats:"]
             + list(
@@ -278,40 +283,49 @@ CAPTURES = [
             )
         )
     ),
-    re.compile(capture("abort_rate")),
-]
+    "Coordinator": re.compile(
+        ", ".join(
+            [
+                capture("abort_rate"),
+                capture("network size", rename="network_size"),
+                capture("avg network size", rename="avg_network_size"),
+                capture("si_in_serializable")
+                + f" (?P<si_in_serializable_pct>{NUMBER}) %",
+                capture("local", rename="local_pct") + " %",
+                capture("local_access"),
+                capture("local_cxl_access")
+                + f" \\((?P<local_cxl_acccess_pct>{NUMBER})%\\)",
+                capture("remote_access"),
+                capture("remote_access_with_req")
+                + f" \\((?P<remote_access_with_req_pct>{NUMBER})%\\)",
+                capture("data_move_in"),
+                capture("data_move_out"),
+            ]
+        )
+    ),
+    "WALLogger": re.compile(
+        " ".join(
+            [
+                capture("committed_txn_cnt", sep=" "),
+                capture("disk_sync_cnt", sep=" "),
+                capture("disk_sync_size", sep=" "),
+            ]
+        )
+    ),
+}
 
 
-class Output:
-    def __init__(
-        self,
-        size_index_usage: float,
-        size_metadata_usage: float,
-        size_data_usage: float,
-        size_transport_usage: float,
-        total_commit: int,
-        total_size_index_usage: float,
-        total_size_metadata_usage: float,
-        total_size_data_usage: float,
-        total_size_transport_usage: float,
-        abort_rate: float,
-    ):
-        self.size_index_usage = size_index_usage
-        self.size_metadata_usage = size_metadata_usage
-        self.size_data_usage = size_data_usage
-        self.size_transport_usage = size_transport_usage
-        self.total_commit = total_commit
-        self.total_size_index_usage = total_size_index_usage
-        self.total_size_metadata_usage = total_size_metadata_usage
-        self.total_size_data_usage = total_size_data_usage
-        self.total_size_transport_usage = total_size_transport_usage
-        self.abort_rate = abort_rate
+Output: TypeAlias = SimpleNamespace
 
-    def parse(data: str):
-        union = {}
-        for capture in CAPTURES:
-            union |= capture.search(data).groupdict()
-        return Output(**{k: float(v) for k, v in union.items()})
+
+def parse_output(data: str) -> Output:
+    union = {}
+    for name, regex in CAPTURES.items():
+        matches = regex.search(data)
+        if matches is None:
+            raise ValueError(f"Failed to match {name} regex on {data}")
+        union |= matches.groupdict()
+    return Output(**{k: float(v) for k, v in union.items()})
 
 
 class Experiment:

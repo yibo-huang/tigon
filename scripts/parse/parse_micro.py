@@ -75,10 +75,10 @@ def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
         for cross_ratio, log in zip(
             CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
         ):
-            args = copy.deepcopy(base)
-            args.cross_ratio = cross_ratio
-            output = common.Output.parse(log)
-            experiments.append((args, output))
+            input = copy.deepcopy(base)
+            input.cross_ratio = cross_ratio
+            output = common.parse_output(log)
+            experiments.append((input, output))
 
     # group by name and sort by cross ratio
     return {
