@@ -1,6 +1,5 @@
 #!/usr/bin/env python3.11
 
-import argparse
 import os
 import copy
 import common
@@ -13,7 +12,7 @@ CROSS_RATIOS = list(range(0, 101, 10))
 
 
 def main():
-    args = common.parse_cli()
+    args = common.cli().parse_args()
     res_dir = args.res_dir + "/macro"
     benchmarks = args.benchmark if len(args.benchmark) > 0 else ["tpcc", "smallbank"]
 

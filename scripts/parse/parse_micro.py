@@ -1,13 +1,42 @@
 #!/usr/bin/env python3.11
 
-import copy
 import common
+import copy
 import sys
 import csv
 import os
 
 
 CROSS_RATIOS = list(range(0, 101, 10))
+
+
+def main():
+    args = common.cli().parse_args()
+    res_dir = args.res_dir + "/micro"
+
+    if args.dump:
+        groups = parse_ycsb_remote_txn_overhead(res_dir)
+        dump_ycsb_remote_txn_overhead(groups)
+
+    else:
+        for rw_ratio in [100, 0]:
+            for zipf_theta in [0.99, 0.7]:
+                groups = parse_ycsb_remote_txn_overhead(
+                    res_dir, filter(rw_ratio, zipf_theta, common.YcsbWorkload.RMW)
+                )
+
+                emit_ycsb_remote_txn_overhead(
+                    groups,
+                    os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv"),
+                )
+
+
+def filter(rw_ratio: int, zipf_theta: float, workload: common.YcsbWorkload):
+    return lambda input: (
+        input.read_write_ratio == rw_ratio
+        and abs(input.zipf_theta - zipf_theta) < 1e-5
+        and input.workload == workload
+    )
 
 
 def dump_ycsb_remote_txn_overhead(groups):
@@ -38,7 +67,7 @@ def emit_ycsb_remote_txn_overhead(groups, output):
         csv.writer(file).writerows(rows)
 
 
-def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
+def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
     paths = [
         os.path.join(res_dir, path)
         for path in os.listdir(res_dir)
@@ -50,11 +79,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
     for path in paths:
         base = common.Input.parse(path)
 
-        if (
-            base.read_write_ratio != rw_ratio
-            or base.zipf_theta != zipf_theta
-            or base.workload != common.YcsbWorkload.RMW
-        ):
+        if not filter(base):
             continue
 
         data = None
@@ -70,7 +95,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
             experiments.append((args, output))
 
     # group by name and sort by cross ratio
-    groups = {
+    return {
         name: list(
             sorted(
                 [
@@ -84,20 +109,6 @@ def parse_ycsb_remote_txn_overhead(res_dir, rw_ratio, zipf_theta):
         for name in common.ORDER
     }
 
-    emit_ycsb_remote_txn_overhead(
-        groups,
-        os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv"),
-    )
 
-
-if len(sys.argv) != 2:
-    print("Usage: " + sys.argv[0] + " res_dir")
-    sys.exit(-1)
-
-res_dir = sys.argv[1] + "/micro"
-
-parse_ycsb_remote_txn_overhead(res_dir, 100, 0.99)
-parse_ycsb_remote_txn_overhead(res_dir, 100, 0.7)
-
-parse_ycsb_remote_txn_overhead(res_dir, 0, 0.99)
-parse_ycsb_remote_txn_overhead(res_dir, 0, 0.7)
+if __name__ == "__main__":
+    main()

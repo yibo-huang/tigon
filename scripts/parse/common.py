@@ -313,7 +313,7 @@ class Output:
         return Output(**{k: float(v) for k, v in union.items()})
 
 
-def parse_cli():
+def cli() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Parse Pasha logs for benchmarks",
     )
@@ -326,7 +326,7 @@ def parse_cli():
         help="Select benchmark to parse",
         default=[],
     )
-    return parser.parse_args()
+    return parser
 
 
 if __name__ == "__main__":
