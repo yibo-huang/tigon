@@ -14,7 +14,7 @@ class MigrationManager {
     public:
         using MetaDataType = std::atomic<uint64_t>;
 
-        static constexpr uint64_t migration_policy_meta_size = 128;        // in bytes
+        static constexpr uint64_t migration_policy_meta_size = 24;        // in bytes
 
         enum {
                 OnDemand,
