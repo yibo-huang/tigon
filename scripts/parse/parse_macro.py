@@ -22,32 +22,17 @@ def main():
     for benchmark in benchmarks:
         match (benchmark, args.dump):
             case ("tpcc", True):
-                dump_tpcc_remote_txn_overhead(tpcc)
+                common.dump_experiments(tpcc)
             case ("tpcc", False):
                 emit_tpcc_remote_txn_overhead(tpcc, res_dir + "/tpcc.csv")
             case ("smallbank", True):
-                dump_smallbank_remote_txn_overhead(smallbank)
+                common.dump_experiments(smallbank)
             case ("smallbank", False):
                 emit_smallbank_remote_txn_overhead(
                     smallbank, os.path.join(res_dir + "/smallbank.csv")
                 )
             case (benchmark, _):
                 raise ValueError(f"Unrecognized benchmark {benchmark}")
-
-
-def dump_tpcc_remote_txn_overhead(groups):
-    output = next(iter(groups.values()))[0][1]
-    rows = [["system", "neworder_dist", "payment_dist"] + list(vars(output).keys())]
-
-    # read all the files and construct the row
-    for name, group in groups.items():
-        for input, output in group:
-            rows.append(
-                [name, input.neworder_dist, input.payment_dist]
-                + list(vars(output).values())
-            )
-
-    csv.writer(sys.stdout).writerows(rows)
 
 
 def emit_tpcc_remote_txn_overhead(groups, path):
@@ -62,7 +47,7 @@ def emit_tpcc_remote_txn_overhead(groups, path):
 
     # read all the files and construct the row
     for name, group in groups.items():
-        rows.append([name] + [output.total_commit for _, output in group])
+        rows.append([name] + [experiment.output.total_commit for experiment in group])
 
     # convert rows into columns
     rows = zip(*rows)
@@ -104,27 +89,15 @@ def parse_tpcc_remote_txn_overhead(res_dir: str):
         name: list(
             sorted(
                 [
-                    (input, output)
+                    common.Experiment(input, output)
                     for input, output in experiments
                     if input.name() == name
                 ],
-                key=lambda experiment: experiment[0].neworder_dist,
+                key=lambda experiment: experiment.input.neworder_dist,
             )
         )
         for name in common.ORDER
     }
-
-
-def dump_smallbank_remote_txn_overhead(groups):
-    output = next(iter(groups.values()))[0][1]
-    rows = [["system", "remote_ratio"] + list(vars(output).keys())]
-
-    # read all the files and construct the row
-    for name, group in groups.items():
-        for input, output in group:
-            rows.append([name, input.cross_ratio] + list(vars(output).values()))
-
-    csv.writer(sys.stdout).writerows(rows)
 
 
 def emit_smallbank_remote_txn_overhead(groups, output):
@@ -133,7 +106,7 @@ def emit_smallbank_remote_txn_overhead(groups, output):
 
     # read all the files and construct the row
     for name, group in groups.items():
-        rows.append([name] + [output.total_commit for _, output in group])
+        rows.append([name] + [experiment.output.total_commit for experiment in group])
 
     # convert rows into columns
     rows = zip(*rows)
@@ -174,11 +147,11 @@ def parse_smallbank_remote_txn_overhead(res_dir: str):
         name: list(
             sorted(
                 [
-                    (input, output)
+                    common.Experiment(input, output)
                     for input, output in experiments
                     if input.name() == name
                 ],
-                key=lambda key: key[0].cross_ratio,
+                key=lambda experiment: experiment.input.cross_ratio,
             )
         )
         for name in common.ORDER

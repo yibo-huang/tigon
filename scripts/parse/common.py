@@ -1,4 +1,5 @@
 import argparse
+import csv
 from enum import auto, StrEnum
 import re
 import os
@@ -311,6 +312,36 @@ class Output:
         for capture in CAPTURES:
             union |= capture.search(data).groupdict()
         return Output(**{k: float(v) for k, v in union.items()})
+
+
+class Experiment:
+    def __init__(
+        self,
+        input: Input,
+        output: Output,
+    ):
+        self.input = input
+        self.output = output
+
+    def keys(self):
+        return list(vars(self.input).keys()) + list(vars(self.output).keys())
+
+    def values(self):
+        return list(vars(self.input).values()) + list(vars(self.output).values())
+
+
+def dump_experiments(groups: dict[str, list[Experiment]]):
+    out = csv.writer(sys.stdout)
+    first = True
+
+    # read all the files and construct the row
+    for name, group in groups.items():
+        for experiment in group:
+            if first:
+                first = False
+                out.writerow(["system"] + experiment.keys())
+
+            out.writerow([name] + experiment.values())
 
 
 def cli() -> argparse.ArgumentParser:

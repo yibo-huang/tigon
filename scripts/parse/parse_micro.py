@@ -2,7 +2,6 @@
 
 import common
 import copy
-import sys
 import csv
 import os
 
@@ -16,7 +15,7 @@ def main():
 
     if args.dump:
         groups = parse_ycsb_remote_txn_overhead(res_dir)
-        dump_ycsb_remote_txn_overhead(groups)
+        common.dump_experiments(groups)
 
     else:
         for rw_ratio in [100, 0]:
@@ -39,26 +38,13 @@ def filter(rw_ratio: int, zipf_theta: float, workload: common.YcsbWorkload):
     )
 
 
-def dump_ycsb_remote_txn_overhead(groups):
-    # need an instance of common.Output to read off its field names
-    output = next(iter(groups.values()))[0][1]
-    rows = [["system", "remote_ratio"] + list(vars(output).keys())]
-
-    for name, group in groups.items():
-        for input, output in group:
-            # dump all captured outputs
-            rows.append([name, input.cross_ratio] + list(vars(output).values()))
-
-    csv.writer(sys.stdout).writerows(rows)
-
-
 def emit_ycsb_remote_txn_overhead(groups, output):
     # write header row first
     rows = [["Remote_Ratio"] + CROSS_RATIOS]
 
     # read all the files and construct the row
     for name, group in groups.items():
-        rows.append([name] + [output.total_commit for _, output in group])
+        rows.append([name] + [experiment.output.total_commit for experiment in group])
 
     # convert rows into columns
     rows = zip(*rows)
@@ -99,11 +85,11 @@ def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
         name: list(
             sorted(
                 [
-                    (input, output)
+                    common.Experiment(input, output)
                     for input, output in experiments
                     if input.name() == name
                 ],
-                key=lambda key: key[0].cross_ratio,
+                key=lambda experiment: experiment.input.cross_ratio,
             )
         )
         for name in common.ORDER
