@@ -456,6 +456,19 @@ CAPTURES = {
                 capture("cache hit rate", rename="cache_hit_rate_pct", suffix="%"),
             ]
         ),
+        "Round trip": " ".join(
+            [
+                capture(
+                    "round_trip_latency",
+                    rename="round_trip_lat_p50",
+                    sep=" ",
+                    suffix=" \\(50th\\)",
+                ),
+                capture("", rename="round_trip_lat_p75", sep="", suffix=" \\(75th\\)"),
+                capture("", rename="round_trip_lat_p95", sep="", suffix=" \\(95th\\)"),
+                capture("", rename="round_trip_lat_p99", sep="", suffix=" \\(99th\\)"),
+            ]
+        ),
     }.items()
 }
 
