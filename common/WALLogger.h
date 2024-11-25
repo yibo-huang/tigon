@@ -19,6 +19,7 @@
 
 #include "BufferedFileWriter.h"
 #include "Time.h"
+
 namespace star
 {
 
@@ -363,7 +364,7 @@ struct LogBuffer {
 
         // statistics
         uint64_t grouped_txn_cnt = 0;
-        std::vector<std::chrono::steady_clock::time_point> txn_start_times;
+        std::vector<uint64_t> txn_latency_until_publish;
 };
 
 using LockfreeLogBufferQueue = LockfreeQueue<LogBuffer *, 1024>;
@@ -390,8 +391,8 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 
                 CHECK(cur_log_buffer != nullptr);
 
-                if (cur_log_buffer->size + size > LogBuffer::max_buffer_size || cur_epoch > last_epoch) {
-                        if (size > 0) {
+                if (((cur_log_buffer->size + size) > LogBuffer::max_buffer_size) || (cur_epoch > last_epoch)) {
+                        if (cur_log_buffer->size > 0) {
                                 log_buffer_queue.push(cur_log_buffer);
                                 cur_log_buffer = new LogBuffer;
                                 CHECK(cur_log_buffer != nullptr);
@@ -403,8 +404,9 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
                 cur_log_buffer->size += size;
 
                 if (persist == true) {
+                        auto latency = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - txn_start_time).count();
+                        cur_log_buffer->txn_latency_until_publish.push_back(latency);
                         cur_log_buffer->grouped_txn_cnt++;
-                        cur_log_buffer->txn_start_times.push_back(txn_start_time);
                 }
 
                 return size;
@@ -433,13 +435,13 @@ class PashaGroupCommitLogger : public WALLogger {
                           std::size_t group_commit_txn_cnt, std::size_t group_commit_latency = 10,
 			  std::size_t emulated_persist_latency = 0, std::size_t block_size = 4096)
 		: WALLogger(filename, emulated_persist_latency)
-                , committed_txn_cnt(0)
                 , file_writer(filename.c_str(), block_size, emulated_persist_latency)
                 , log_buffer_queues(*log_buffer_queues_ptr)
                 , cxl_global_epoch(cxl_global_epoch)
                 , group_commit_latency_us(group_commit_latency)
                 , disk_sync_cnt(0)
                 , disk_sync_size(0)
+                , committed_txn_cnt(0)
 		, last_sync_time(Time::now())
                 , stopFlag(stopFlag)
 	{
@@ -457,6 +459,7 @@ class PashaGroupCommitLogger : public WALLogger {
                         if ((Time::now() - last_sync_time) / 1000 >= group_commit_latency_us) {
                                 this->cxl_global_epoch->fetch_add(1);
                                 do_sync();
+                                last_sync_time = Time::now();
                         }
                         std::this_thread::sleep_for(std::chrono::microseconds(2));
                 }
@@ -486,18 +489,23 @@ class PashaGroupCommitLogger : public WALLogger {
                                 cur_log_buffer_queue->pop();
 
                                 // write to disk
+                                auto sync_start_time = std::chrono::steady_clock::now();
                                 file_writer.write(log_buffer->buffer, log_buffer->size);
                                 file_writer.sync();
+                                auto sync_end_time = std::chrono::steady_clock::now();
 
-                                // statistics
-                                auto commit_time = std::chrono::steady_clock::now();
-                                committed_txn_cnt += log_buffer->grouped_txn_cnt;
-                                for (auto i = 0; i < log_buffer->txn_start_times.size(); i++) {
-                                        auto cur_latency = std::chrono::duration_cast<std::chrono::microseconds>(commit_time - log_buffer->txn_start_times[i]).count();
-                                        txn_latency.add(cur_latency);
-                                }
+                                // collect disk sync stats
+                                auto sync_latency = std::chrono::duration_cast<std::chrono::microseconds>(sync_end_time - sync_start_time).count();
+                                disk_sync_latency.add(sync_latency);
                                 disk_sync_cnt++;
                                 disk_sync_size += log_buffer->size;
+
+                                // calculate transaction latency and collect stats
+                                committed_txn_cnt += log_buffer->grouped_txn_cnt;
+                                for (auto i = 0; i < log_buffer->txn_latency_until_publish.size(); i++) {
+                                        uint64_t cur_txn_latency = log_buffer->txn_latency_until_publish[i] + sync_latency;
+                                        txn_latency.add(cur_txn_latency);
+                                }
                         }
                 }
 	}
@@ -518,9 +526,15 @@ class PashaGroupCommitLogger : public WALLogger {
                           << txn_latency.nth(50) << " us (50%) " << txn_latency.nth(75) << " us (75%) "
                           << txn_latency.nth(95) << " us (95%) " << txn_latency.nth(99) << " us (99%) "
 			  << " avg " << txn_latency.avg() << " us."
-                          << " committed_txn_cnt " << committed_txn_cnt
+                          << " committed_txn_cnt " << committed_txn_cnt;
+
+                LOG(INFO) << "Disk Sync Stats: "
+                          << disk_sync_latency.nth(50) << " us (50%) " << disk_sync_latency.nth(75) << " us (75%) "
+                          << disk_sync_latency.nth(95) << " us (95%) " << disk_sync_latency.nth(99) << " us (99%) "
+			  << " avg " << disk_sync_latency.avg() << " us."
                           << " disk_sync_cnt " << disk_sync_cnt
-                          << " disk_sync_size " << disk_sync_size;
+                          << " disk_sync_size " << disk_sync_size
+                          << " current global epoch " << this->cxl_global_epoch->load();
 	}
 
     private:
@@ -533,6 +547,7 @@ class PashaGroupCommitLogger : public WALLogger {
 	std::size_t group_commit_latency_us{ 0 };
         uint64_t disk_sync_cnt{ 0 };
         uint64_t disk_sync_size{ 0 };
+        Percentile<uint64_t> disk_sync_latency;
         uint64_t committed_txn_cnt{ 0 };
         Percentile<uint64_t> txn_latency;
 

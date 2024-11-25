@@ -794,7 +794,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=40000   # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_TIME=100   # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
