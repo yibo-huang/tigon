@@ -320,18 +320,6 @@ CAPTURES = {
                 capture("data_move_out"),
             ]
         ),
-        "WALLogger": " ".join(
-            list(
-                map(
-                    lambda key: capture(key, sep=" "),
-                    [
-                        "committed_txn_cnt",
-                        "disk_sync_cnt",
-                        "disk_sync_size",
-                    ],
-                )
-            )
-        ),
         # Note: per worker
         "Worker": "Worker \\d+ latency: "
         + " ".join(
@@ -445,6 +433,121 @@ CAPTURES = {
                     ],
                 )
             )
+        ),
+        "WALLogger Group Commit": " ".join(
+            [
+                capture(
+                    "Group Commit Stats",
+                    rename="wal_group_commit_lat_p50",
+                    suffix=" us \\(50%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_group_commit_lat_p75",
+                    sep="",
+                    suffix=" us \\(75%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_group_commit_lat_p95",
+                    sep="",
+                    suffix=" us \\(95%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_group_commit_lat_p99",
+                    sep="",
+                    suffix=" us \\(99%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_group_commit_lat_avg",
+                    sep="",
+                    suffix=" us \\(avg\\)",
+                ),
+                capture("committed_txn_cnt", rename="wal_group_commit_cnt", sep=" "),
+            ]
+        ),
+        "WALLogger Queuing": " ".join(
+            [
+                capture(
+                    "Queuing Stats",
+                    rename="wal_queueing_lat_p50",
+                    suffix=" us \\(50%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_queueing_lat_p75",
+                    sep="",
+                    suffix=" us \\(75%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_queueing_lat_p95",
+                    sep="",
+                    suffix=" us \\(95%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_queueing_lat_p99",
+                    sep="",
+                    suffix=" us \\(99%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_queueing_lat_avg",
+                    sep="",
+                    suffix=" us \\(avg\\)",
+                ),
+            ]
+        ),
+        "WALLogger Disk Sync": " ".join(
+            [
+                capture(
+                    "Disk Sync Stats",
+                    rename="wal_disk_sync_lat_p50",
+                    suffix=" us \\(50%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_disk_sync_lat_p75",
+                    sep="",
+                    suffix=" us \\(75%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_disk_sync_lat_p95",
+                    sep="",
+                    suffix=" us \\(95%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_disk_sync_lat_p99",
+                    sep="",
+                    suffix=" us \\(99%\\)",
+                ),
+                capture(
+                    "",
+                    rename="wal_disk_sync_lat_avg",
+                    sep="",
+                    suffix=" us \\(avg\\)",
+                ),
+                capture(
+                    "disk_sync_cnt",
+                    rename="wal_disk_sync_cnt",
+                    sep=" ",
+                ),
+                capture(
+                    "disk_sync_size",
+                    rename="wal_disk_sync_size",
+                    sep=" ",
+                ),
+                capture(
+                    "current global epoch",
+                    rename="wal_disk_sync_current_global_epoch",
+                    sep=" ",
+                ),
+            ]
         ),
         "SCCManager": "software cache-coherence statistics: "
         + " ".join(
