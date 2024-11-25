@@ -8,6 +8,8 @@
 #include <list>
 #include <utility>
 
+#include "common/CXLMemory.h"
+
 namespace btreeolc_cxl
 {
 
@@ -127,6 +129,9 @@ template <std::size_t UpdateThreshold, class Deallocator> class EBR {
 		{
 			// TODO: EBR is kind of disabled now
 			//     addRetiredNode(p, control_block_->local_epoch_.load(std::memory_order_relaxed));
+
+                        // but we still need to collect memory usage statistics
+                        star::cxl_memory.cxlalloc_free_wrapper(p, 4096, star::CXLMemory::INDEX_FREE);
 		}
 
 	    private:
