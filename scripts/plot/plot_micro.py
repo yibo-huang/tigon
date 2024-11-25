@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 if len(sys.argv) != 4:
-        print("Usage: " + sys.argv[0] + " res_dir")
+        print("Usage: " + sys.argv[0] + " res_dir rw_ratio zipf_theta")
         sys.exit(-1)
 
 res_dir = sys.argv[1] + "/micro"
