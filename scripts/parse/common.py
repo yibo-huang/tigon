@@ -246,7 +246,8 @@ def capture(
     prefix: str = "",
     suffix: str = "",
 ) -> str:
-    rename = rename or name.replace(" ", "_")
+    rename = rename or name
+    rename = rename.replace(" ", "_")
 
     # Any sequence of non-whitespace characters, to handle floating point
     # numbers like 3e06 or 1.2.
@@ -332,13 +333,85 @@ CAPTURES = {
             )
         ),
         # Note: per worker
+        "Worker": "Worker \\d+ latency: "
+        + " ".join(
+            [
+                capture("", rename="worker_lat_p50", sep="", suffix=" us \\(50%\\)"),
+                capture("", rename="worker_lat_p75", sep="", suffix=" us \\(75%\\)"),
+                capture("", rename="worker_lat_p95", sep="", suffix=" us \\(95%\\)"),
+                capture("", rename="worker_lat_p99", sep="", suffix=" us \\(99%\\)."),
+                # dist
+                capture(
+                    "dist txn latency",
+                    rename="worker_lat_dist_p50",
+                    suffix=" us \\(50%\\)",
+                ),
+                capture(
+                    "", rename="worker_lat_dist_p75", sep="", suffix=" us \\(75%\\)"
+                ),
+                capture(
+                    "", rename="worker_lat_dist_p95", sep="", suffix=" us \\(95%\\)"
+                ),
+                capture(
+                    "", rename="worker_lat_dist_p99", sep="", suffix=" us \\(99%\\)"
+                ),
+                capture(
+                    "avg",
+                    rename="worker_lat_dist_avg",
+                    sep=" ",
+                    prefix=" ",
+                    suffix=" us .",
+                ),
+                # local
+                capture(
+                    "local txn latency",
+                    rename="worker_lat_local_p50",
+                    suffix=" us \\(50%\\)",
+                ),
+                capture(
+                    "", rename="worker_lat_local_p75", sep="", suffix=" us \\(75%\\)"
+                ),
+                capture(
+                    "", rename="worker_lat_local_p95", sep="", suffix=" us \\(95%\\)"
+                ),
+                capture(
+                    "", rename="worker_lat_local_p99", sep="", suffix=" us \\(99%\\)"
+                ),
+                capture(
+                    "avg",
+                    rename="worker_lat_local_avg",
+                    sep=" ",
+                    prefix=" ",
+                    suffix=" us.",
+                ),
+                # commit
+                capture(
+                    "txn commit latency",
+                    rename="worker_lat_commit_p50",
+                    suffix=" us \\(50%\\)",
+                ),
+                capture(
+                    "", rename="worker_lat_commit_p75", sep="", suffix=" us \\(75%\\)"
+                ),
+                capture(
+                    "", rename="worker_lat_commit_p95", sep="", suffix=" us \\(95%\\)"
+                ),
+                capture(
+                    "", rename="worker_lat_commit_p99", sep="", suffix=" us \\(99%\\)"
+                ),
+                capture(
+                    "avg",
+                    rename="worker_lat_commit_avg",
+                    sep=" ",
+                    suffix=" us.",
+                ),
+            ]
+        ),
         "LOCAL": "LOCAL "
         + " us,  ".join(
             list(
                 map(
-                    lambda key: capture(
-                        key, rename=f"local_{key.replace(' ', '_')}", sep=" "
-                    ),
+                    lambda key: capture(key, rename=f"worker_local_{key}", sep=" "),
                     [
                         "txn stall",
                         "local_work",
@@ -358,9 +431,7 @@ CAPTURES = {
         + " us,  ".join(
             list(
                 map(
-                    lambda key: capture(
-                        key, rename=f"dist_{key.replace(' ', '_')}", sep=" "
-                    ),
+                    lambda key: capture(key, rename=f"worker_dist_{key}", sep=" "),
                     [
                         "txn stall",
                         "local_work",
