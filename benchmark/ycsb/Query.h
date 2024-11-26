@@ -11,6 +11,9 @@
 
 namespace star
 {
+
+extern bool warmed_up;
+
 namespace ycsb
 {
 
@@ -81,7 +84,8 @@ template <std::size_t N> class makeRMWQuery {
 			do {
 				retry = false;
 
-				if (context.isUniform) {
+                                // during warm up, we always do uniform distribution to quickily saturate CXL memory
+				if ( warmed_up == false || context.isUniform) {
 					// For the first key, we ensure that it will land in the granule specified by granuleID.
 					// This granule will be served as the coordinating granule
 					key = i == 0 ? random.uniform_dist(0, static_cast<uint32_t>(context.keysPerGranule) - 1) :
@@ -91,7 +95,9 @@ template <std::size_t N> class makeRMWQuery {
 						       Zipf::globalZipf().value(random.next_double());
 				}
 				int this_partition_idx = 0;
-				if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
+
+                                // during warm up, we always do remote transaction to quickily saturate CXL memory
+				if ((warmed_up == false || crossPartition <= context.crossPartitionProbability) && context.partition_num > 1) {
 					if (query.num_parts == 1) {
 						query.num_parts = 1;
 						for (int j = query.num_parts; j < crossPartitionPartNum; ++j) {
