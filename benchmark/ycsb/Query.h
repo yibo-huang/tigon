@@ -85,7 +85,7 @@ template <std::size_t N> class makeRMWQuery {
 				retry = false;
 
                                 // during warm up, we always do uniform distribution to quickily saturate CXL memory
-				if ( warmed_up == false || context.isUniform) {
+				if (warmed_up == false || context.isUniform) {
 					// For the first key, we ensure that it will land in the granule specified by granuleID.
 					// This granule will be served as the coordinating granule
 					key = i == 0 ? random.uniform_dist(0, static_cast<uint32_t>(context.keysPerGranule) - 1) :
@@ -97,7 +97,7 @@ template <std::size_t N> class makeRMWQuery {
 				int this_partition_idx = 0;
 
                                 // during warm up, we always do remote transaction to quickily saturate CXL memory
-				if ((warmed_up == false || crossPartition <= context.crossPartitionProbability) && context.partition_num > 1) {
+				if (((warmed_up == false && context.crossPartitionProbability > 0) || crossPartition <= context.crossPartitionProbability) && context.partition_num > 1) {
 					if (query.num_parts == 1) {
 						query.num_parts = 1;
 						for (int j = query.num_parts; j < crossPartitionPartNum; ++j) {
