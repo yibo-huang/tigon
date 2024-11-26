@@ -7,17 +7,6 @@ import os
 import sys
 
 
-CROSS_RATIOS = list(range(0, 101, 10))
-HWCC_SIZES = [
-    0,
-    10000000,
-    50000000,
-    100000000,
-    150000000,
-    200000000,
-]
-
-
 def main():
     args = common.cli().parse_args()
     print(f"Parsing results from {args.res_dir}...", file=sys.stderr)
@@ -57,7 +46,7 @@ def filter(rw_ratio: int, zipf_theta: float, workload: common.YcsbWorkload):
 
 def emit_ycsb_remote_txn_overhead(groups, output):
     # write header row first
-    rows = [["Remote_Ratio"] + CROSS_RATIOS]
+    rows = [["Remote_Ratio"] + common.CROSS_RATIOS]
 
     # read all the files and construct the row
     for name, group in groups.items():
@@ -72,16 +61,16 @@ def emit_ycsb_remote_txn_overhead(groups, output):
 
 def emit_ycsb_hwcc_overhead(groups, output):
     # write header row first
-    rows = [["Remote_Ratio"] + CROSS_RATIOS]
+    rows = [["Remote_Ratio"] + common.CROSS_RATIOS]
 
     # read all the files and construct the row
     for name, group in groups.items():
         # HWCC size only relevant to Tigon
         if name == "Tigon":
-            for size in HWCC_SIZES:
+            for size in common.HWCC_SIZES:
                 row = [size]
                 # O(n^2) lookup here but should only be a few experiments
-                for cross_ratio in CROSS_RATIOS:
+                for cross_ratio in common.CROSS_RATIOS:
                     for experiment in group:
                         if (
                             experiment.input.max_migrated_rows_size == size
@@ -128,7 +117,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
             data = file.read()
 
         for cross_ratio, log in zip(
-            CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
+            common.CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
         ):
             input = copy.deepcopy(base)
             input.cross_ratio = cross_ratio

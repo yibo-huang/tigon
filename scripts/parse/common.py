@@ -17,6 +17,17 @@ ORDER = [
     "TwoPL-NET",
 ]
 
+CROSS_RATIOS = list(range(0, 101, 10))
+REMOTE_RATIOS = [(0, 0), (10, 15), (20, 30), (30, 45), (40, 60), (50, 75), (60, 90)]
+HWCC_SIZES = [
+    0,
+    10000000,
+    50000000,
+    100000000,
+    150000000,
+    200000000,
+]
+
 
 class Protocol(StrEnum):
     SUNDIAL_PASHA = "SundialPasha"

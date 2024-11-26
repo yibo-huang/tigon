@@ -5,9 +5,6 @@ import copy
 import common
 import csv
 
-REMOTE_RATIOS = [(0, 0), (10, 15), (20, 30), (30, 45), (40, 60), (50, 75), (60, 90)]
-CROSS_RATIOS = list(range(0, 101, 10))
-
 
 def main():
     args = common.cli().parse_args()
@@ -40,7 +37,7 @@ def emit_tpcc_remote_txn_overhead(groups, path):
         ["Remote_Ratio"]
         + [
             f"{neworder_dist}/{payment_dist}"
-            for neworder_dist, payment_dist in REMOTE_RATIOS
+            for neworder_dist, payment_dist in common.REMOTE_RATIOS
         ]
     ]
 
@@ -56,43 +53,35 @@ def emit_tpcc_remote_txn_overhead(groups, path):
 
 
 def emit_tpcc_hwcc_overhead(groups, path):
-    cols = list(
-        sorted(
-            set(
-                [
-                    experiment.input.max_migrated_rows_size
-                    for group in groups.values()
-                    for experiment in group
-                ]
-            )
-        )
-    )
-
     rows = [
         ["Remote_Ratio"]
         + [
             f"{neworder_dist}/{payment_dist}"
-            for neworder_dist, payment_dist in REMOTE_RATIOS
+            for neworder_dist, payment_dist in common.REMOTE_RATIOS
         ]
     ]
 
-    tigon = groups["Tigon"]
+    for name, group in groups.items():
+        if name == "Tigon":
+            for size in common.HWCC_SIZES:
+                row = [size]
 
-    for col in cols:
-        row = [col]
+                # O(n^2) lookup here but should only be a few experiments
+                for neworder_dist, payment_dist in common.REMOTE_RATIOS:
+                    for experiment in group:
+                        if (
+                            experiment.input.max_migrated_rows_size == size
+                            and experiment.input.neworder_dist == neworder_dist
+                            and experiment.input.payment_dist == payment_dist
+                        ):
+                            row.append(experiment.output.total_commit)
+                            break
 
-        # O(n^2) lookup here but should only be a few experiments
-        for neworder_dist, payment_dist in REMOTE_RATIOS:
-            for experiment in tigon:
-                if (
-                    experiment.input.max_migrated_rows_size == col
-                    and experiment.input.neworder_dist == neworder_dist
-                    and experiment.input.payment_dist == payment_dist
-                ):
-                    row.append(experiment.output.total_commit)
-                    break
-
-        rows.append(row)
+                rows.append(row)
+        else:
+            rows.append(
+                [name] + [experiment.output.total_commit for experiment in group]
+            )
 
     rows = zip(*rows)
 
@@ -108,9 +97,11 @@ def parse_tpcc_remote_txn_overhead(res_dir: str):
     ]
 
     experiments = []
+    names = set()
 
     for path in paths:
         base = common.Input.parse(path)
+        names.add(base.name())
 
         if base.benchmark != common.Benchmark.TPCC:
             continue
@@ -120,7 +111,7 @@ def parse_tpcc_remote_txn_overhead(res_dir: str):
             data = file.read()
 
         for (neworder_dist, payment_dist), log in zip(
-            REMOTE_RATIOS, data.split("initializing cxl memory...")[1:]
+            common.REMOTE_RATIOS, data.split("initializing cxl memory...")[1:]
         ):
             input = copy.deepcopy(base)
             input.neworder_dist = neworder_dist
@@ -141,12 +132,13 @@ def parse_tpcc_remote_txn_overhead(res_dir: str):
             )
         )
         for name in common.ORDER
+        if name in names
     }
 
 
 def emit_smallbank_remote_txn_overhead(groups, output):
     # write header row first
-    rows = [["Remote_Ratio"] + CROSS_RATIOS]
+    rows = [["Remote_Ratio"] + common.CROSS_RATIOS]
 
     # read all the files and construct the row
     for name, group in groups.items():
@@ -167,9 +159,11 @@ def parse_smallbank_remote_txn_overhead(res_dir: str):
     ]
 
     experiments = []
+    names = set()
 
     for path in paths:
         base = common.Input.parse(path)
+        names.add(base.name())
 
         if base.benchmark != common.Benchmark.SMALLBANK:
             continue
@@ -179,7 +173,7 @@ def parse_smallbank_remote_txn_overhead(res_dir: str):
             data = file.read()
 
         for cross_ratio, log in zip(
-            CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
+            common.CROSS_RATIOS, data.split("initializing cxl memory...")[1:]
         ):
             input = copy.deepcopy(base)
             input.cross_ratio = cross_ratio
@@ -199,6 +193,7 @@ def parse_smallbank_remote_txn_overhead(res_dir: str):
             )
         )
         for name in common.ORDER
+        if name in names
     }
 
 
