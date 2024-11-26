@@ -587,7 +587,7 @@ class Coordinator {
                                   << " total_size_data_usage: " << size_data_usage
                                   << " total_size_transport_usage: " << size_transport_usage
                                   << " total_size_misc_usage: " << size_misc_usage
-                                  << " total_hw_cc_budget_usage: " << size_index_usage + size_metadata_usage + size_misc_usage
+                                  << " total_hw_cc_usage: " << size_index_usage + size_metadata_usage + size_misc_usage
                                   << " total_usage: " << size_index_usage + size_metadata_usage + size_data_usage + size_transport_usage + size_misc_usage;
                 }
 	}

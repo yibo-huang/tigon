@@ -383,11 +383,11 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-
-                // because this function is only called by remote point queries,
-                // which are assumed to always succeed,
-                // so this assertion should always hold
-                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
+                if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
 
                 old_value = smeta->tid;
 
@@ -609,11 +609,11 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-
-                // because this function is only called by remote point queries,
-                // which are assumed to always succeed,
-                // so this assertion should always hold
-                CHECK(smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true);
+                if (smeta->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false) {
+                        success = false;
+                        smeta->unlock();
+                        return remove_lock_bit(old_value);
+                }
 
                 old_value = smeta->tid;
 
