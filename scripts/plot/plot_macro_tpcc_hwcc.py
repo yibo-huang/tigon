@@ -33,20 +33,25 @@ res_df = pd.read_csv(res_csv)
 # Extract the data
 x = res_df["Remote_Ratio"]
 
-hwcc_sizes = [
-    0,
-    10000000,
-    50000000,
-    100000000,
-    150000000,
-    200000000,
-]
+systems = list(
+    map(
+        str,
+        [
+            0,
+            10000000,
+            50000000,
+            100000000,
+            150000000,
+            200000000,
+        ],
+    )
+) + ["Sundial-CXL-improved", "TwoPL-CXL-improved"]
 
 plt.xlabel("Multi-partition Transaction Percentage", **basic_font)
 plt.ylabel("Throughput (txns/sec)", **basic_font)
 
 # Configure axis range
-max_y = max([max(res_df[str(size)]) for size in hwcc_sizes])
+max_y = max([max(res_df[system]) for system in systems])
 max_y_rounded_up = math.ceil(max_y / 200000.0) * 200000.0
 plt.ylim(0, max_y_rounded_up)
 
@@ -59,16 +64,23 @@ ax.yaxis.set_major_formatter(
 )
 
 # Create the line plot
-for size in hwcc_sizes:
+for system in systems:
+    name = None
+    if system.isdigit():
+        size = int(system)
+        name = f"Tigon-{int(size / 1000 / 1000) if size > 0 else '∞'}"
+    else:
+        name = system
+
     plt.plot(
         x,
-        res_df[str(size)],
+        res_df[system],
         marker="o",
         markersize=marker_size,
         linewidth=linewidth,
         markeredgewidth=marker_edge_width,
         mfc="none",
-        label=f"Tigon-{int(size / 1000 / 1000) if size > 0 else '∞'}",
+        label=name,
     )
 
 # Configure legend
