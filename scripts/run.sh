@@ -121,7 +121,7 @@ function run_exp_tpcc {
         typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
         typeset GATHER_OUTPUT=${22}
 
-        typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)  # one partition per host
+        typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
@@ -270,7 +270,7 @@ function run_exp_ycsb {
         typeset WAL_GROUP_COMMIT_BATCH_SIZE=${23}
         typeset GATHER_OUTPUT=${24}
 
-        typeset PARTITION_NUM=$(expr $HOST_NUM \* 1)    # one partition per host
+        typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
@@ -417,7 +417,7 @@ function run_exp_smallbank {
         typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
         typeset GATHER_OUTPUT=${22}
 
-        typeset PARTITION_NUM=$(expr $HOST_NUM \* 1)    # one partition per host
+        typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
