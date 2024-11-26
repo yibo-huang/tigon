@@ -84,7 +84,7 @@ function run_remote_txn_overhead_ycsb {
         typeset PRE_MIGRATE=${14}
         typeset LOGGING_TYPE=${15}
 
-        typeset KEYS=40960
+        typeset KEYS=1000000
         typeset TIME_TO_RUN=10
         typeset TIME_TO_WARMUP=5
 
@@ -196,6 +196,17 @@ run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1 0 NoMov
 # run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL # Sundial-CXL
 # run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL # Sundial-NET
 
+# YCSB (80% read + 20% write + 0.7 skewness)
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL     # Tigon-TwoPL
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL   # Tigon-Sundial
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL                     # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL                   # Sundial-CXL-improved
+
+# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-CXL
+# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL           # TwoPL-NET
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-CXL
+# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL         # Sundial-NET
+
 # TATP - not needed
 
 # SmallBank - not needed
@@ -207,6 +218,16 @@ run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1 0 NoMov
 
 
 ########### Data Movement BEGIN ###########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/macro
+mkdir -p $RESULT_DIR
+
+# TPCC
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 50000000 WriteThrough NonPart GROUP_WAL      # Tigon-TwoPL + 50 MB
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL         # Tigon-TwoPL + 10 MB
+
+# YCSB (80% read + 20% write + 0.7 skewness)
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 50000000 WriteThrough None GROUP_WAL      # Tigon-TwoPL + 50 MB
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL      # Tigon-TwoPL + 10 MB
 
 ########### Data Movement END ###########
 
