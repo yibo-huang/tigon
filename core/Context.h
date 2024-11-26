@@ -106,7 +106,7 @@ class Context {
         // Pasha migration policy
         std::string migration_policy;
         std::string when_to_move_out;
-        uint64_t max_migrated_rows_size = 10000000;     // 10 MB
+        uint64_t hw_cc_budget = 1024 * 1024 * 200;     // 200 MB
 
         // Pasha software cache-coherence
         std::string scc_mechanism;

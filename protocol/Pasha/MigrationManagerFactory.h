@@ -19,8 +19,8 @@ namespace star
 
 class MigrationManagerFactory {
     public:
-	static MigrationManager *create_migration_manager(const std::string &protocol, const std::string &migration_policy, uint64_t coordinator_id, uint64_t partition_num,
-                                                          const std::string &when_to_move_out, uint64_t max_migrated_rows_size)
+	static MigrationManager *create_migration_manager(const std::string &protocol, const std::string &migration_policy, uint64_t coordinator_id,
+                                                        uint64_t partition_num, const std::string &when_to_move_out, uint64_t hw_cc_budget)
 	{
                 MigrationManager *migration_manager = nullptr;
 
@@ -31,14 +31,13 @@ class MigrationManagerFactory {
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::delete_and_update_next_key_info, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         when_to_move_out,
-                                        max_migrated_rows_size);
+                                        hw_cc_budget);
                         } else if (migration_policy == "Eagerly") {
                                 migration_manager = new PolicyEagerly(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::delete_and_update_next_key_info, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-                                        when_to_move_out,
-                                        max_migrated_rows_size);
+                                        when_to_move_out);
                         } else if (migration_policy == "NoMoveOut") {
                                 migration_manager = new PolicyNoMoveOut(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
@@ -53,7 +52,7 @@ class MigrationManagerFactory {
                                         coordinator_id,
                                         partition_num,
                                         when_to_move_out,
-                                        max_migrated_rows_size);
+                                        hw_cc_budget);
                         } else {
                                 CHECK(0);
                         }
@@ -64,14 +63,13 @@ class MigrationManagerFactory {
                                         std::bind(&TwoPLPashaHelper::move_from_shared_region_to_partition, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&TwoPLPashaHelper::delete_and_update_next_key_info, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         when_to_move_out,
-                                        max_migrated_rows_size);
+                                        hw_cc_budget);
                         } else if (migration_policy == "Eagerly") {
                                 migration_manager = new PolicyEagerly(
                                         std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         std::bind(&TwoPLPashaHelper::move_from_shared_region_to_partition, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&TwoPLPashaHelper::delete_and_update_next_key_info, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-                                        when_to_move_out,
-                                        max_migrated_rows_size);
+                                        when_to_move_out);
                         } else if (migration_policy == "NoMoveOut") {
                                 migration_manager = new PolicyNoMoveOut(
                                         std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
@@ -86,7 +84,7 @@ class MigrationManagerFactory {
                                         coordinator_id,
                                         partition_num,
                                         when_to_move_out,
-                                        max_migrated_rows_size);
+                                        hw_cc_budget);
                         } else {
                                 CHECK(0);
                         }

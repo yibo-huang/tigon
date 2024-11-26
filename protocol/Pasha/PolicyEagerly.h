@@ -23,10 +23,8 @@ class PolicyEagerly : public MigrationManager {
         PolicyEagerly(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                       std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                       std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
-                      const std::string when_to_move_out_str,
-                      uint64_t hw_cc_budget)
+                      const std::string when_to_move_out_str)
         : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, delete_and_update_next_key_info, when_to_move_out_str)
-        , hw_cc_budget(hw_cc_budget)
         {}
 
         void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, uint64_t metadata_size) override
@@ -110,8 +108,6 @@ class PolicyEagerly : public MigrationManager {
         }
 
     private:
-        uint64_t hw_cc_budget{ 0 };
-
         std::list<migrated_row_entity> fifo_queue;
         std::mutex queue_mutex;
 };

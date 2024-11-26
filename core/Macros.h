@@ -78,7 +78,7 @@ DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer"
 
 DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
 DEFINE_string(when_to_move_out, "Reactive", "When to move data out");
-DEFINE_uint64(max_migrated_rows_size, 20000000, "the maximum number of migrated rows in OnDemand policies");
+DEFINE_uint64(hw_cc_budget, 1024 * 1024 * 200, "budget for the hardware cache-coherent region");
 
 DEFINE_string(scc_mechanism, "NoOP", "Pasha software cache-coherence mechanism");
 
@@ -145,7 +145,7 @@ DEFINE_string(pre_migrate, "None", "what tuples to pre-migrate?");
         context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                                \
         context.migration_policy = FLAGS_migration_policy;                                      \
         context.when_to_move_out = FLAGS_when_to_move_out;                                      \
-        context.max_migrated_rows_size = FLAGS_max_migrated_rows_size;                          \
+        context.hw_cc_budget = FLAGS_hw_cc_budget;                                              \
         context.scc_mechanism = FLAGS_scc_mechanism;                                            \
         context.time_to_run = FLAGS_time_to_run;                                                \
         context.time_to_warmup = FLAGS_time_to_warmup;                                          \
