@@ -4,11 +4,13 @@ import os
 import copy
 import common
 import csv
+import sys
 
 
 def main():
     args = common.cli().parse_args()
-    res_dir = args.res_dir + "/macro"
+    print(f"Parsing results from {args.res_dir}...", file=sys.stderr)
+    res_dir = args.res_dir
     benchmarks = args.benchmark if len(args.benchmark) > 0 else ["tpcc", "smallbank"]
 
     tpcc = parse_tpcc_remote_txn_overhead(res_dir)
@@ -95,6 +97,10 @@ def parse_tpcc_remote_txn_overhead(res_dir: str):
         for path in os.listdir(res_dir)
         if path.endswith(".txt")
     ]
+
+    if len(paths) == 0:
+        print(f"Failed to find logs in {res_dir}", file=sys.stderr)
+        sys.exit(1)
 
     experiments = []
     names = set()
