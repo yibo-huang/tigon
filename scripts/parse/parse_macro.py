@@ -3,11 +3,9 @@
 import os
 import copy
 import common
-import sys
 import csv
 
 REMOTE_RATIOS = [(0, 0), (10, 15), (20, 30), (30, 45), (40, 60), (50, 75), (60, 90)]
-
 CROSS_RATIOS = list(range(0, 101, 10))
 
 
@@ -25,6 +23,7 @@ def main():
                 common.dump_experiments(tpcc)
             case ("tpcc", False):
                 emit_tpcc_remote_txn_overhead(tpcc, res_dir + "/tpcc.csv")
+                emit_tpcc_hwcc_overhead(tpcc, res_dir + "/tpcc-hwcc.csv")
             case ("smallbank", True):
                 common.dump_experiments(smallbank)
             case ("smallbank", False):
@@ -50,6 +49,51 @@ def emit_tpcc_remote_txn_overhead(groups, path):
         rows.append([name] + [experiment.output.total_commit for experiment in group])
 
     # convert rows into columns
+    rows = zip(*rows)
+
+    with open(path, "w") as file:
+        csv.writer(file).writerows(rows)
+
+
+def emit_tpcc_hwcc_overhead(groups, path):
+    cols = list(
+        sorted(
+            set(
+                [
+                    experiment.input.max_migrated_rows_size
+                    for group in groups.values()
+                    for experiment in group
+                ]
+            )
+        )
+    )
+
+    rows = [
+        ["Remote_Ratio"]
+        + [
+            f"{neworder_dist}/{payment_dist}"
+            for neworder_dist, payment_dist in REMOTE_RATIOS
+        ]
+    ]
+
+    tigon = groups["Tigon"]
+
+    for col in cols:
+        row = [col]
+
+        # O(n^2) lookup here but should only be a few experiments
+        for neworder_dist, payment_dist in REMOTE_RATIOS:
+            for experiment in tigon:
+                if (
+                    experiment.input.max_migrated_rows_size == col
+                    and experiment.input.neworder_dist == neworder_dist
+                    and experiment.input.payment_dist == payment_dist
+                ):
+                    row.append(experiment.output.total_commit)
+                    break
+
+        rows.append(row)
+
     rows = zip(*rows)
 
     with open(path, "w") as file:
