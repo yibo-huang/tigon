@@ -4,21 +4,31 @@ import common
 import copy
 import csv
 import os
+import sys
 
 
 CROSS_RATIOS = list(range(0, 101, 10))
+HWCC_SIZES = [
+    0,
+    10000000,
+    50000000,
+    100000000,
+    150000000,
+    200000000,
+]
 
 
 def main():
     args = common.cli().parse_args()
-    res_dir = args.res_dir + "/micro"
+    print(f"Parsing results from {args.res_dir}...", file=sys.stderr)
+    res_dir = args.res_dir
 
     if args.dump:
         groups = parse_ycsb_remote_txn_overhead(res_dir)
         common.dump_experiments(groups)
 
     else:
-        for rw_ratio in [100, 0]:
+        for rw_ratio in [80]:
             for zipf_theta in [0.99, 0.7]:
                 groups = parse_ycsb_remote_txn_overhead(
                     res_dir, filter(rw_ratio, zipf_theta, common.YcsbWorkload.RMW)
@@ -28,11 +38,18 @@ def main():
                     groups,
                     os.path.join(res_dir, f"ycsb-micro-{rw_ratio}-{zipf_theta}.csv"),
                 )
+                emit_ycsb_hwcc_overhead(
+                    groups,
+                    os.path.join(
+                        res_dir, f"ycsb-micro-hwcc-{rw_ratio}-{zipf_theta}.csv"
+                    ),
+                )
 
 
 def filter(rw_ratio: int, zipf_theta: float, workload: common.YcsbWorkload):
     return lambda input: (
-        input.read_write_ratio == rw_ratio
+        input.benchmark == common.Benchmark.YCSB
+        and input.read_write_ratio == rw_ratio
         and abs(input.zipf_theta - zipf_theta) < 1e-5
         and input.workload == workload
     )
@@ -53,6 +70,38 @@ def emit_ycsb_remote_txn_overhead(groups, output):
         csv.writer(file).writerows(rows)
 
 
+def emit_ycsb_hwcc_overhead(groups, output):
+    # write header row first
+    rows = [["Remote_Ratio"] + CROSS_RATIOS]
+
+    # read all the files and construct the row
+    for name, group in groups.items():
+        # HWCC size only relevant to Tigon
+        if name == "Tigon":
+            for size in HWCC_SIZES:
+                row = [size]
+                # O(n^2) lookup here but should only be a few experiments
+                for cross_ratio in CROSS_RATIOS:
+                    for experiment in group:
+                        if (
+                            experiment.input.max_migrated_rows_size == size
+                            and experiment.input.cross_ratio == cross_ratio
+                        ):
+                            row.append(experiment.output.total_commit)
+                            break
+                rows.append(row)
+        else:
+            rows.append(
+                [name] + [experiment.output.total_commit for experiment in group]
+            )
+
+    # convert rows into columns
+    rows = zip(*rows)
+
+    with open(output, "w") as file:
+        csv.writer(file).writerows(rows)
+
+
 def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
     paths = [
         os.path.join(res_dir, path)
@@ -60,10 +109,16 @@ def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
         if path.endswith(".txt")
     ]
 
+    if len(paths) == 0:
+        print(f"Failed to find logs in {res_dir}", file=sys.stderr)
+        sys.exit(1)
+
     experiments = []
+    names = set()
 
     for path in paths:
         base = common.Input.parse(path)
+        names.add(base.name())
 
         if not filter(base):
             continue
@@ -93,6 +148,7 @@ def parse_ycsb_remote_txn_overhead(res_dir, filter=lambda input: True):
             )
         )
         for name in common.ORDER
+        if name in names
     }
 
 
