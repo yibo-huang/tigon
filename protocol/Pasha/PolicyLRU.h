@@ -158,17 +158,14 @@ class PolicyLRU : public MigrationManager {
                         uint64_t coordinator_id,
                         uint64_t partition_num,
                         const std::string when_to_move_out_str,
-                        uint64_t max_migrated_rows_size)
+                        uint64_t hw_cc_budget)
         : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, delete_and_update_next_key_info, when_to_move_out_str)
-        , max_migrated_rows_size_per_partition(max_migrated_rows_size)
+        , hw_cc_budget(hw_cc_budget)
         {
                 CHECK(MigrationManager::migration_policy_meta_size >= sizeof(LRUMeta));
-                migrated_row_sizes_of_partitions = new uint64_t[partition_num];
-                CHECK(migrated_row_sizes_of_partitions != nullptr);
-                memset(migrated_row_sizes_of_partitions, 0, partition_num * sizeof(uint64_t));
 
                 if (coordinator_id == 0) {
-                        lru_trackers = reinterpret_cast<LRUTracker *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(LRUTracker) * partition_num, CXLMemory::INDEX_ALLOCATION));
+                        lru_trackers = reinterpret_cast<LRUTracker *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(LRUTracker) * partition_num, CXLMemory::MISC_ALLOCATION));
                         for (int i = 0; i < partition_num; i++) {
                                 new(&lru_trackers[i]) LRUTracker();
                         }
@@ -191,7 +188,6 @@ class PolicyLRU : public MigrationManager {
         void access_row(void *migration_policy_meta, uint64_t partition_id) override
         {
                 LRUTracker &lru_tracker = lru_trackers[partition_id];
-                uint64_t &cur_size = migrated_row_sizes_of_partitions[partition_id];
                 LRUMeta *lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
 
                 lru_tracker.lock();
@@ -202,7 +198,6 @@ class PolicyLRU : public MigrationManager {
         bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 LRUTracker &lru_tracker = lru_trackers[table->partitionID()];
-                uint64_t &cur_size = migrated_row_sizes_of_partitions[table->partitionID()];
                 void *migration_policy_meta = nullptr;
                 LRUMeta *lru_meta = nullptr;
                 bool ret = false;
@@ -218,8 +213,6 @@ class PolicyLRU : public MigrationManager {
 
                         // not tracked, push it to the back
                         lru_tracker.track(lru_meta);
-
-                        cur_size += lru_meta->row_entity_ptr->metadata_size;
                 }
 
                 lru_tracker.unlock();
@@ -230,14 +223,10 @@ class PolicyLRU : public MigrationManager {
         bool move_row_out(uint64_t partition_id) override
         {
                 LRUTracker &lru_tracker = lru_trackers[partition_id];
-                uint64_t &cur_size = migrated_row_sizes_of_partitions[partition_id];
                 bool ret = false;
 
-                CHECK(max_migrated_rows_size_per_partition > 0);
-
                 lru_tracker.lock();
-                if (cur_size < max_migrated_rows_size_per_partition) {
-
+                if (cxl_memory.get_stats(CXLMemory::TOTAL_HW_CC_USAGE) < hw_cc_budget) {
                         lru_tracker.unlock();
                         return ret;
                 }
@@ -253,9 +242,8 @@ class PolicyLRU : public MigrationManager {
                                 if (move_out_success == true) {
                                         lru_tracker.untrack(victim);
                                         lru_tracker.reset_cur_victim();
-                                        cur_size -= victim_row_entity.metadata_size;
                                         delete victim->row_entity_ptr;
-                                        if (cur_size < max_migrated_rows_size_per_partition) {
+                                        if (cxl_memory.get_stats(CXLMemory::TOTAL_HW_CC_USAGE) < hw_cc_budget) {
                                                 ret = true;
                                                 break;
                                         }
@@ -272,7 +260,6 @@ class PolicyLRU : public MigrationManager {
         {
                 // key is unused
                 LRUTracker &lru_tracker = lru_trackers[table->partitionID()];
-                uint64_t &cur_size = migrated_row_sizes_of_partitions[table->partitionID()];
                 void *migration_policy_meta = nullptr;
                 LRUMeta *lru_meta = nullptr;
                 bool need_move_out = false, ret = false;
@@ -290,7 +277,6 @@ class PolicyLRU : public MigrationManager {
 
                         // remove it from the LRU tracker
                         lru_tracker.untrack(lru_meta);
-                        cur_size -= lru_meta->row_entity_ptr->table->value_size();
                 }
 
                 lru_tracker.unlock();
@@ -299,8 +285,7 @@ class PolicyLRU : public MigrationManager {
         }
 
     private:
-        uint64_t max_migrated_rows_size_per_partition{ 0 };
-        uint64_t *migrated_row_sizes_of_partitions{ nullptr };
+        uint64_t hw_cc_budget{ 0 };
 
         LRUTracker *lru_trackers{ nullptr };
 };

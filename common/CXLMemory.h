@@ -16,18 +16,23 @@ class CXLMemory {
     public:
         // statistics
         enum {
+                TOTAL_USAGE,
+                TOTAL_HW_CC_USAGE,
                 INDEX_USAGE,
                 METADATA_USAGE,
                 DATA_USAGE,
                 TRANSPORT_USAGE,
+                MISC_USAGE,
                 INDEX_ALLOCATION,
                 METADATA_ALLOCATION,
                 DATA_ALLOCATION,
                 TRANSPORT_ALLOCATION,
+                MISC_ALLOCATION,
                 INDEX_FREE,
                 METADATA_FREE,
                 DATA_FREE,
-                TRANSPORT_FREE
+                TRANSPORT_FREE,
+                MISC_FREE
         };
 
         static constexpr uint64_t default_cxl_mem_size = (((1024 * 1024 * 1024) + 64 * 1024) * (uint64_t)31);
@@ -36,8 +41,6 @@ class CXLMemory {
         static constexpr uint64_t cxl_data_migration_root_index = 1;
         static constexpr uint64_t cxl_lru_trackers_root_index = 2;
         static constexpr uint64_t cxl_global_epoch_root_index = 3;
-
-        static constexpr uint64_t minimal_cxlalloc_size = 512;
 
         void init_cxlalloc_for_given_thread(uint64_t threads_num_per_host, uint64_t thread_id, uint64_t hosts_num, uint64_t host_id)
         {
@@ -53,14 +56,20 @@ class CXLMemory {
                 // collect statistics
                 switch (category) {
                 case INDEX_ALLOCATION:
-                        size_index_alloc.fetch_add(size);
+                        size_total_hw_cc_usage.fetch_add(size);
+                        size_index_usage.fetch_add(size);
                         break;
                 case DATA_ALLOCATION:
-                        size_metadata_alloc.fetch_add(metadata_size);
-                        size_data_alloc.fetch_add(data_size);
+                        size_total_hw_cc_usage.fetch_add(metadata_size);
+                        size_metadata_usage.fetch_add(metadata_size);
+                        size_data_usage.fetch_add(data_size);
                         break;
                 case TRANSPORT_ALLOCATION:
-                        size_transport_alloc.fetch_add(size);
+                        size_transport_usage.fetch_add(size);
+                        break;
+                case MISC_ALLOCATION:
+                        size_total_hw_cc_usage.fetch_add(size);
+                        size_misc_usage.fetch_add(size);
                         break;
                 default:
                         CHECK(0);
@@ -74,20 +83,25 @@ class CXLMemory {
                 // collect statistics
                 switch (category) {
                 case INDEX_FREE:
-                        size_index_free.fetch_add(size);
+                        size_total_hw_cc_usage.fetch_sub(size);
+                        size_index_usage.fetch_sub(size);
                         break;
                 case DATA_FREE:
-                        size_metadata_free.fetch_add(metadata_size);
-                        size_data_free.fetch_add(data_size);
+                        size_total_hw_cc_usage.fetch_sub(metadata_size);
+                        size_metadata_usage.fetch_sub(metadata_size);
+                        size_data_usage.fetch_sub(data_size);
                         break;
                 case TRANSPORT_FREE:
-                        size_transport_free.fetch_add(size);
+                        size_transport_usage.fetch_sub(size);
+                        break;
+                case MISC_FREE:
+                        size_total_hw_cc_usage.fetch_sub(size);
+                        size_misc_usage.fetch_sub(size);
                         break;
                 default:
                         CHECK(0);
                 }
         }
-
 
         static void commit_shared_data_initialization(uint64_t root_index, void *shared_data)
         {
@@ -110,29 +124,19 @@ class CXLMemory {
         {
                 switch (category) {
                 case INDEX_USAGE:
-                        return size_index_alloc - size_index_free;
+                        return size_index_usage;
                 case METADATA_USAGE:
-                        return size_metadata_alloc - size_metadata_free;
+                        return size_metadata_usage;
                 case DATA_USAGE:
-                        return size_data_alloc - size_data_free;
+                        return size_data_usage;
                 case TRANSPORT_USAGE:
-                        return size_transport_alloc - size_transport_free;
-                case INDEX_ALLOCATION:
-                        return size_index_alloc;
-                case METADATA_ALLOCATION:
-                        return size_metadata_alloc;
-                case DATA_ALLOCATION:
-                        return size_data_alloc;
-                case TRANSPORT_ALLOCATION:
-                        return size_transport_alloc;
-                case INDEX_FREE:
-                        return size_index_free;
-                case METADATA_FREE:
-                        return size_metadata_free;
-                case DATA_FREE:
-                        return size_data_free;
-                case TRANSPORT_FREE:
-                        return size_transport_free;
+                        return size_transport_usage;
+                case MISC_USAGE:
+                        return size_misc_usage;
+                case TOTAL_HW_CC_USAGE:
+                        return size_total_hw_cc_usage;
+                case TOTAL_USAGE:
+                        return size_index_usage + size_metadata_usage + size_data_usage + size_transport_usage + size_misc_usage;      // does not need to be consistent
                 default:
                         CHECK(0);
                 }
@@ -141,22 +145,23 @@ class CXLMemory {
         void print_stats()
         {
                 LOG(INFO) << "local CXL memory usage:"
-                          << " size_index_usage: " << size_index_alloc - size_index_free
-                          << " size_metadata_usage: " << size_metadata_alloc - size_metadata_free
-                          << " size_data_usage: " << size_data_alloc - size_data_free
-                          << " size_transport_usage: " << size_transport_alloc - size_transport_free;
+                          << " size_index_usage: " << get_stats(INDEX_USAGE)
+                          << " size_metadata_usage: " << get_stats(METADATA_USAGE)
+                          << " size_data_usage: " << get_stats(DATA_USAGE)
+                          << " size_transport_usage: " << get_stats(TRANSPORT_USAGE)
+                          << " size_misc_usage: " << get_stats(MISC_USAGE)
+                          << " total_size_hw_cc_usage: " << get_stats(TOTAL_HW_CC_USAGE)
+                          << " total_usage: " << get_stats(TOTAL_USAGE);
         }
 
     private:
-        std::atomic<uint64_t> size_index_alloc{ 0 };
-        std::atomic<uint64_t> size_metadata_alloc{ 0 };
-        std::atomic<uint64_t> size_data_alloc{ 0 };
-        std::atomic<uint64_t> size_transport_alloc{ 0 };
+        std::atomic<uint64_t> size_index_usage{ 0 };
+        std::atomic<uint64_t> size_metadata_usage{ 0 };
+        std::atomic<uint64_t> size_data_usage{ 0 };
+        std::atomic<uint64_t> size_transport_usage{ 0 };
+        std::atomic<uint64_t> size_misc_usage{ 0 };
 
-        std::atomic<uint64_t> size_index_free{ 0 };
-        std::atomic<uint64_t> size_metadata_free{ 0 };
-        std::atomic<uint64_t> size_data_free{ 0 };
-        std::atomic<uint64_t> size_transport_free{ 0 };
+        std::atomic<uint64_t> size_total_hw_cc_usage{ 0 };
 };
 
 extern CXLMemory cxl_memory;

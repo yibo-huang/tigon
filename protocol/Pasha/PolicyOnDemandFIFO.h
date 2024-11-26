@@ -24,9 +24,9 @@ class PolicyOnDemandFIFO : public MigrationManager {
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                         const std::string when_to_move_out_str,
-                        uint64_t max_migrated_rows_size)
+                        uint64_t hw_cc_budget)
         : MigrationManager(move_from_partition_to_shared_region, move_from_shared_region_to_partition, delete_and_update_next_key_info, when_to_move_out_str)
-        , max_migrated_rows_size(max_migrated_rows_size)
+        , hw_cc_budget(hw_cc_budget)
         {}
 
         void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, uint64_t metadata_size) override
@@ -49,7 +49,6 @@ class PolicyOnDemandFIFO : public MigrationManager {
                         CHECK(migration_policy_meta != nullptr);
                         auto fifo_meta = reinterpret_cast<FIFOMeta *>(migration_policy_meta);
                         fifo_queue.push_back(*fifo_meta->row_entity_ptr);
-                        cur_size += fifo_meta->row_entity_ptr->metadata_size;
                 }
                 queue_mutex.unlock();
 
@@ -61,11 +60,9 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 std::list<migrated_row_entity>::iterator it;
                 bool ret = false;
 
-                CHECK(max_migrated_rows_size > 0);
-
                 // move out one tuple each time
                 queue_mutex.lock();
-                if (cur_size < max_migrated_rows_size) {
+                if (cxl_memory.get_stats(CXLMemory::TOTAL_HW_CC_USAGE) < hw_cc_budget) {
                         queue_mutex.unlock();
                         return ret;
                 }
@@ -73,10 +70,10 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 while (it != fifo_queue.end()) {
                         ret = move_from_shared_region_to_partition(it->table, it->key, it->local_row);
                         if (ret == true) {
-                                cur_size -= it->metadata_size;
                                 it = fifo_queue.erase(it);
-                                if (cur_size < max_migrated_rows_size)
+                                if (cxl_memory.get_stats(CXLMemory::TOTAL_HW_CC_USAGE) < hw_cc_budget) {
                                         break;
+                                }
                         } else {
                                 it++;
                         }
@@ -120,8 +117,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
         }
 
     private:
-        uint64_t max_migrated_rows_size;
-        uint64_t cur_size{ 0 };
+        uint64_t hw_cc_budget{ 0 };
 
         std::list<migrated_row_entity> fifo_queue;
         std::mutex queue_mutex;
