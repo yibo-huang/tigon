@@ -221,11 +221,11 @@ typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/macro
 mkdir -p $RESULT_DIR
 
 # TPCC
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 200000000 WriteThrough None GROUP_WAL 20 10         # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 150000000 WriteThrough NonPart GROUP_WAL 20 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 100000000 WriteThrough None GROUP_WAL 20 10         # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 50000000 WriteThrough None GROUP_WAL 20 10         # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL 20 10         # Tigon-TwoPL + 10 MB
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 200000000 WriteThrough None GROUP_WAL 60 50         # Tigon-TwoPL + 200 MB
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 150000000 WriteThrough NonPart GROUP_WAL 60 50      # Tigon-TwoPL + 150 MB
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 100000000 WriteThrough None GROUP_WAL 60 50         # Tigon-TwoPL + 100 MB
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 50000000 WriteThrough None GROUP_WAL 60 50         # Tigon-TwoPL + 50 MB
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL 60 50         # Tigon-TwoPL + 10 MB
 
 # YCSB (80% read + 20% write + 0.7 skewness)
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 200000000 WriteThrough None GROUP_WAL 20 10      # Tigon-TwoPL + 200 MB
