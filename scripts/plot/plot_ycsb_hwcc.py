@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import sys
+import math
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+
+if len(sys.argv) != 4:
+    print("Usage: " + sys.argv[0] + " res_dir rw_ratio zipf_theta")
+    sys.exit(-1)
+
+res_dir = sys.argv[1] + "/macro"
+rw_ratio = sys.argv[2]
+zipf_theta = sys.argv[3]
+
+marker_size = 10.0
+marker_edge_width = 1.2
+linewidth = 0.8
+
+###  Common configurations for TPCC and YCSB ###
+basic_font = {"family": "times new roman", "size": 12}
+plt.xticks(**basic_font)
+plt.yticks(**basic_font)
+
+# Configure grid
+plt.grid(axis="y")
+
+### plot TPCC ###
+res_csv = res_dir + f"/ycsb-micro-hwcc-{rw_ratio}-{zipf_theta}.csv"
+
+# Read the CSV file into a Pandas DataFrame
+res_df = pd.read_csv(res_csv)
+
+# Extract the data
+x = res_df["Remote_Ratio"]
+
+systems = list(
+    map(
+        str,
+        [
+            0,
+            10000000,
+            50000000,
+            100000000,
+            150000000,
+            200000000,
+        ],
+    )
+) + ["Sundial-CXL-improved", "TwoPL-CXL-improved"]
+
+plt.xlabel("Multi-partition Transaction Percentage", **basic_font)
+plt.ylabel("Throughput (txns/sec)", **basic_font)
+
+# Configure axis range
+max_y = max([max(res_df[system]) for system in systems])
+max_y_rounded_up = math.ceil(max_y / 200000.0) * 200000.0
+plt.ylim(0, max_y_rounded_up)
+
+# Transform Y axises
+ax = plt.subplot(111)
+ax.yaxis.set_major_formatter(
+    ticker.FuncFormatter(
+        lambda x, pos: "{:,.0f}".format(x / 1000) + "K" if x != 0 else 0
+    )
+)
+
+# Create the line plot
+for system in systems:
+    name = None
+    if system.isdigit():
+        size = int(system)
+        name = f"Tigon-{int(size / 1000 / 1000) if size > 0 else '∞'}"
+    else:
+        name = system
+
+    plt.plot(
+        x,
+        res_df[system],
+        marker="o",
+        markersize=marker_size,
+        linewidth=linewidth,
+        markeredgewidth=marker_edge_width,
+        mfc="none",
+        label=name,
+    )
+
+# Configure legend
+ax.legend(
+    loc="upper center",
+    frameon=False,
+    fancybox=False,
+    framealpha=1,
+    ncol=2,
+    prop={**basic_font},
+)
+
+plt.savefig(
+    res_dir + f"/ycsb-micro-hwcc-{rw_ratio}-{zipf_theta}.pdf",
+    format="pdf",
+    bbox_inches="tight",
+)
