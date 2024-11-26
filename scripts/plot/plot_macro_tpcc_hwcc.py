@@ -63,6 +63,7 @@ for size in hwcc_sizes:
     plt.plot(
         x,
         res_df[str(size)],
+        marker="o",
         markersize=marker_size,
         linewidth=linewidth,
         markeredgewidth=marker_edge_width,
