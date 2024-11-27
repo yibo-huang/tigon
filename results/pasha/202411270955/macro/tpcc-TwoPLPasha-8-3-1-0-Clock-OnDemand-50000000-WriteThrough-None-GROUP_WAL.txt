@@ -1,0 +1,725 @@
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:02:53.025182 689344 Database.h:169] creating hash tables for database...
+I1127 11:02:53.028431 689344 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:02:53.028626 689344 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:02:53.157742 689344 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:02:53.175257 689344 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:02:53.196759 689344 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:02:53.548056 689344 Database.h:149] new_order initialization finished in 351 milliseconds.
+I1127 11:02:53.559273 689344 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:02:53.585924 689344 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:02:53.793233 689344 Database.h:149] order_line initialization finished in 207 milliseconds.
+I1127 11:02:53.860363 689344 Database.h:149] item initialization finished in 67 milliseconds.
+I1127 11:02:54.123111 689344 Database.h:149] stock initialization finished in 262 milliseconds.
+I1127 11:02:54.173543 689344 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:02:54.173573 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.174908 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.176198 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.177556 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.178835 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.180114 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.181464 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.182780 689344 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:02:54.184118 689344 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:02:54.184325 689344 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:02:54.184334 689344 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:02:54.184568 689344 Database.h:801] TPCC initializes data migration metadata
+I1127 11:02:54.184573 689344 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:02:54.184886 689377 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:02:54.185026 689344 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:02:54.185369 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185377 689377 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:02:54.185385 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185388 689377 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:02:54.185400 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185401 689377 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:02:54.185407 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185410 689377 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:02:54.185667 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185673 689377 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:02:54.185680 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185683 689377 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:02:54.185688 689377 Socket.h:69] Disabling nagle
+I1127 11:02:54.185690 689377 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:02:54.185693 689377 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:02:59.185245 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185256 689344 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:02:59.185353 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185364 689344 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:02:59.185492 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185498 689344 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:02:59.185578 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185590 689344 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:02:59.185726 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185732 689344 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:02:59.185797 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185801 689344 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:02:59.185878 689344 Socket.h:69] Disabling nagle
+I1127 11:02:59.185880 689344 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:02:59.185890 689344 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:02:59.185896 689344 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:02:59.185925 689344 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:02:59.185971 689344 Coordinator.h:613] pinned thread to core 0
+I1127 11:02:59.186045 689344 Coordinator.h:613] pinned thread to core 1
+I1127 11:02:59.186050 689344 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:02:59.186061 689380 WALLogger.h:456] logger thread started!
+I1127 11:02:59.186093 689344 Coordinator.h:613] pinned thread to core 2
+I1127 11:02:59.186105 689381 Executor.h:78] Executor 0 starts.
+I1127 11:02:59.186149 689381 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:02:59.186241 689344 Coordinator.h:613] pinned thread to core 3
+I1127 11:02:59.186252 689382 Executor.h:78] Executor 1 starts.
+I1127 11:02:59.186305 689382 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+I1127 11:02:59.186386 689344 Coordinator.h:613] pinned thread to core 4
+I1127 11:02:59.186391 689383 Executor.h:78] Executor 2 starts.
+I1127 11:02:59.186439 689383 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+I1127 11:02:59.186529 689379 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:02:59.186605 689384 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+F1127 11:02:59.188653 689383 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+F1127 11:02:59.188827 689381 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f68f2fdab03  google::LogMessage::Fail()
+    @     0x7f68f2fe29d1  google::LogMessage::SendToLog()
+    @     0x7f68f2fda7c2  google::LogMessage::Flush()
+    @     0x7f68f2fdab03  google::LogMessage::Fail()
+    @     0x7f68f2fdc78f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @     0x7f68f2fe29d1  google::LogMessage::SendToLog()
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @     0x7f68f2fda7c2  google::LogMessage::Flush()
+F1127 11:02:59.188827 689381 PolicyClock.h:218] Check failed: 0 F1127 11:02:59.190065 689382 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @           0x67a764  star::Executor<>::start()
+    @     0x7f68f2fdab03  google::LogMessage::Fail()
+    @     0x7f68f28dc253  (unknown)
+    @     0x7f68f2fe29d1  google::LogMessage::SendToLog()
+    @     0x7f68f2c94ac3  (unknown)
+    @     0x7f68f2d26850  (unknown)
+    @     0x7f68f2fda7c2  google::LogMessage::Flush()
+    @     0x7f68f2fdc78f  google::LogMessageFatal::~LogMessageFatal()
+    @              (nil)  (unknown)
+killing previous experiments...
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:03:29.953025 689585 Database.h:169] creating hash tables for database...
+I1127 11:03:29.956283 689585 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:03:29.956483 689585 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:03:30.086263 689585 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:03:30.103797 689585 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:03:30.125308 689585 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:03:30.475831 689585 Database.h:149] new_order initialization finished in 350 milliseconds.
+I1127 11:03:30.487035 689585 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:03:30.513664 689585 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:03:30.721040 689585 Database.h:149] order_line initialization finished in 207 milliseconds.
+I1127 11:03:30.788414 689585 Database.h:149] item initialization finished in 67 milliseconds.
+I1127 11:03:31.051523 689585 Database.h:149] stock initialization finished in 263 milliseconds.
+I1127 11:03:31.101662 689585 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:03:31.101687 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.102932 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.104147 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.105367 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.106586 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.107795 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.109011 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.110234 689585 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:03:31.111441 689585 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:03:31.111568 689585 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:03:31.111575 689585 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:03:31.111749 689585 Database.h:801] TPCC initializes data migration metadata
+I1127 11:03:31.111753 689585 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:03:31.112026 689618 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:03:31.112092 689585 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:03:31.112731 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.112737 689618 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:03:31.112746 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.112747 689618 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:03:31.112975 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.112979 689618 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:03:31.112985 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.112987 689618 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:03:31.112993 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.112995 689618 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:03:31.113054 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.113057 689618 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:03:31.113063 689618 Socket.h:69] Disabling nagle
+I1127 11:03:31.113066 689618 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:03:31.113068 689618 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:03:36.112310 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112323 689585 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:03:36.112408 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112411 689585 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:03:36.112509 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112512 689585 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:03:36.112565 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112568 689585 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:03:36.112656 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112658 689585 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:03:36.112723 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112726 689585 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:03:36.112783 689585 Socket.h:69] Disabling nagle
+I1127 11:03:36.112787 689585 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:03:36.112792 689585 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:03:36.112798 689585 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:03:36.112834 689585 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:03:36.112907 689585 Coordinator.h:613] pinned thread to core 0
+I1127 11:03:36.112952 689619 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:03:36.112979 689585 Coordinator.h:613] pinned thread to core 1
+I1127 11:03:36.112999 689585 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:03:36.112985 689620 WALLogger.h:456] logger thread started!
+I1127 11:03:36.113116 689585 Coordinator.h:613] pinned thread to core 2
+I1127 11:03:36.113138 689621 Executor.h:78] Executor 0 starts.
+I1127 11:03:36.113185 689621 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:03:36.113325 689585 Coordinator.h:613] pinned thread to core 3
+I1127 11:03:36.113632 689585 Coordinator.h:613] pinned thread to core 4
+I1127 11:03:36.113637 689623 Executor.h:78] Executor 2 starts.
+I1127 11:03:36.113665 689623 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+I1127 11:03:36.113332 689622 Executor.h:78] Executor 1 starts.
+I1127 11:03:36.113812 689624 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+I1127 11:03:36.113929 689622 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+F1127 11:03:36.114969 689621 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f5f707f2b03  google::LogMessage::Fail()
+    @     0x7f5f707fa9d1  google::LogMessage::SendToLog()
+    @     0x7f5f707f27c2  google::LogMessage::Flush()
+    @     0x7f5f707f478f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @           0x67a764  star::Executor<>::start()
+F1127 11:03:36.117308 689623 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f5f6fcdc253  (unknown)
+    @     0x7f5f707f2b03  google::LogMessage::Fail()
+    @     0x7f5f707fa9d1  google::LogMessage::SendToLog()
+    @     0x7f5f70094ac3  (unknown)
+    @     0x7f5f707f27c2  google::LogMessage::Flush()
+    @     0x7f5f707f478f  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7f5f70126850  (unknown)
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @              (nil)  (unknown)
+    @           0x67a764  star::Executor<>::start()
+killing previous experiments...
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:04:07.025068 689825 Database.h:169] creating hash tables for database...
+I1127 11:04:07.028390 689825 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:04:07.028573 689825 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:04:07.157763 689825 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:04:07.175516 689825 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:04:07.196949 689825 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:04:07.547719 689825 Database.h:149] new_order initialization finished in 350 milliseconds.
+I1127 11:04:07.558940 689825 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:04:07.585502 689825 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:04:07.792752 689825 Database.h:149] order_line initialization finished in 207 milliseconds.
+I1127 11:04:07.859856 689825 Database.h:149] item initialization finished in 67 milliseconds.
+I1127 11:04:08.123744 689825 Database.h:149] stock initialization finished in 263 milliseconds.
+I1127 11:04:08.173866 689825 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:04:08.173892 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.175133 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.176354 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.177584 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.178802 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.180003 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.181231 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.182438 689825 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:08.183640 689825 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:04:08.183776 689825 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:04:08.183784 689825 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:04:08.183959 689825 Database.h:801] TPCC initializes data migration metadata
+I1127 11:04:08.183964 689825 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:04:08.184228 689858 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:04:08.184315 689825 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:04:08.184929 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.184937 689858 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:04:08.184944 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.184947 689858 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:04:08.184953 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.184955 689858 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:04:08.185177 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.185181 689858 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:04:08.185186 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.185204 689858 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:04:08.185211 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.185213 689858 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:04:08.185271 689858 Socket.h:69] Disabling nagle
+I1127 11:04:08.185276 689858 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:04:08.185277 689858 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:04:13.184542 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.184556 689825 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:04:13.184672 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.184679 689825 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:04:13.184762 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.184767 689825 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:04:13.184842 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.184849 689825 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:04:13.184906 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.184911 689825 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:04:13.184995 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.184999 689825 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:04:13.185075 689825 Socket.h:69] Disabling nagle
+I1127 11:04:13.185078 689825 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:04:13.185086 689825 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:04:13.185096 689825 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:04:13.185123 689825 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:04:13.185230 689825 Coordinator.h:613] pinned thread to core 0
+I1127 11:04:13.185245 689859 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:04:13.185307 689825 Coordinator.h:613] pinned thread to core 1
+I1127 11:04:13.185325 689825 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:04:13.185335 689860 WALLogger.h:456] logger thread started!
+I1127 11:04:13.185385 689825 Coordinator.h:613] pinned thread to core 2
+I1127 11:04:13.185386 689861 Executor.h:78] Executor 0 starts.
+I1127 11:04:13.185457 689861 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:04:13.185588 689825 Coordinator.h:613] pinned thread to core 3
+I1127 11:04:13.185593 689862 Executor.h:78] Executor 1 starts.
+I1127 11:04:13.185640 689862 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+I1127 11:04:13.185729 689825 Coordinator.h:613] pinned thread to core 4
+I1127 11:04:13.185804 689863 Executor.h:78] Executor 2 starts.
+I1127 11:04:13.185879 689864 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+I1127 11:04:13.185914 689863 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+F1127 11:04:13.186870 689862 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f92e6ddab03  google::LogMessage::Fail()
+    @     0x7f92e6de29d1  google::LogMessage::SendToLog()
+    @     0x7f92e6dda7c2  google::LogMessage::Flush()
+F1127 11:04:13.187780 689861 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f92e6ddc78f  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7f92e6ddab03  google::LogMessage::Fail()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @     0x7f92e6de29d1  google::LogMessage::SendToLog()
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @     0x7f92e6dda7c2  google::LogMessage::Flush()
+    @           0x67a764  star::Executor<>::start()
+    @     0x7f92e6ddc78f  google::LogMessageFatal::~LogMessageFatal()
+F1127 11:04:13.187780 689861 PolicyClock.h:218] Check failed: 0 F1127 11:04:13.188594 689863 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @     0x7f92e66dc253  (unknown)
+    @     0x7f92e6a94ac3  (unknown)
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @     0x7f92e6b26850  (unknown)
+    @     0x7f92e6ddab03  google::LogMessage::Fail()
+    @           0x67a764  star::Executor<>::start()
+    @              (nil)  (unknown)
+killing previous experiments...
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:04:43.885099 690065 Database.h:169] creating hash tables for database...
+I1127 11:04:43.888429 690065 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:04:43.888621 690065 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:04:44.017771 690065 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:04:44.035168 690065 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:04:44.056722 690065 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:04:44.408596 690065 Database.h:149] new_order initialization finished in 351 milliseconds.
+I1127 11:04:44.419878 690065 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:04:44.446513 690065 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:04:44.653731 690065 Database.h:149] order_line initialization finished in 207 milliseconds.
+I1127 11:04:44.720537 690065 Database.h:149] item initialization finished in 66 milliseconds.
+I1127 11:04:44.983065 690065 Database.h:149] stock initialization finished in 262 milliseconds.
+I1127 11:04:45.033267 690065 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:04:45.033293 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.034504 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.035706 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.036949 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.038177 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.039389 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.040596 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.041829 690065 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:04:45.043022 690065 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:04:45.043144 690065 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:04:45.043150 690065 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:04:45.043324 690065 Database.h:801] TPCC initializes data migration metadata
+I1127 11:04:45.043327 690065 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:04:45.043593 690098 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:04:45.043864 690065 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:04:45.044307 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044314 690098 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:04:45.044322 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044325 690098 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:04:45.044523 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044526 690098 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:04:45.044533 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044534 690098 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:04:45.044540 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044543 690098 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:04:45.044548 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044549 690098 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:04:45.044554 690098 Socket.h:69] Disabling nagle
+I1127 11:04:45.044556 690098 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:04:45.044559 690098 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:04:50.044087 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044100 690065 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:04:50.044184 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044188 690065 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:04:50.044262 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044270 690065 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:04:50.044377 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044380 690065 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:04:50.044431 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044435 690065 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:04:50.044495 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044499 690065 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:04:50.044571 690065 Socket.h:69] Disabling nagle
+I1127 11:04:50.044574 690065 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:04:50.044581 690065 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:04:50.044587 690065 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:04:50.044620 690065 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:04:50.044677 690065 Coordinator.h:613] pinned thread to core 0
+I1127 11:04:50.044688 690099 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:04:50.044793 690065 Coordinator.h:613] pinned thread to core 1
+I1127 11:04:50.044811 690100 WALLogger.h:456] logger thread started!
+I1127 11:04:50.044848 690065 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:04:50.044893 690065 Coordinator.h:613] pinned thread to core 2
+I1127 11:04:50.044898 690101 Executor.h:78] Executor 0 starts.
+I1127 11:04:50.044960 690101 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:04:50.045063 690065 Coordinator.h:613] pinned thread to core 3
+I1127 11:04:50.045068 690102 Executor.h:78] Executor 1 starts.
+I1127 11:04:50.045219 690102 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+I1127 11:04:50.045332 690065 Coordinator.h:613] pinned thread to core 4
+I1127 11:04:50.045346 690103 Executor.h:78] Executor 2 starts.
+I1127 11:04:50.045598 690103 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+I1127 11:04:50.045715 690104 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+F1127 11:04:50.046744 690102 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f68eaa07b03  google::LogMessage::Fail()
+    @     0x7f68eaa0f9d1  google::LogMessage::SendToLog()
+    @     0x7f68eaa077c2  google::LogMessage::Flush()
+    @     0x7f68eaa0978f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+F1127 11:04:50.048434 690101 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @           0x67a764  star::Executor<>::start()
+    @     0x7f68eaa07b03  google::LogMessage::Fail()
+F1127 11:04:50.048434 690101 PolicyClock.h:218] Check failed: 0 F1127 11:04:50.048979 690103 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f68e9edc253  (unknown)
+    @     0x7f68ea294ac3  (unknown)
+    @     0x7f68eaa07b03  google::LogMessage::Fail()
+    @     0x7f68eaa0f9d1  google::LogMessage::SendToLog()
+    @     0x7f68eaa0f9d1  google::LogMessage::SendToLog()
+    @     0x7f68eaa077c2  google::LogMessage::Flush()
+    @     0x7f68eaa077c2  google::LogMessage::Flush()
+    @     0x7f68eaa0978f  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7f68eaa0978f  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7f68ea326850  (unknown)
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @              (nil)  (unknown)
+killing previous experiments...
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:05:21.017282 690304 Database.h:169] creating hash tables for database...
+I1127 11:05:21.020630 690304 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:05:21.020812 690304 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:05:21.149945 690304 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:05:21.167511 690304 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:05:21.188978 690304 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:05:21.539976 690304 Database.h:149] new_order initialization finished in 350 milliseconds.
+I1127 11:05:21.551218 690304 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:05:21.577872 690304 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:05:21.785146 690304 Database.h:149] order_line initialization finished in 207 milliseconds.
+I1127 11:05:21.852886 690304 Database.h:149] item initialization finished in 67 milliseconds.
+I1127 11:05:22.116199 690304 Database.h:149] stock initialization finished in 263 milliseconds.
+I1127 11:05:22.166229 690304 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:05:22.166256 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.167429 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.168625 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.169883 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.171077 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.172279 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.173489 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.174681 690304 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:22.175858 690304 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:05:22.175979 690304 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:05:22.175985 690304 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:05:22.176151 690304 Database.h:801] TPCC initializes data migration metadata
+I1127 11:05:22.176153 690304 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:05:22.176425 690337 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:05:22.176481 690304 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:05:22.177423 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177434 690337 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:05:22.177443 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177446 690337 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:05:22.177452 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177454 690337 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:05:22.177544 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177546 690337 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:05:22.177552 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177556 690337 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:05:22.177659 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177668 690337 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:05:22.177676 690337 Socket.h:69] Disabling nagle
+I1127 11:05:22.177678 690337 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:05:22.177680 690337 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:05:27.176748 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.176764 690304 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:05:27.176867 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.176870 690304 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:05:27.176945 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.176954 690304 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:05:27.177013 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.177016 690304 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:05:27.177090 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.177093 690304 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:05:27.177188 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.177206 690304 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:05:27.177264 690304 Socket.h:69] Disabling nagle
+I1127 11:05:27.177268 690304 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:05:27.177274 690304 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:05:27.177280 690304 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:05:27.177307 690304 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:05:27.177371 690304 Coordinator.h:613] pinned thread to core 0
+I1127 11:05:27.177415 690338 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:05:27.177445 690304 Coordinator.h:613] pinned thread to core 1
+I1127 11:05:27.177464 690339 WALLogger.h:456] logger thread started!
+I1127 11:05:27.177484 690304 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:05:27.177558 690304 Coordinator.h:613] pinned thread to core 2
+I1127 11:05:27.177568 690340 Executor.h:78] Executor 0 starts.
+I1127 11:05:27.177621 690340 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:05:27.177707 690304 Coordinator.h:613] pinned thread to core 3
+I1127 11:05:27.177851 690304 Coordinator.h:613] pinned thread to core 4
+I1127 11:05:27.177858 690342 Executor.h:78] Executor 2 starts.
+I1127 11:05:27.178160 690343 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+I1127 11:05:27.177865 690341 Executor.h:78] Executor 1 starts.
+I1127 11:05:27.178187 690342 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+I1127 11:05:27.178201 690341 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+F1127 11:05:27.180698 690341 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7efdb79c1b03  google::LogMessage::Fail()
+F1127 11:05:27.181391 690342 PolicyClock.h:218] Check failed: 0 
+    @     0x7efdb79c99d1  google::LogMessage::SendToLog()
+    @     0x7efdb79c17c2  google::LogMessage::Flush()
+*** Check failure stack trace: ***
+    @     0x7efdb79c1b03  google::LogMessage::Fail()
+    @     0x7efdb79c378f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @     0x7efdb79c99d1  google::LogMessage::SendToLog()
+    @     0x7efdb79c17c2  google::LogMessage::Flush()
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @     0x7efdb79c378f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @           0x67a764  star::Executor<>::start()
+F1127 11:05:27.181391 690342 PolicyClock.h:218] Check failed: 0 F1127 11:05:27.182806 690340 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @           0x67a764  star::Executor<>::start()
+    @     0x7efdb6edc253  (unknown)
+    @     0x7efdb79c1b03  google::LogMessage::Fail()
+    @     0x7efdb7294ac3  (unknown)
+    @     0x7efdb79c99d1  google::LogMessage::SendToLog()
+    @     0x7efdb6edc253  (unknown)
+    @     0x7efdb79c17c2  google::LogMessage::Flush()
+    @     0x7efdb7326850  (unknown)
+    @     0x7efdb79c378f  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7efdb7294ac3  (unknown)
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @     0x7efdb7326850  (unknown)
+    @              (nil)  (unknown)
+    @              (nil)  (unknown)
+killing previous experiments...
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:05:58.145390 690544 Database.h:169] creating hash tables for database...
+I1127 11:05:58.148808 690544 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:05:58.148995 690544 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:05:58.278411 690544 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:05:58.295897 690544 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:05:58.317335 690544 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:05:58.669325 690544 Database.h:149] new_order initialization finished in 351 milliseconds.
+I1127 11:05:58.680603 690544 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:05:58.707408 690544 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:05:58.914400 690544 Database.h:149] order_line initialization finished in 206 milliseconds.
+I1127 11:05:58.981040 690544 Database.h:149] item initialization finished in 66 milliseconds.
+I1127 11:05:59.244346 690544 Database.h:149] stock initialization finished in 263 milliseconds.
+I1127 11:05:59.294716 690544 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:05:59.294742 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.295943 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.297173 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.298424 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.299640 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.300843 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.302066 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.303297 690544 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:05:59.304503 690544 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:05:59.304623 690544 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:05:59.304629 690544 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:05:59.304806 690544 Database.h:801] TPCC initializes data migration metadata
+I1127 11:05:59.304809 690544 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:05:59.305095 690577 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:05:59.305135 690544 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:05:59.306049 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306061 690577 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:05:59.306070 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306072 690577 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:05:59.306079 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306082 690577 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:05:59.306087 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306089 690577 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:05:59.306094 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306176 690577 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:05:59.306218 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306221 690577 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:05:59.306227 690577 Socket.h:69] Disabling nagle
+I1127 11:05:59.306229 690577 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:05:59.306298 690577 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:06:04.305369 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305384 690544 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:06:04.305478 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305481 690544 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:06:04.305557 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305562 690544 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:06:04.305639 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305642 690544 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:06:04.305723 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305727 690544 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:06:04.305796 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305800 690544 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:06:04.305855 690544 Socket.h:69] Disabling nagle
+I1127 11:06:04.305858 690544 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:06:04.305868 690544 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:06:04.305876 690544 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:06:04.305907 690544 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:06:04.305970 690544 Coordinator.h:613] pinned thread to core 0
+I1127 11:06:04.306016 690578 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:06:04.306051 690544 Coordinator.h:613] pinned thread to core 1
+I1127 11:06:04.306068 690544 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:06:04.306084 690579 WALLogger.h:456] logger thread started!
+I1127 11:06:04.306115 690544 Coordinator.h:613] pinned thread to core 2
+I1127 11:06:04.306270 690544 Coordinator.h:613] pinned thread to core 3
+I1127 11:06:04.306296 690580 Executor.h:78] Executor 0 starts.
+I1127 11:06:04.306368 690580 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:06:04.306486 690544 Coordinator.h:613] pinned thread to core 4
+I1127 11:06:04.306499 690582 Executor.h:78] Executor 2 starts.
+I1127 11:06:04.306535 690582 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+I1127 11:06:04.306649 690583 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+I1127 11:06:04.306730 690581 Executor.h:78] Executor 1 starts.
+I1127 11:06:04.306979 690581 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+F1127 11:06:04.308472 690580 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f321d1cbb03  google::LogMessage::Fail()
+    @     0x7f321d1d39d1  google::LogMessage::SendToLog()
+    @     0x7f321d1cb7c2  google::LogMessage::Flush()
+    @     0x7f321d1cd78f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @           0x681903  star::TwoPLPasha<>::commit()
+F1127 11:06:04.310401 690581 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @           0x67a764  star::Executor<>::start()
+    @     0x7f321c6dc253  (unknown)
+    @     0x7f321d1cbb03  google::LogMessage::Fail()
+    @     0x7f321ca94ac3  (unknown)
+F1127 11:06:04.310401 690581 PolicyClock.h:218] Check failed: 0 F1127 11:06:04.310985 690582 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f321d1d39d1  google::LogMessage::SendToLog()
+    @     0x7f321d1cbb03  google::LogMessage::Fail()
+    @     0x7f321cb26850  (unknown)
+    @     0x7f321d1d39d1  google::LogMessage::SendToLog()
+    @     0x7f321d1cb7c2  google::LogMessage::Flush()
+    @     0x7f321d1cb7c2  google::LogMessage::Flush()
+    @              (nil)  (unknown)
+    @     0x7f321d1cd78f  google::LogMessageFatal::~LogMessageFatal()
+    @     0x7f321d1cd78f  google::LogMessageFatal::~LogMessageFatal()
+killing previous experiments...
+killing previous experiments...
+deleting log files...
+initializing cxl memory...
+I1127 11:06:35.129041 690783 Database.h:169] creating hash tables for database...
+I1127 11:06:35.132491 690783 Database.h:149] warehouse initialization finished in 0 milliseconds.
+I1127 11:06:35.132745 690783 Database.h:149] district initialization finished in 0 milliseconds.
+I1127 11:06:35.262046 690783 Database.h:149] customer initialization finished in 129 milliseconds.
+I1127 11:06:35.279563 690783 Database.h:149] customer_name_idx initialization finished in 17 milliseconds.
+I1127 11:06:35.301128 690783 Database.h:149] history initialization finished in 21 milliseconds.
+I1127 11:06:35.652033 690783 Database.h:149] new_order initialization finished in 350 milliseconds.
+I1127 11:06:35.663360 690783 Database.h:149] order initialization finished in 11 milliseconds.
+I1127 11:06:35.690088 690783 Database.h:149] order_cust initialization finished in 26 milliseconds.
+I1127 11:06:35.897400 690783 Database.h:149] order_line initialization finished in 207 milliseconds.
+I1127 11:06:35.964238 690783 Database.h:149] item initialization finished in 66 milliseconds.
+I1127 11:06:36.227566 690783 Database.h:149] stock initialization finished in 263 milliseconds.
+I1127 11:06:36.277639 690783 CXLMemory.h:49] cxlalloc initialized for thread 0 (global ID = 0) on host 0
+I1127 11:06:36.277664 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.278945 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.280220 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.281543 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.282811 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.284065 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.285341 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.286610 690783 MPSCRingBuffer.h:35] entry_struct_size: 1024 entry_num: 4096
+I1127 11:06:36.287868 690783 Coordinator.h:416] Coordinator 0 initializes CXL transport metadata (8 ringbuffers each with 4096 entries (each 1015 Bytes)
+I1127 11:06:36.288036 690783 Coordinator.h:81] WAL Group Commiting to file [/root/pasha_log_group_commit.txt] using GroupCommit Logger
+I1127 11:06:36.288043 690783 Coordinator.h:96] Coordinator initializes 3 workers.
+I1127 11:06:36.288264 690783 Database.h:801] TPCC initializes data migration metadata
+I1127 11:06:36.288268 690783 TwoPLPashaExecutor.h:52] total hardware budget = 50000000 per host = 6250000
+I1127 11:06:36.288568 690816 Coordinator.h:453] Listener 0 on coordinator 0 listening on 192.168.100.2:1234 tcp_no_delay 1 tcp_quick_ack 0
+I1127 11:06:36.288658 690783 Coordinator.h:499] Coordinator 0 failed to connect 1(192.168.100.3:1234)'s listener 0, retry in 5 seconds.
+I1127 11:06:36.289094 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289103 690816 Coordinator.h:468] Listener accepted connection from coordinator 7
+I1127 11:06:36.289110 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289112 690816 Coordinator.h:468] Listener accepted connection from coordinator 6
+I1127 11:06:36.289141 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289144 690816 Coordinator.h:468] Listener accepted connection from coordinator 4
+I1127 11:06:36.289151 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289153 690816 Coordinator.h:468] Listener accepted connection from coordinator 1
+I1127 11:06:36.289158 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289160 690816 Coordinator.h:468] Listener accepted connection from coordinator 3
+I1127 11:06:36.289175 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289176 690816 Coordinator.h:468] Listener accepted connection from coordinator 5
+I1127 11:06:36.289285 690816 Socket.h:69] Disabling nagle
+I1127 11:06:36.289290 690816 Coordinator.h:468] Listener accepted connection from coordinator 2
+I1127 11:06:36.289294 690816 Coordinator.h:471] Listener 0 on coordinator 0 exits.
+I1127 11:06:41.288892 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.288906 690783 Coordinator.h:508] Coordinator 0 connected to 1
+I1127 11:06:41.288990 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.288998 690783 Coordinator.h:508] Coordinator 0 connected to 2
+I1127 11:06:41.289076 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.289079 690783 Coordinator.h:508] Coordinator 0 connected to 3
+I1127 11:06:41.289144 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.289145 690783 Coordinator.h:508] Coordinator 0 connected to 4
+I1127 11:06:41.289247 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.289258 690783 Coordinator.h:508] Coordinator 0 connected to 5
+I1127 11:06:41.289355 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.289362 690783 Coordinator.h:508] Coordinator 0 connected to 6
+I1127 11:06:41.289426 690783 Socket.h:69] Disabling nagle
+I1127 11:06:41.289431 690783 Coordinator.h:508] Coordinator 0 connected to 7
+I1127 11:06:41.289438 690783 Coordinator.h:520] Coordinator 0 connected to all peers.
+I1127 11:06:41.289444 690783 Dispatcher.h:38] IncomingDispatcher 0 coord_id 0
+I1127 11:06:41.289471 690783 Dispatcher.h:210] OutgoingDispatcher 0 coord_id 0
+I1127 11:06:41.289530 690783 Coordinator.h:613] pinned thread to core 0
+I1127 11:06:41.289566 690817 Dispatcher.h:57] Incoming Dispatcher started, numCoordinators = 8, numWorkers = 3, group id = 0, coordinator = 0
+I1127 11:06:41.289608 690783 Coordinator.h:613] pinned thread to core 1
+I1127 11:06:41.289611 690818 WALLogger.h:456] logger thread started!
+I1127 11:06:41.289630 690783 Coordinator.h:211] Coordinator starts to run 4 workers.
+I1127 11:06:41.289690 690783 Coordinator.h:613] pinned thread to core 2
+I1127 11:06:41.289695 690819 Executor.h:78] Executor 0 starts.
+I1127 11:06:41.289752 690819 CXLMemory.h:49] cxlalloc initialized for thread 1 (global ID = 1) on host 0
+I1127 11:06:41.289866 690783 Coordinator.h:613] pinned thread to core 3
+I1127 11:06:41.289870 690820 Executor.h:78] Executor 1 starts.
+I1127 11:06:41.289920 690820 CXLMemory.h:49] cxlalloc initialized for thread 2 (global ID = 2) on host 0
+I1127 11:06:41.290086 690783 Coordinator.h:613] pinned thread to core 4
+I1127 11:06:41.290099 690821 Executor.h:78] Executor 2 starts.
+I1127 11:06:41.290383 690821 CXLMemory.h:49] cxlalloc initialized for thread 3 (global ID = 3) on host 0
+I1127 11:06:41.290452 690822 Manager.h:228] Manager(worker id = 3) on the coordinator node started.
+F1127 11:06:41.293664 690821 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f4e94af9b03  google::LogMessage::Fail()
+    @     0x7f4e94b019d1  google::LogMessage::SendToLog()
+    @     0x7f4e94af97c2  google::LogMessage::Flush()
+    @     0x7f4e94afb78f  google::LogMessageFatal::~LogMessageFatal()
+    @           0x63e231  star::PolicyClock::delete_specific_row_and_move_out()
+    @           0x681903  star::TwoPLPasha<>::commit()
+    @           0x67a764  star::Executor<>::start()
+    @     0x7f4e940dc253  (unknown)
+    @     0x7f4e94494ac3  (unknown)
+    @     0x7f4e94526850  (unknown)
+F1127 11:06:41.296341 690819 PolicyClock.h:218] Check failed: 0 
+*** Check failure stack trace: ***
+    @     0x7f4e94af9b03  google::LogMessage::Fail()
+    @              (nil)  (unknown)
+killing previous experiments...
