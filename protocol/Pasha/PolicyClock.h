@@ -189,11 +189,17 @@ class PolicyClock : public MigrationManager {
                                 break;
                         } else {
                                 migrated_row_entity victim_row_entity = victim->row_entity;
+                                ClockMeta *clock_meta = reinterpret_cast<ClockMeta *>(victim_row_entity.migration_manager_meta);
+                                if (clock_meta->second_chance == 1) {
+                                        clock_meta->second_chance = 0;
+                                        continue;
+                                }
                                 bool move_out_success = false;
                                 move_out_success = move_from_shared_region_to_partition(victim_row_entity.table, victim_row_entity.key, victim_row_entity.local_row);
                                 if (move_out_success == true) {
+                                        clock_tracker.move_forward_and_get_cursor();
                                         clock_tracker.untrack(victim);
-                                        clock_tracker.reset_cursor();
+                                        // clock_tracker.reset_cursor();
                                         if (cxl_memory.get_stats(CXLMemory::TOTAL_HW_CC_USAGE) < hw_cc_budget) {
                                                 ret = true;
                                                 break;
