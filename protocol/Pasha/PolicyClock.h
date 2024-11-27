@@ -215,7 +215,21 @@ class PolicyClock : public MigrationManager {
 
         bool delete_specific_row_and_move_out(ITable *table, const void *key, bool is_delete_local) override
         {
-                CHECK(0);
+                // key is unused
+                ClockTracker &clock_tracker = clock_trackers[table->partitionID()];
+                void *migration_policy_meta = nullptr;
+                bool need_move_out = false, ret = false;
+
+                clock_tracker.lock();
+
+                // delete and update next key information
+                ret = delete_and_update_next_key_info(table, key, is_delete_local, need_move_out, migration_policy_meta);
+                CHECK(ret == true);
+                CHECK(need_move_out == false);
+
+                clock_tracker.unlock();
+
+                return ret;
         }
 
     private:
