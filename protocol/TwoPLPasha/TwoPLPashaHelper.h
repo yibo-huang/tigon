@@ -54,6 +54,8 @@ struct TwoPLPashaMetadataLocal {
         char *migrated_row{ nullptr };
 };
 
+#define SMETA_SIZE 16
+
 struct TwoPLPashaMetadataShared {
         TwoPLPashaMetadataShared()
                 : tid(0)
@@ -956,7 +958,7 @@ out_unlock_lmeta:
                         // allocate the CXL row
                         std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
                         char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size,
-                                CXLMemory::DATA_ALLOCATION, sizeof(TwoPLPashaMetadataShared), table->value_size()));
+                                CXLMemory::DATA_ALLOCATION, SMETA_SIZE, table->value_size()));
                         char *migrated_row_value_ptr = migrated_row_ptr + sizeof(TwoPLPashaMetadataShared);
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
                         new(smeta) TwoPLPashaMetadataShared();
@@ -1059,7 +1061,7 @@ out_unlock_lmeta:
                                 // allocate the CXL row
                                 std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
                                 char *migrated_row_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(row_total_size,
-                                                CXLMemory::DATA_ALLOCATION, sizeof(TwoPLPashaMetadataShared), table->value_size()));
+                                                CXLMemory::DATA_ALLOCATION, SMETA_SIZE, table->value_size()));
                                 char *migrated_row_value_ptr = migrated_row_ptr + sizeof(TwoPLPashaMetadataShared);
                                 TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row_ptr);
                                 new(cur_smeta) TwoPLPashaMetadataShared();
@@ -1252,7 +1254,7 @@ out_unlock_lmeta:
                         // TODO: register EBR
                         std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
                         cxl_memory.cxlalloc_free_wrapper(smeta, row_total_size,
-                                CXLMemory::DATA_FREE, sizeof(TwoPLPashaMetadataShared), table->value_size());
+                                CXLMemory::DATA_FREE, SMETA_SIZE, table->value_size());
 
                         // release the CXL latch
                         smeta->unlock();
@@ -1335,7 +1337,7 @@ out_unlock_lmeta:
                                 // TODO: register EBR
                                 std::size_t row_total_size = sizeof(TwoPLPashaMetadataShared) + table->value_size();
                                 cxl_memory.cxlalloc_free_wrapper(cur_smeta, row_total_size,
-                                        CXLMemory::DATA_FREE, sizeof(TwoPLPashaMetadataShared), table->value_size());
+                                        CXLMemory::DATA_FREE, SMETA_SIZE, table->value_size());
 
                                 // release the CXL latch
                                 cur_smeta->unlock();
