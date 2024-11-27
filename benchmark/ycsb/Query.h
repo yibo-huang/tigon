@@ -84,7 +84,6 @@ template <std::size_t N> class makeRMWQuery {
 			do {
 				retry = false;
 
-                                // during warm up, we always do uniform distribution to quickily saturate CXL memory
 				if (context.isUniform) {
 					// For the first key, we ensure that it will land in the granule specified by granuleID.
 					// This granule will be served as the coordinating granule
