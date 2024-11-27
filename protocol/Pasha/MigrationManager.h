@@ -55,6 +55,7 @@ class MigrationManager {
                 char key[max_key_size];
                 uint64_t metadata_size{ 0 };
                 std::tuple<MetaDataType *, void *> local_row;
+                void *migration_manager_meta{ nullptr };
         };
 
         virtual void init_migration_policy_metadata(void *migration_policy_meta, ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, uint64_t metadata_size)

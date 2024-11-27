@@ -11,6 +11,7 @@
 #include "protocol/Pasha/PolicyOnDemandFIFO.h"
 #include "protocol/Pasha/PolicyNoMoveOut.h"
 #include "protocol/Pasha/PolicyLRU.h"
+#include "protocol/Pasha/PolicyClock.h"
 
 #include "protocol/SundialPasha/SundialPashaHelper.h"
 
@@ -53,6 +54,15 @@ class MigrationManagerFactory {
                                         partition_num,
                                         when_to_move_out,
                                         hw_cc_budget);
+                        } else if (migration_policy == "Clock") {
+                                migration_manager = new PolicyClock(
+                                        std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                                        std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                                        std::bind(&SundialPashaHelper::delete_and_update_next_key_info, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                                        coordinator_id,
+                                        partition_num,
+                                        when_to_move_out,
+                                        hw_cc_budget);
                         } else {
                                 CHECK(0);
                         }
@@ -78,6 +88,15 @@ class MigrationManagerFactory {
                                         when_to_move_out);
                         } else if (migration_policy == "LRU") {
                                 migration_manager = new PolicyLRU(
+                                        std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                                        std::bind(&TwoPLPashaHelper::move_from_shared_region_to_partition, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                                        std::bind(&TwoPLPashaHelper::delete_and_update_next_key_info, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                                        coordinator_id,
+                                        partition_num,
+                                        when_to_move_out,
+                                        hw_cc_budget);
+                        } else if (migration_policy == "Clock") {
+                                migration_manager = new PolicyClock(
                                         std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         std::bind(&TwoPLPashaHelper::move_from_shared_region_to_partition, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&TwoPLPashaHelper::delete_and_update_next_key_info, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
