@@ -51,7 +51,8 @@ class CXLMemory {
                         << ") on host " << host_id;
         }
 
-        void *cxlalloc_malloc_wrapper(uint64_t size, int category, uint64_t metadata_size = 0, uint64_t data_size = 0)
+        // backward compatibility
+        void *cxlalloc_malloc_wrapper(uint64_t size, int category, uint64_t metadata_size, uint64_t data_size)
         {
                 // collect statistics
                 switch (category) {
@@ -78,7 +79,7 @@ class CXLMemory {
                 return cxlalloc_malloc(size);
         }
 
-        void cxlalloc_free_wrapper(void *ptr, uint64_t size, int category, uint64_t metadata_size = 0, uint64_t data_size = 0)
+        void cxlalloc_free_wrapper(void *ptr, uint64_t size, int category, uint64_t metadata_size, uint64_t data_size)
         {
                 // collect statistics
                 switch (category) {
@@ -90,6 +91,63 @@ class CXLMemory {
                         size_total_hw_cc_usage.fetch_sub(metadata_size);
                         size_metadata_usage.fetch_sub(metadata_size);
                         size_data_usage.fetch_sub(data_size);
+                        break;
+                case TRANSPORT_FREE:
+                        size_transport_usage.fetch_sub(size);
+                        break;
+                case MISC_FREE:
+                        size_total_hw_cc_usage.fetch_sub(size);
+                        size_misc_usage.fetch_sub(size);
+                        break;
+                default:
+                        CHECK(0);
+                }
+        }
+
+        // new APIs
+        void *cxlalloc_malloc_wrapper(uint64_t size, int category)
+        {
+                // collect statistics
+                switch (category) {
+                case INDEX_ALLOCATION:
+                        size_total_hw_cc_usage.fetch_add(size);
+                        size_index_usage.fetch_add(size);
+                        break;
+                case METADATA_ALLOCATION:
+                        size_total_hw_cc_usage.fetch_add(size);
+                        size_metadata_usage.fetch_add(size);
+                        break;
+                case DATA_ALLOCATION:
+                        size_data_usage.fetch_add(size);
+                        break;
+                case TRANSPORT_ALLOCATION:
+                        size_transport_usage.fetch_add(size);
+                        break;
+                case MISC_ALLOCATION:
+                        size_total_hw_cc_usage.fetch_add(size);
+                        size_misc_usage.fetch_add(size);
+                        break;
+                default:
+                        CHECK(0);
+                }
+
+                return cxlalloc_malloc(size);
+        }
+
+        void cxlalloc_free_wrapper(void *ptr, uint64_t size, int category)
+        {
+                // collect statistics
+                switch (category) {
+                case INDEX_FREE:
+                        size_total_hw_cc_usage.fetch_sub(size);
+                        size_index_usage.fetch_sub(size);
+                        break;
+                case METADATA_FREE:
+                        size_total_hw_cc_usage.fetch_sub(size);
+                        size_metadata_usage.fetch_sub(size);
+                        break;
+                case DATA_FREE:
+                        size_data_usage.fetch_sub(size);
                         break;
                 case TRANSPORT_FREE:
                         size_transport_usage.fetch_sub(size);
