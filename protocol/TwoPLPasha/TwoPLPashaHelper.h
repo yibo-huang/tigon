@@ -11,6 +11,7 @@
 
 #include "common/CCSet.h"
 #include "common/CCHashTable.h"
+#include "common/CXLMemory.h"
 #include "core/CXLTable.h"
 #include "core/Table.h"
 #include "glog/logging.h"
@@ -94,29 +95,68 @@ struct TwoPLPashaMetadataSharedSCC {
 };
 
 struct TwoPLPashaMetadataShared {
-        TwoPLPashaMetadataShared()
-                : scc_meta(0)
+        TwoPLPashaMetadataShared(TwoPLPashaMetadataSharedSCC *scc_data)
         {
-                // this spinlock will be shared between multiple processes
-                pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
+                uint64_t scc_data_cxl_offset = 0;
+
+                bool ret = cxlalloc_pointer_to_offset(scc_data, &scc_data_cxl_offset);
+                CHECK(ret == true);
+
+                atomic_word.store(scc_data_cxl_offset << SCC_DATA_OFFSET);
         }
 
-        void lock()
+	void lock()
 	{
-                pthread_spin_lock(&latch);
+retry:
+		uint64_t v_before_lock = atomic_word.load();
+                uint64_t v_after_lock = (v_before_lock | (LATCH_BIT_MASK << LATCH_BIT_OFFSET));
+
+		if ((v_before_lock & (LATCH_BIT_MASK << LATCH_BIT_OFFSET)) == 0) {
+			if (atomic_word.compare_exchange_strong(v_before_lock, v_after_lock)) {
+				return;
+                        } else {
+			        goto retry;
+                        }
+		} else {
+			goto retry;
+		}
 	}
 
 	void unlock()
 	{
-		pthread_spin_unlock(&latch);
+                // nobody can modify this atomic word without acquiring the latch
+                // so it is safe to just do regular store instead compare_and_swap
+                uint64_t v_before_unlock = atomic_word.load();
+                uint64_t v_after_unlock = (v_before_unlock & ~(LATCH_BIT_MASK << LATCH_BIT_OFFSET));
+                CHECK(((v_before_unlock & (LATCH_BIT_MASK << LATCH_BIT_OFFSET)) != 0) == true);
+
+		atomic_word.store(v_after_unlock);
 	}
 
-        pthread_spinlock_t latch;
+        TwoPLPashaMetadataSharedSCC *get_scc_data()
+        {
+                uint64_t scc_data_cxl_offset = atomic_word.load() & (SCC_DATA_MASK << SCC_DATA_OFFSET);
+                void *scc_data_ptr = cxlalloc_offset_to_pointer(scc_data_cxl_offset);
+
+                return reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(scc_data_ptr);
+        }
+
+	static constexpr int SCC_OFFSET = 54;
+	static constexpr uint64_t SCC_MASK = 0x1ffull;
+
+	static constexpr int LATCH_BIT_OFFSET = 63;
+	static constexpr uint64_t LATCH_BIT_MASK = 0x1ull;
+
+        static constexpr int SCC_DATA_OFFSET = 0;
+	static constexpr uint64_t SCC_DATA_MASK = 0xffffffffffull;
+
+        // bit 63: latch bit
+        // bit 62 - 47: software cache-coherence metadata
+        // bit 46 - 0: scc_data
+        std::atomic<uint64_t> atomic_word{ 0 };
 
         // software cache-coherence metadata
         uint16_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
-
-        boost::interprocess::offset_ptr<TwoPLPashaMetadataSharedSCC> scc_data{ nullptr };
 };
 
 uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
@@ -148,9 +188,9 @@ class TwoPLPashaHelper {
                         local_cxl_access.fetch_add(1);
 
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
-                        void *src = smeta->scc_data->data;
+                        void *src = smeta->get_scc_data()->data;
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true);
                         scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
@@ -165,8 +205,8 @@ class TwoPLPashaHelper {
         uint64_t remote_read(char *row, void *dest, std::size_t size)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                void *src = smeta->scc_data->data;
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                void *src = smeta->get_scc_data()->data;
                 uint64_t tid_ = 0;
 
 		smeta->lock();
@@ -190,8 +230,8 @@ class TwoPLPashaHelper {
                         std::memcpy(data_ptr, value, value_size);
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                        void *data_ptr = smeta->scc_data->data;
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                        void *data_ptr = smeta->get_scc_data()->data;
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true);
@@ -204,8 +244,8 @@ class TwoPLPashaHelper {
         void remote_update(char *row, const void *value, std::size_t value_size)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                void *data_ptr = smeta->scc_data->data;
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                void *data_ptr = smeta->get_scc_data()->data;
 
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true);
@@ -264,7 +304,7 @@ class TwoPLPashaHelper {
                         success = true;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
 
@@ -328,8 +368,8 @@ out_unlock_lmeta:
                         std::memcpy(dest, src, size);
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                        void *src = smeta->scc_data->data;
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                        void *src = smeta->get_scc_data()->data;
 
                         smeta->lock();
 
@@ -367,7 +407,7 @@ out_unlock_lmeta:
         static uint64_t remote_read_lock(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -399,8 +439,8 @@ out_unlock_lmeta:
         uint64_t remote_take_read_lock_and_read(char *row, void *dest, std::size_t size, bool inc_ref_cnt, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                void *src = smeta->scc_data->data;
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                void *src = smeta->get_scc_data()->data;
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -440,7 +480,7 @@ out_unlock_lmeta:
         static uint64_t remote_read_lock_and_inc_ref_cnt(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -498,7 +538,7 @@ out_unlock_lmeta:
                         success = true;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         if (scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == false) {
@@ -561,8 +601,8 @@ out_unlock_lmeta:
                         std::memcpy(dest, src, size);
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                        void *src = smeta->scc_data->data;
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                        void *src = smeta->get_scc_data()->data;
 
                         smeta->lock();
 
@@ -600,7 +640,7 @@ out_unlock_lmeta:
         static uint64_t remote_write_lock(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -632,8 +672,8 @@ out_unlock_lmeta:
         uint64_t remote_take_write_lock_and_read(char *row, void *dest, std::size_t size, bool inc_ref_cnt, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
-                void *src = smeta->scc_data->data;
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                void *src = smeta->get_scc_data()->data;
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -673,7 +713,7 @@ out_unlock_lmeta:
         static uint64_t remote_write_lock_and_inc_ref_cnt(char *row, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -720,7 +760,7 @@ out_unlock_lmeta:
                         lmeta->tid = new_value;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true);
@@ -739,7 +779,7 @@ out_unlock_lmeta:
         static void remote_read_lock_release(char *row)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -769,7 +809,7 @@ out_unlock_lmeta:
                         lmeta->tid = new_value;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true);
@@ -788,7 +828,7 @@ out_unlock_lmeta:
         static void remote_write_lock_release(char *row)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
@@ -819,7 +859,7 @@ out_unlock_lmeta:
                         lmeta->tid = new_value;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true);
@@ -839,7 +879,7 @@ out_unlock_lmeta:
         static void remote_write_lock_release(char *row, uint64_t new_value)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
                 uint64_t old_value = 0;
 
 		smeta->lock();
@@ -862,7 +902,7 @@ out_unlock_lmeta:
                 lmeta->lock();
                 if (lmeta->is_migrated == true) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == !is_valid);
@@ -882,7 +922,7 @@ out_unlock_lmeta:
         static void remote_modify_tuple_valid_bit(char *row, bool is_valid)
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
 		smeta->lock();
                 CHECK(scc_data->ref_cnt > 0);
@@ -934,7 +974,7 @@ out_unlock_lmeta:
 
                 if (migrated_row != nullptr) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         if (scc_data->get_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index) == true) {
@@ -963,7 +1003,7 @@ out_unlock_lmeta:
                 CHECK(migrated_row != nullptr);
 
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                 smeta->lock();
                 CHECK(scc_data->ref_cnt > 0);
@@ -975,7 +1015,7 @@ out_unlock_lmeta:
         static void decrease_reference_count_via_ptr(void *cxl_row)
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
-                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                 smeta->lock();
                 CHECK(scc_data->ref_cnt > 0);
@@ -1004,10 +1044,7 @@ out_unlock_lmeta:
                         char *smeta_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
                         auto scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataSharedSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(smeta_ptr);
-                        new(smeta) TwoPLPashaMetadataShared();
-
-                        // connect metadata and data
-                        smeta->scc_data = scc_data;
+                        new(smeta) TwoPLPashaMetadataShared(scc_data);
 
                         // init migration policy metadata
                         migration_manager->init_migration_policy_metadata(&scc_data->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
@@ -1054,7 +1091,7 @@ out_unlock_lmeta:
                         if (inc_ref_cnt == true) {
                                 // increase the reference count for the requesting host, even if it is already migrated
                                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                                TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                                 smeta->lock();
                                 scc_data->ref_cnt++;
@@ -1110,10 +1147,7 @@ out_unlock_lmeta:
                                 char *smeta_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
                                 auto cur_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataSharedSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
                                 TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(smeta_ptr);
-                                new(cur_smeta) TwoPLPashaMetadataShared();
-
-                                // connect metadata and data
-                                cur_smeta->scc_data = cur_scc_data;
+                                new(cur_smeta) TwoPLPashaMetadataShared(cur_scc_data);
 
                                 // init migration policy metadata
                                 migration_manager->init_migration_policy_metadata(&cur_scc_data->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
@@ -1172,7 +1206,7 @@ out_unlock_lmeta:
                                         prev_lmeta->lock();
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                auto prev_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(prev_smeta->scc_data.get());
+                                                auto prev_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(prev_smeta->get_scc_data());
 
                                                 prev_smeta->lock();
                                                 prev_scc_data->set_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index);
@@ -1186,7 +1220,7 @@ out_unlock_lmeta:
                                         next_lmeta->lock();
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                auto next_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(next_smeta->scc_data.get());
+                                                auto next_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(next_smeta->get_scc_data());
 
                                                 next_smeta->lock();
                                                 next_scc_data->set_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index);
@@ -1202,7 +1236,7 @@ out_unlock_lmeta:
                                         prev_lmeta->lock();
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                auto prev_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(prev_smeta->scc_data.get());
+                                                auto prev_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(prev_smeta->get_scc_data());
 
                                                 prev_smeta->lock();
                                                 prev_scc_data->set_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index);
@@ -1216,7 +1250,7 @@ out_unlock_lmeta:
                                         next_lmeta->lock();
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                auto next_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(next_smeta->scc_data.get());
+                                                auto next_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(next_smeta->get_scc_data());
 
                                                 next_smeta->lock();
                                                 next_scc_data->set_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index);
@@ -1228,7 +1262,7 @@ out_unlock_lmeta:
                                 if (inc_ref_cnt == true) {
                                         // increase the reference count for the requesting host, even if it is already migrated
                                         TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
-                                        auto cur_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(cur_smeta->scc_data.get());
+                                        auto cur_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(cur_smeta->get_scc_data());
 
                                         cur_smeta->lock();
                                         cur_scc_data->ref_cnt++;
@@ -1278,7 +1312,7 @@ out_unlock_lmeta:
                 lmeta->lock();
                 if (lmeta->is_migrated == true) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                         // take the CXL latch
                         smeta->lock();
@@ -1295,7 +1329,7 @@ out_unlock_lmeta:
                         lmeta->tid = scc_data->tid;
 
                         // copy data back
-                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, smeta->scc_data->data, table->value_size());
+                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, smeta->get_scc_data()->data, table->value_size());
 
                         // set the migrated row as invalid
                         scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index);
@@ -1311,7 +1345,7 @@ out_unlock_lmeta:
 
                         // free the CXL row
                         // TODO: register EBR
-                        cxl_memory.cxlalloc_free_wrapper(smeta->scc_data.get(), table->value_size(), CXLMemory::DATA_FREE);
+                        cxl_memory.cxlalloc_free_wrapper(smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
                         cxl_memory.cxlalloc_free_wrapper(smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                         // release the CXL latch
@@ -1341,7 +1375,7 @@ out_unlock_lmeta:
                                 prev_lmeta->lock();
                                 if (prev_lmeta->is_migrated == true) {
                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                        auto prev_scc_data = prev_smeta->scc_data.get();
+                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                         prev_smeta->lock();
                                         prev_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index);
@@ -1355,7 +1389,7 @@ out_unlock_lmeta:
                                 next_lmeta->lock();
                                 if (next_lmeta->is_migrated == true) {
                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                        auto next_scc_data = next_smeta->scc_data.get();
+                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                         next_smeta->lock();
                                         next_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index);
@@ -1368,7 +1402,7 @@ out_unlock_lmeta:
                         CHECK(cur_lmeta->is_valid = true);
                         if (cur_lmeta->is_migrated == true) {
                                 TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
-                                TwoPLPashaMetadataSharedSCC *cur_scc_data = cur_smeta->scc_data.get();
+                                TwoPLPashaMetadataSharedSCC *cur_scc_data = cur_smeta->get_scc_data();
 
                                 // take the CXL latch
                                 cur_smeta->lock();
@@ -1386,7 +1420,7 @@ out_unlock_lmeta:
                                 cur_lmeta->tid = cur_scc_data->tid;
 
                                 // copy data back
-                                scc_manager->do_read(&cur_smeta->scc_meta, coordinator_id, cur_data, cur_smeta->scc_data->data, table->value_size());
+                                scc_manager->do_read(&cur_smeta->scc_meta, coordinator_id, cur_data, cur_smeta->get_scc_data()->data, table->value_size());
 
                                 // set the migrated row as invalid
                                 cur_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::valid_flag_index);
@@ -1397,7 +1431,7 @@ out_unlock_lmeta:
 
                                 // free the CXL row
                                 // TODO: register EBR
-                                cxl_memory.cxlalloc_free_wrapper(cur_smeta->scc_data.get(), table->value_size(), CXLMemory::DATA_FREE);
+                                cxl_memory.cxlalloc_free_wrapper(cur_smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
                                 cxl_memory.cxlalloc_free_wrapper(cur_smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                                 // release the CXL latch
@@ -1470,7 +1504,7 @@ out_unlock_lmeta:
                                                 prev_lmeta->lock();
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                        auto prev_scc_data = prev_smeta->scc_data.get();
+                                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                                         prev_smeta->lock();
                                                         prev_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index);
@@ -1484,7 +1518,7 @@ out_unlock_lmeta:
                                                 next_lmeta->lock();
                                                 if (next_lmeta->is_migrated == true) {
                                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                        auto next_scc_data = next_smeta->scc_data.get();
+                                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                                         next_smeta->lock();
                                                         next_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index);
@@ -1500,7 +1534,7 @@ out_unlock_lmeta:
                                         prev_lmeta->lock();
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                auto prev_scc_data = prev_smeta->scc_data.get();
+                                                auto prev_scc_data = prev_smeta->get_scc_data();
 
                                                 prev_smeta->lock();
                                                 prev_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index);
@@ -1514,7 +1548,7 @@ out_unlock_lmeta:
                                         next_lmeta->lock();
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                auto next_scc_data = next_smeta->scc_data.get();
+                                                auto next_scc_data = next_smeta->get_scc_data();
 
                                                 next_smeta->lock();
                                                 next_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index);
@@ -1553,7 +1587,7 @@ out_unlock_lmeta:
                         if (prev_lmeta != nullptr) {
                                 if (prev_lmeta->is_migrated == true) {
                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                        auto prev_scc_data = prev_smeta->scc_data.get();
+                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                         prev_smeta->lock();
                                         if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
@@ -1573,7 +1607,7 @@ out_unlock_lmeta:
                         if (next_lmeta != nullptr) {
                                 if (next_lmeta->is_migrated == true) {
                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                        auto next_scc_data = next_smeta->scc_data.get();
+                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                         next_smeta->lock();
                                         if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
@@ -1602,7 +1636,7 @@ out_unlock_lmeta:
                         cur_lmeta->lock();
                         if (cur_lmeta->is_migrated == true) {
                                 auto cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
-                                auto cur_scc_data = cur_smeta->scc_data.get();
+                                auto cur_scc_data = cur_smeta->get_scc_data();
 
                                 cur_smeta->lock();
                                 if (is_local_delete == true) {

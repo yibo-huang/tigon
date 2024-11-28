@@ -278,7 +278,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                                         // check if the previous key and the next key are real
                                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
-                                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+                                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
 
                                         smeta->lock();
                                         if (table->compare_key(key, min_key) == 0) {
