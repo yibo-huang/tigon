@@ -120,9 +120,6 @@ struct TwoPLPashaMetadataShared {
         // software cache-coherence metadata
         uint16_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
 
-        // migration policy metadata
-        char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
-
         boost::interprocess::offset_ptr<TwoPLPashaMetadataSharedSCC> scc_data{ nullptr };
 };
 
@@ -947,7 +944,7 @@ out_unlock_lmeta:
                         if (scc_data->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true) {
                                 if (inc_ref_cnt == true) {
                                         scc_data->ref_cnt++;
-                                        migration_policy_meta = &smeta->migration_policy_meta;
+                                        migration_policy_meta = &scc_data->migration_policy_meta;
                                 }
                         } else {
                                 migrated_row = nullptr;
@@ -1017,8 +1014,8 @@ out_unlock_lmeta:
                         smeta->scc_data = scc_data;
 
                         // init migration policy metadata
-                        migration_manager->init_migration_policy_metadata(&smeta->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
-                        migration_policy_meta = smeta->migration_policy_meta;
+                        migration_manager->init_migration_policy_metadata(&scc_data->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
+                        migration_policy_meta = scc_data->migration_policy_meta;
 
                         // init software cache-coherence metadata
                         scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
@@ -1123,8 +1120,8 @@ out_unlock_lmeta:
                                 cur_smeta->scc_data = cur_scc_data;
 
                                 // init migration policy metadata
-                                migration_manager->init_migration_policy_metadata(&cur_smeta->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
-                                migration_policy_meta = cur_smeta->migration_policy_meta;
+                                migration_manager->init_migration_policy_metadata(&cur_scc_data->migration_policy_meta, table, key, row, sizeof(TwoPLPashaMetadataShared));
+                                migration_policy_meta = cur_scc_data->migration_policy_meta;
 
                                 // init software cache-coherence metadata
                                 scc_manager->init_scc_metadata(&cur_smeta->scc_meta, coordinator_id);
@@ -1618,7 +1615,7 @@ out_unlock_lmeta:
                                 } else {
                                         CHECK(cur_scc_data->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == false);
                                 }
-                                migration_policy_meta = cur_smeta->migration_policy_meta;
+                                migration_policy_meta = cur_scc_data->migration_policy_meta;
                                 cur_smeta->unlock();
 
                                 need_remove_from_cxl_index = true;
