@@ -30,8 +30,8 @@ function kill_prev_exps {
         do
                 ssh_command "pkill bench_tpcc" $i
                 ssh_command "pkill bench_ycsb" $i
-                ssh_command "pkill bench_smallbank" $i
-                ssh_command "pkill bench_tatp" $i
+                # ssh_command "pkill bench_smallbank" $i
+                # ssh_command "pkill bench_tatp" $i
         done
 }
 
@@ -71,8 +71,8 @@ function sync_binaries {
         done
         sync_files $SCRIPT_DIR/../build/bench_tpcc /root/pasha/ $HOST_NUM
         sync_files $SCRIPT_DIR/../build/bench_ycsb /root/pasha/ $HOST_NUM
-        sync_files $SCRIPT_DIR/../build/bench_smallbank /root/pasha/ $HOST_NUM
-        sync_files $SCRIPT_DIR/../build/bench_tatp /root/pasha/ $HOST_NUM
+        # sync_files $SCRIPT_DIR/../build/bench_smallbank /root/pasha/ $HOST_NUM
+        # sync_files $SCRIPT_DIR/../build/bench_tatp /root/pasha/ $HOST_NUM
         exit -1
 }
 

@@ -514,9 +514,8 @@ template <class Database> class TwoPLPasha {
                                         for (auto i = 0u; i < scan_results.size(); i++) {
                                                 char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
                                                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
-                                                char *value = reinterpret_cast<char *>(smeta->scc_data.get());
                                                 auto value_size = table->value_size();
-                                                twopl_pasha_global_helper->remote_update(cxl_row, value, value_size);
+                                                twopl_pasha_global_helper->remote_update(cxl_row, smeta->scc_data->data, value_size);
                                         }
                                 }
                         }
