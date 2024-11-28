@@ -96,7 +96,6 @@ struct TwoPLPashaMetadataSharedSCC {
 struct TwoPLPashaMetadataShared {
         TwoPLPashaMetadataShared()
                 : scc_meta(0)
-                , ref_cnt(0)
         {
                 // this spinlock will be shared between multiple processes
                 pthread_spin_init(&latch, PTHREAD_PROCESS_SHARED);
@@ -120,11 +119,6 @@ struct TwoPLPashaMetadataShared {
 
         // software cache-coherence metadata
         uint16_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
-
-        // multi-host transaction accessing a cxl row would increase its reference count by 1
-        // a migrated row can only be moved out if its ref_cnt == 0
-        // TODO: remove the need for ref_cnt
-        uint8_t ref_cnt{ 0 };
 
         // migration policy metadata
         char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
@@ -442,7 +436,7 @@ out_unlock_lmeta:
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
-                        smeta->ref_cnt++;
+                        scc_data->ref_cnt++;
                 }
 
                 smeta->unlock();
@@ -478,7 +472,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // increase reference counting only if we get the lock
-                smeta->ref_cnt++;
+                scc_data->ref_cnt++;
 
                 smeta->unlock();
 
@@ -675,7 +669,7 @@ out_unlock_lmeta:
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
-                        smeta->ref_cnt++;
+                        scc_data->ref_cnt++;
                 }
 
                 smeta->unlock();
@@ -711,7 +705,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // increase reference counting only if we get the lock
-                smeta->ref_cnt++;
+                scc_data->ref_cnt++;
 
                 smeta->unlock();
 
@@ -898,7 +892,7 @@ out_unlock_lmeta:
                 TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
 
 		smeta->lock();
-                CHECK(smeta->ref_cnt > 0);
+                CHECK(scc_data->ref_cnt > 0);
                 CHECK(scc_data->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == !is_valid);
                 if (is_valid == true) {
                         scc_data->set_flag(TwoPLPashaMetadataShared::valid_flag_index);
@@ -952,7 +946,7 @@ out_unlock_lmeta:
                         smeta->lock();
                         if (scc_data->get_flag(TwoPLPashaMetadataShared::valid_flag_index) == true) {
                                 if (inc_ref_cnt == true) {
-                                        smeta->ref_cnt++;
+                                        scc_data->ref_cnt++;
                                         migration_policy_meta = &smeta->migration_policy_meta;
                                 }
                         } else {
@@ -976,9 +970,11 @@ out_unlock_lmeta:
                 CHECK(migrated_row != nullptr);
 
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(migrated_row);
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+
                 smeta->lock();
-                CHECK(smeta->ref_cnt > 0);
-                smeta->ref_cnt--;
+                CHECK(scc_data->ref_cnt > 0);
+                scc_data->ref_cnt--;
                 smeta->unlock();
         }
 
@@ -986,9 +982,11 @@ out_unlock_lmeta:
         static void decrease_reference_count_via_ptr(void *cxl_row)
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
+                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+
                 smeta->lock();
-                CHECK(smeta->ref_cnt > 0);
-                smeta->ref_cnt--;
+                CHECK(scc_data->ref_cnt > 0);
+                scc_data->ref_cnt--;
                 smeta->unlock();
         }
 
@@ -1041,7 +1039,7 @@ out_unlock_lmeta:
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
-                                smeta->ref_cnt++;
+                                scc_data->ref_cnt++;
                         }
 
                         // insert into the corresponding CXL table
@@ -1063,8 +1061,10 @@ out_unlock_lmeta:
                         if (inc_ref_cnt == true) {
                                 // increase the reference count for the requesting host, even if it is already migrated
                                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
+                                TwoPLPashaMetadataSharedSCC *scc_data = smeta->scc_data.get();
+
                                 smeta->lock();
-                                smeta->ref_cnt++;
+                                scc_data->ref_cnt++;
                                 smeta->unlock();
                         }
                         move_in_success = false;
@@ -1145,7 +1145,7 @@ out_unlock_lmeta:
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
-                                        cur_smeta->ref_cnt++;
+                                        cur_scc_data->ref_cnt++;
                                 }
 
                                 // update the next-key information
@@ -1235,8 +1235,10 @@ out_unlock_lmeta:
                                 if (inc_ref_cnt == true) {
                                         // increase the reference count for the requesting host, even if it is already migrated
                                         TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cur_lmeta->migrated_row);
+                                        auto cur_scc_data = reinterpret_cast<TwoPLPashaMetadataSharedSCC *>(cur_smeta->scc_data.get());
+
                                         cur_smeta->lock();
-                                        cur_smeta->ref_cnt++;
+                                        cur_scc_data->ref_cnt++;
                                         cur_smeta->unlock();
                                 }
                                 move_in_success = false;
@@ -1289,7 +1291,7 @@ out_unlock_lmeta:
                         smeta->lock();
 
                         // reference count > 0, cannot move out the tuple
-                        if (smeta->ref_cnt > 0) {
+                        if (scc_data->ref_cnt > 0) {
                                 smeta->unlock();
                                 lmeta->unlock();
                                 return false;
@@ -1379,7 +1381,7 @@ out_unlock_lmeta:
                                 cur_smeta->lock();
 
                                 // reference count > 0, cannot move out the tuple -> early return
-                                if (cur_smeta->ref_cnt > 0) {
+                                if (cur_scc_data->ref_cnt > 0) {
                                         cur_smeta->unlock();
                                         cur_lmeta->unlock();
                                         move_out_success = false;
