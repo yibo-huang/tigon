@@ -431,23 +431,23 @@ class TwoPLPashaMessageHandler {
 
                         // check if the previous key and the next key are real
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
-                        TwoPLPashaMetadataSharedSCC *scc_data = smeta->get_scc_data();
+                        TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
                         if (table.compare_key(key, min_key) == 0) {
                                 // if the first key matches the min_key, then we do not care about the previous key
-                                if (scc_data->get_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index) == false) {
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index) == false) {
                                         migration_required = true;
                                 }
                         } else if (scan_results.size() == limit) {
                                 // we do not care about the next key of the next key
-                                if (scc_data->get_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index) == false) {
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index) == false) {
                                         migration_required = true;
                                 }
                         } else {
                                 // for intermediate keys, we care about both the next and previous keys
-                                if (scc_data->get_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index) == false ||
-                                        scc_data->get_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index) == false) {
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index) == false ||
+                                        scc_data->get_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index) == false) {
                                         migration_required = true;
                                 }
                         }

@@ -295,7 +295,7 @@ template <class Database> class TwoPLPasha {
                                                         auto prev_scc_data = prev_smeta->get_scc_data();
 
                                                         prev_smeta->lock();
-                                                        prev_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_next_key_real_flag_index);
+                                                        prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
                                                         prev_smeta->unlock();
                                                 }
                                                 prev_lmeta->unlock();
@@ -309,7 +309,7 @@ template <class Database> class TwoPLPasha {
                                                         auto next_scc_data = next_smeta->get_scc_data();
 
                                                         next_smeta->lock();
-                                                        next_scc_data->clear_flag(TwoPLPashaMetadataSharedSCC::is_prev_key_real_flag_index);
+                                                        next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
                                                         next_smeta->unlock();
                                                 }
                                                 next_lmeta->unlock();
