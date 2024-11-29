@@ -89,12 +89,13 @@ template <class Workload, class Protocol> class Executor : public Worker {
 
 		n_started_workers.fetch_add(1);
 
+                bool retry_transaction = false;
+
 		// auto startTime = std::chrono::steady_clock::now();
 		auto t = workload.next_transaction(context, 0, this->id);
 		auto dummy_transaction = t.release();
 		setupHandlers(*dummy_transaction);
 		do {
-                        bool retry_transaction = false;
 			auto tmp_transaction = transaction.get();
 			bool replace_with_dummy = tmp_transaction == nullptr;
 			if (replace_with_dummy) {
