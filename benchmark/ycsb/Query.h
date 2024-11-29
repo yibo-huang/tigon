@@ -96,7 +96,7 @@ template <std::size_t N> class makeRMWQuery {
 				int this_partition_idx = 0;
 
                                 // during warm up, we always do remote transaction to quickily saturate CXL memory
-				if (((warmed_up == false && context.crossPartitionProbability > 0) || crossPartition <= context.crossPartitionProbability) && context.partition_num > 1) {
+				if (crossPartition <= context.crossPartitionProbability && context.partition_num > 1) {
 					if (query.num_parts == 1) {
 						query.num_parts = 1;
 						for (int j = query.num_parts; j < crossPartitionPartNum; ++j) {

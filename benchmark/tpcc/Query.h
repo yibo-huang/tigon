@@ -155,7 +155,7 @@ class makeNewOrderQuery {
 				int x = random.uniform_dist(1, 100);
 
                                 // during warm up, we always do remote transactions to quickily saturate CXL memory
-				if (((warmed_up == false && context.newOrderCrossPartitionProbability > 0) || x <= context.newOrderCrossPartitionProbability) && context.partition_num > 1) {
+				if (x <= context.newOrderCrossPartitionProbability && context.partition_num > 1) {
 					int32_t OL_SUPPLY_W_ID = W_ID;
 					while (OL_SUPPLY_W_ID == W_ID) {
 						OL_SUPPLY_W_ID = random.uniform_dist(1, context.partition_num);
@@ -285,7 +285,7 @@ class makePaymentQuery {
 		int x = random.uniform_dist(1, 100);
 
                 // during warm up, we always do remote transactions to quickily saturate CXL memory
-		if (((warmed_up == false && context.paymentCrossPartitionProbability > 0) || x <= context.paymentCrossPartitionProbability) && context.partition_num > 1) {
+		if (x <= context.paymentCrossPartitionProbability && context.partition_num > 1) {
 			// If x <= 15 a customer is selected from a random district number (C_D_ID
 			// is randomly selected within [1 .. 10]), and a random remote warehouse
 			// number (C_W_ID is randomly selected within the range of active
