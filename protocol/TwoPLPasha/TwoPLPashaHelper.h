@@ -85,11 +85,12 @@ struct TwoPLPashaSharedDataSCC {
 
         // multi-host transaction accessing a cxl row would increase its reference count by 1
         // a migrated row can only be moved out if its ref_cnt == 0
-        // TODO: remove the need for ref_cnt
+        // TODO: should be removed ultimately
         uint8_t ref_cnt{ 0 };
 
-        // migration policy metadata
-        char migration_policy_meta[MigrationManager::migration_policy_meta_size];         // directly embed it here to avoid extra cxlalloc_malloc
+        // migration policy metadata - keep it here to maintain compatibility with LRU
+        // TODO: should be moved to HWcc ultimately
+        char migration_policy_meta[MigrationManager::migration_policy_meta_size];
 
         char data[];
 };
@@ -141,22 +142,44 @@ retry:
                 return reinterpret_cast<TwoPLPashaSharedDataSCC *>(scc_data_ptr);
         }
 
-	static constexpr int SCC_OFFSET = 54;
-	static constexpr uint64_t SCC_MASK = 0x1ffull;
+        // Function to set a bit at a given position in the bitmap
+        void set_bit(uint64_t bit_index) {
+                atomic_word |= (1ull << bit_index);  // Set the specific bit to 1
+        }
+
+        // Function to clear a bit at a given position in the bitmap
+        void clear_bit(uint64_t bit_index) {
+                atomic_word &= ~(1ull << bit_index);  // Clear the specific bit to 0
+        }
+
+        // Function to check if a bit is set (returns true if set, false if clear)
+        bool is_bit_set(uint64_t bit_index) {
+                return (atomic_word & (1ull << bit_index)) != 0;
+        }
 
 	static constexpr int LATCH_BIT_OFFSET = 63;
 	static constexpr uint64_t LATCH_BIT_MASK = 0x1ull;
 
         static constexpr int SCC_DATA_OFFSET = 0;
-	static constexpr uint64_t SCC_DATA_MASK = 0xffffffffffull;
+	static constexpr uint64_t SCC_DATA_MASK = 0x1fffffffffull;
+
+        static constexpr int scc_bits_base_index = 47;
+        static constexpr int scc_bits_num = 16;
+
+        static constexpr int read_lock_bits_base_index = 40;
+        static constexpr int read_lock_bits_num = 7;
+
+        static constexpr int is_next_key_real_bit_index = 39;
+        static constexpr int is_prev_key_real_bit_index = 38;
+        static constexpr int second_chance_bit_index = 39;
 
         // bit 63: latch bit
         // bit 62 - 47: software cache-coherence metadata
-        // bit 46 - 0: scc_data
+        // bit 46 - 40: read lock bits
+        // bit 39 - 38: is_next_key_real, is_prev_key_real
+        // bit 37 - 37: second chance bit
+        // bit 36 - 0: scc_data - enough for referencing 128 GB shared CXL memory
         std::atomic<uint64_t> atomic_word{ 0 };
-
-        // software cache-coherence metadata
-        uint16_t scc_meta{ 0 };         // directly embed it here to avoid extra cxlalloc_malloc
 };
 
 uint64_t TwoPLPashaMetadataLocalInit(bool is_tuple_valid);
@@ -193,7 +216,7 @@ class TwoPLPashaHelper {
                         void *src = smeta->get_scc_data()->data;
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                        scc_manager->do_read(smeta, coordinator_id, dest, src, size);
                         tid_ = scc_data->tid;
                         smeta->unlock();
                 }
@@ -211,7 +234,7 @@ class TwoPLPashaHelper {
 
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                scc_manager->do_read(smeta, coordinator_id, dest, src, size);
                 tid_ = scc_data->tid;
 		smeta->unlock();
 
@@ -235,7 +258,7 @@ class TwoPLPashaHelper {
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                        scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
+                        scc_manager->do_write(smeta, coordinator_id, data_ptr, value, value_size);
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -249,7 +272,7 @@ class TwoPLPashaHelper {
 
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                scc_manager->do_write(&smeta->scc_meta, coordinator_id, data_ptr, value, value_size);
+                scc_manager->do_write(smeta, coordinator_id, data_ptr, value, value_size);
                 smeta->unlock();
 	}
 
@@ -394,7 +417,7 @@ out_unlock_lmeta:
                         success = true;
 
                         // read the data
-                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                        scc_manager->do_read(smeta, coordinator_id, dest, src, size);
 
                         smeta->unlock();
                 }
@@ -465,7 +488,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // read the data
-                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                scc_manager->do_read(smeta, coordinator_id, dest, src, size);
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
@@ -627,7 +650,7 @@ out_unlock_lmeta:
                         success = true;
 
                         // read the data
-                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                        scc_manager->do_read(smeta, coordinator_id, dest, src, size);
 
                         smeta->unlock();
                 }
@@ -698,7 +721,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // read the data
-                scc_manager->do_read(&smeta->scc_meta, coordinator_id, dest, src, size);
+                scc_manager->do_read(smeta, coordinator_id, dest, src, size);
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
@@ -1051,7 +1074,7 @@ out_unlock_lmeta:
                         migration_policy_meta = scc_data->migration_policy_meta;
 
                         // init software cache-coherence metadata
-                        scc_manager->init_scc_metadata(&smeta->scc_meta, coordinator_id);
+                        scc_manager->init_scc_metadata(smeta, coordinator_id);
 
                         // take the CXL latch
                         smeta->lock();
@@ -1065,7 +1088,7 @@ out_unlock_lmeta:
                         scc_data->tid = lmeta->tid;
 
                         // copy data
-                        scc_manager->do_write(&smeta->scc_meta, coordinator_id, scc_data->data, local_data, table->value_size());
+                        scc_manager->do_write(smeta, coordinator_id, scc_data->data, local_data, table->value_size());
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
@@ -1154,7 +1177,7 @@ out_unlock_lmeta:
                                 migration_policy_meta = cur_scc_data->migration_policy_meta;
 
                                 // init software cache-coherence metadata
-                                scc_manager->init_scc_metadata(&cur_smeta->scc_meta, coordinator_id);
+                                scc_manager->init_scc_metadata(cur_smeta, coordinator_id);
 
                                 // take the CXL latch
                                 cur_smeta->lock();
@@ -1168,7 +1191,7 @@ out_unlock_lmeta:
                                 cur_scc_data->tid = cur_lmeta->tid;
 
                                 // copy data
-                                scc_manager->do_write(&cur_smeta->scc_meta, coordinator_id, cur_scc_data->data, cur_data, table->value_size());
+                                scc_manager->do_write(cur_smeta, coordinator_id, cur_scc_data->data, cur_data, table->value_size());
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
@@ -1329,7 +1352,7 @@ out_unlock_lmeta:
                         lmeta->tid = scc_data->tid;
 
                         // copy data back
-                        scc_manager->do_read(&smeta->scc_meta, coordinator_id, local_data, smeta->get_scc_data()->data, table->value_size());
+                        scc_manager->do_read(smeta, coordinator_id, local_data, smeta->get_scc_data()->data, table->value_size());
 
                         // set the migrated row as invalid
                         scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1420,7 +1443,7 @@ out_unlock_lmeta:
                                 cur_lmeta->tid = cur_scc_data->tid;
 
                                 // copy data back
-                                scc_manager->do_read(&cur_smeta->scc_meta, coordinator_id, cur_data, cur_smeta->get_scc_data()->data, table->value_size());
+                                scc_manager->do_read(cur_smeta, coordinator_id, cur_data, cur_smeta->get_scc_data()->data, table->value_size());
 
                                 // set the migrated row as invalid
                                 cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);

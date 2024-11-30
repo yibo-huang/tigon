@@ -54,7 +54,7 @@ class SundialPashaExecutor : public Executor<Workload, SundialPasha<typename Wor
                                 context.partition_num, context.when_to_move_out, hw_cc_budget_per_host);
 
                         // init software cache-coherence manager
-                        scc_manager = SCCManagerFactory::create_scc_manager(context.scc_mechanism);
+                        scc_manager = SCCManagerFactory::create_scc_manager(context.protocol, context.scc_mechanism);
 
                         // handle pre-migration
                         if (context.pre_migrate == "None") {
