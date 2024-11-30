@@ -292,10 +292,9 @@ template <class Database> class TwoPLPasha {
                                                 prev_lmeta->lock();
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                                         prev_smeta->lock();
-                                                        prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                        prev_smeta->clear_next_key_real_bit();
                                                         prev_smeta->unlock();
                                                 }
                                                 prev_lmeta->unlock();
@@ -306,10 +305,9 @@ template <class Database> class TwoPLPasha {
                                                 next_lmeta->lock();
                                                 if (next_lmeta->is_migrated == true) {
                                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                                         next_smeta->lock();
-                                                        next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                        next_smeta->clear_prev_key_real_bit();
                                                         next_smeta->unlock();
                                                 }
                                                 next_lmeta->unlock();

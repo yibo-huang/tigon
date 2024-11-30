@@ -284,18 +284,17 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         if (table->compare_key(key, min_key) == 0) {
                                                 // if the first key matches the min_key, then we do not care about the previous key
                                                 CHECK(scan_results.size() == 0);
-                                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index) == false) {
+                                                if (smeta->get_next_key_real_bit() == false) {
                                                         migration_required = true;
                                                 }
                                         } else if (scan_results.size() == limit) {
                                                 // we do not care about the next key of the next key
-                                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index) == false) {
+                                                if (smeta->get_prev_key_real_bit() == false) {
                                                         migration_required = true;
                                                 }
                                         } else {
                                                 // for intermediate keys, we care about both the next and previous keys
-                                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index) == false ||
-                                                        scc_data->get_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index) == false) {
+                                                if (smeta->get_next_key_real_bit() == false || smeta->get_prev_key_real_bit() == false) {
                                                         migration_required = true;
                                                 }
                                         }

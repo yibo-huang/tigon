@@ -63,8 +63,6 @@ struct TwoPLPashaSharedDataSCC {
         {}
 
         static constexpr int valid_flag_index = 0;
-        static constexpr int is_prev_key_real_flag_index = 1;
-        static constexpr int is_next_key_real_flag_index = 2;
 
         bool get_flag(int flag_index) {
                 return (flags & (1 << flag_index)) != 0;
@@ -142,18 +140,52 @@ retry:
                 return reinterpret_cast<TwoPLPashaSharedDataSCC *>(scc_data_ptr);
         }
 
+        // next-key information
+        bool get_next_key_real_bit()
+        {
+                return is_bit_set(is_next_key_real_bit_index);
+        }
+
+        void set_next_key_real_bit()
+        {
+                set_bit(is_next_key_real_bit_index);
+        }
+
+        void clear_next_key_real_bit()
+        {
+                clear_bit(is_next_key_real_bit_index);
+        }
+
+        bool get_prev_key_real_bit()
+        {
+                return is_bit_set(is_prev_key_real_bit_index);
+        }
+
+        void set_prev_key_real_bit()
+        {
+                set_bit(is_prev_key_real_bit_index);
+        }
+
+        void clear_prev_key_real_bit()
+        {
+                clear_bit(is_prev_key_real_bit_index);
+        }
+
         // Function to set a bit at a given position in the bitmap
-        void set_bit(uint64_t bit_index) {
+        void set_bit(uint64_t bit_index)
+        {
                 atomic_word |= (1ull << bit_index);  // Set the specific bit to 1
         }
 
         // Function to clear a bit at a given position in the bitmap
-        void clear_bit(uint64_t bit_index) {
+        void clear_bit(uint64_t bit_index)
+        {
                 atomic_word &= ~(1ull << bit_index);  // Clear the specific bit to 0
         }
 
         // Function to check if a bit is set (returns true if set, false if clear)
-        bool is_bit_set(uint64_t bit_index) {
+        bool is_bit_set(uint64_t bit_index)
+        {
                 return (atomic_word & (1ull << bit_index)) != 0;
         }
 
@@ -171,7 +203,7 @@ retry:
 
         static constexpr int is_next_key_real_bit_index = 39;
         static constexpr int is_prev_key_real_bit_index = 38;
-        static constexpr int second_chance_bit_index = 39;
+        static constexpr int second_chance_bit_index = 37;
 
         // bit 63: latch bit
         // bit 62 - 47: software cache-coherence metadata
@@ -1200,16 +1232,16 @@ out_unlock_lmeta:
 
                                 // update the next-key information
                                 if (is_next_key_migrated == true) {
-                                        cur_scc_data->set_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                        cur_smeta->set_next_key_real_bit();
                                 } else {
-                                        cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                        cur_smeta->clear_next_key_real_bit();
                                 }
 
                                 // update the prev-key information
                                 if (is_prev_key_migrated == true) {
-                                        cur_scc_data->set_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                        cur_smeta->set_prev_key_real_bit();
                                 } else {
-                                        cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                        cur_smeta->clear_prev_key_real_bit();
                                 }
 
                                 // insert into the corresponding CXL table
@@ -1229,10 +1261,9 @@ out_unlock_lmeta:
                                         prev_lmeta->lock();
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                auto prev_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(prev_smeta->get_scc_data());
 
                                                 prev_smeta->lock();
-                                                prev_scc_data->set_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                prev_smeta->set_next_key_real_bit();
                                                 prev_smeta->unlock();
                                         }
                                         prev_lmeta->unlock();
@@ -1243,10 +1274,9 @@ out_unlock_lmeta:
                                         next_lmeta->lock();
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                auto next_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(next_smeta->get_scc_data());
 
                                                 next_smeta->lock();
-                                                next_scc_data->set_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                next_smeta->set_prev_key_real_bit();
                                                 next_smeta->unlock();
                                         }
                                         next_lmeta->unlock();
@@ -1259,10 +1289,9 @@ out_unlock_lmeta:
                                         prev_lmeta->lock();
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                auto prev_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(prev_smeta->get_scc_data());
 
                                                 prev_smeta->lock();
-                                                prev_scc_data->set_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                prev_smeta->set_next_key_real_bit();
                                                 prev_smeta->unlock();
                                         }
                                         prev_lmeta->unlock();
@@ -1273,10 +1302,9 @@ out_unlock_lmeta:
                                         next_lmeta->lock();
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                auto next_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(next_smeta->get_scc_data());
 
                                                 next_smeta->lock();
-                                                next_scc_data->set_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                next_smeta->set_prev_key_real_bit();
                                                 next_smeta->unlock();
                                         }
                                         next_lmeta->unlock();
@@ -1398,10 +1426,9 @@ out_unlock_lmeta:
                                 prev_lmeta->lock();
                                 if (prev_lmeta->is_migrated == true) {
                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                         prev_smeta->lock();
-                                        prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                        prev_smeta->clear_next_key_real_bit();
                                         prev_smeta->unlock();
                                 }
                                 prev_lmeta->unlock();
@@ -1412,10 +1439,9 @@ out_unlock_lmeta:
                                 next_lmeta->lock();
                                 if (next_lmeta->is_migrated == true) {
                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                         next_smeta->lock();
-                                        next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                        next_smeta->clear_prev_key_real_bit();
                                         next_smeta->unlock();
                                 }
                                 next_lmeta->unlock();
@@ -1527,10 +1553,9 @@ out_unlock_lmeta:
                                                 prev_lmeta->lock();
                                                 if (prev_lmeta->is_migrated == true) {
                                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                                         prev_smeta->lock();
-                                                        prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                        prev_smeta->clear_next_key_real_bit();
                                                         prev_smeta->unlock();
                                                 }
                                                 prev_lmeta->unlock();
@@ -1541,10 +1566,9 @@ out_unlock_lmeta:
                                                 next_lmeta->lock();
                                                 if (next_lmeta->is_migrated == true) {
                                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                                         next_smeta->lock();
-                                                        next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                        next_smeta->clear_prev_key_real_bit();
                                                         next_smeta->unlock();
                                                 }
                                                 next_lmeta->unlock();
@@ -1557,10 +1581,9 @@ out_unlock_lmeta:
                                         prev_lmeta->lock();
                                         if (prev_lmeta->is_migrated == true) {
                                                 auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                                auto prev_scc_data = prev_smeta->get_scc_data();
 
                                                 prev_smeta->lock();
-                                                prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                prev_smeta->clear_next_key_real_bit();
                                                 prev_smeta->unlock();
                                         }
                                         prev_lmeta->unlock();
@@ -1571,10 +1594,9 @@ out_unlock_lmeta:
                                         next_lmeta->lock();
                                         if (next_lmeta->is_migrated == true) {
                                                 auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                                auto next_scc_data = next_smeta->get_scc_data();
 
                                                 next_smeta->lock();
-                                                next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                next_smeta->clear_prev_key_real_bit();
                                                 next_smeta->unlock();
                                         }
                                         next_lmeta->unlock();
@@ -1610,17 +1632,16 @@ out_unlock_lmeta:
                         if (prev_lmeta != nullptr) {
                                 if (prev_lmeta->is_migrated == true) {
                                         auto prev_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(prev_lmeta->migrated_row);
-                                        auto prev_scc_data = prev_smeta->get_scc_data();
 
                                         prev_smeta->lock();
                                         if (next_lmeta != nullptr && next_lmeta->is_migrated == false) {
-                                                prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                prev_smeta->clear_next_key_real_bit();
                                         } else if (next_lmeta != nullptr && next_lmeta->is_migrated == true) {
                                                 // We should treat migrated tuples as equal no matter they are valid or not.
                                                 // Since we are removing the migrated tuple but keeping the local tuple, we should mark the next key as false.
-                                                prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                prev_smeta->clear_next_key_real_bit();
                                         } else {
-                                                prev_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_next_key_real_flag_index);
+                                                prev_smeta->clear_next_key_real_bit();
                                         }
                                         prev_smeta->unlock();
                                 }
@@ -1630,17 +1651,16 @@ out_unlock_lmeta:
                         if (next_lmeta != nullptr) {
                                 if (next_lmeta->is_migrated == true) {
                                         auto next_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(next_lmeta->migrated_row);
-                                        auto next_scc_data = next_smeta->get_scc_data();
 
                                         next_smeta->lock();
                                         if (prev_lmeta != nullptr && prev_lmeta->is_migrated == false) {
-                                                next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                next_smeta->clear_prev_key_real_bit();
                                         } else if (prev_lmeta != nullptr && prev_lmeta->is_migrated == true) {
                                                 // We should treat migrated tuples as equal no matter they are valid or not.
                                                 // Since we are removing the migrated tuple but keeping the local tuple, we should mark the previous key as false.
-                                                next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                next_smeta->clear_prev_key_real_bit();
                                         } else {
-                                                next_scc_data->clear_flag(TwoPLPashaSharedDataSCC::is_prev_key_real_flag_index);
+                                                next_smeta->clear_prev_key_real_bit();
                                         }
                                         next_smeta->unlock();
                                 }
