@@ -303,7 +303,7 @@ template <class Transaction> class Scan : public Transaction {
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
-			return TransactionResult::ABORT;
+			return TransactionResult::ABORT_NORETRY;
 		}
 		t_local_work.reset();
 
@@ -416,7 +416,7 @@ template <class Transaction> class Insert : public Transaction {
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
-			return TransactionResult::ABORT;
+			return TransactionResult::ABORT_NORETRY;
 		}
 		t_local_work.reset();
 
@@ -583,7 +583,7 @@ template <class Transaction> class Delete : public Transaction {
 
 		t_local_work.end();
 		if (this->process_requests(worker_id)) {
-			return TransactionResult::ABORT;
+			return TransactionResult::ABORT_NORETRY;
 		}
 		t_local_work.reset();
 
@@ -601,7 +601,7 @@ template <class Transaction> class Delete : public Transaction {
 
                 t_local_work.end();
 		if (this->process_requests(worker_id)) {
-			return TransactionResult::ABORT;
+			return TransactionResult::ABORT_NORETRY;
 		}
 		t_local_work.reset();
 
