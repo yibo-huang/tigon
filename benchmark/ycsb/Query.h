@@ -60,7 +60,7 @@ template <std::size_t N> class makeRMWQuery {
 		query.parts[0] = partitionID;
 		query.part_granule_count[0] = 0;
 		int readOnly = random.uniform_dist(1, 100);
-                // int crossPartition = random.uniform_dist(1, 100);
+		int crossPartition = random.uniform_dist(1, 100);
 		// int crossPartitionPartNum = context.crossPartitionPartNum;
 		int crossPartitionPartNum = random.uniform_dist(2, context.crossPartitionPartNum);
 		for (auto i = 0u; i < N; i++) {
@@ -78,8 +78,6 @@ template <std::size_t N> class makeRMWQuery {
 			}
 
 			uint32_t key;
-
-                        int crossPartition = random.uniform_dist(1, 100);       // do it for every operation instead of every transaction
 
 			// generate a key in a partition
 			bool retry;
@@ -120,8 +118,7 @@ template <std::size_t N> class makeRMWQuery {
 							query.num_parts++;
 						}
 					}
-                                        CHECK(query.num_parts > 1);
-					auto newPartitionID = query.parts[random.uniform_dist(1, query.num_parts - 1)];
+					auto newPartitionID = query.parts[i % query.num_parts];
 					query.Y_KEY[i] = i == 0 ? context.getGlobalKeyID(key, newPartitionID, granuleID) :
 								  context.getGlobalKeyID(key, newPartitionID);
 					query.cross_partition = true;
