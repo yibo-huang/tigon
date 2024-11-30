@@ -321,14 +321,6 @@ template <class Database> class TwoPLPasha {
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);      // cannot use cached row
                                 CHECK(meta != nullptr);
                                 TwoPLPashaHelper::modify_tuple_valid_bit(*meta, true);
-
-                                // release the read lock for the next row
-                                if (insertKey.get_next_row_locked() == true) {
-                                        auto next_row_entity = insertKey.get_next_row_entity();
-                                        std::atomic<uint64_t> *next_key_meta = next_row_entity.meta;
-                                        CHECK(next_key_meta != nullptr);
-                                        TwoPLPashaHelper::read_lock_release(*next_key_meta);
-                                }
 			} else {
                                 auto coordinatorID = partitioner.master_coordinator(partitionId);
                                 txn.network_size += MessageFactoryType::new_remote_insert_message(

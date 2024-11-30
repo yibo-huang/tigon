@@ -261,14 +261,6 @@ template <class Database> class TwoPL {
                                 std::atomic<uint64_t> *meta = table->search_metadata(key);      // cannot use the cached row
                                 CHECK(meta != nullptr);
                                 TwoPLHelper::mark_tuple_as_valid(*meta);
-
-                                // release the read lock for the next row
-                                if (insertKey.get_next_row_locked() == true) {
-                                        auto next_row_entity = insertKey.get_next_row_entity();
-                                        std::atomic<uint64_t> *next_key_meta = next_row_entity.meta;
-                                        CHECK(next_key_meta != nullptr);
-                                        TwoPLHelper::read_lock_release(*next_key_meta);
-                                }
 			} else {
                                 // does not support remote insert & delete
                                 CHECK(0);
