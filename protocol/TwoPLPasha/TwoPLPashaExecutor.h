@@ -136,13 +136,15 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         // cache migrated row pointer
                                         cached_migrated_row = migrated_row;
 
+                                        uint64_t tid = 0;
+
                                         // mark it as reference counted so that we know if we need to release it upon commit/abort
                                         txn.readSet[key_offset].set_reference_counted();
 
                                         if (write_lock) {
-                                                twopl_pasha_global_helper->remote_take_write_lock_and_read(migrated_row, value, table->value_size(), false, success);
+                                                tid = twopl_pasha_global_helper->remote_take_write_lock_and_read(migrated_row, value, table->value_size(), false, success);
                                         } else {
-                                                twopl_pasha_global_helper->remote_take_read_lock_and_read(migrated_row, value, table->value_size(), false, success);
+                                                tid = twopl_pasha_global_helper->remote_take_read_lock_and_read(migrated_row, value, table->value_size(), false, success);
                                         }
 
                                         if (success == true) {
