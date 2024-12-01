@@ -216,14 +216,33 @@ retry:
                 return READ_LOCK_BITS_MASK;
         }
 
+        // write lock
+        bool is_write_locked()
+        {
+                return is_bit_set(WRITE_LOCK_BIT_OFFSET);
+        }
+
+        void set_write_locked()
+        {
+                set_bit(WRITE_LOCK_BIT_OFFSET);
+        }
+
+        void clear_write_locked()
+        {
+                clear_bit(WRITE_LOCK_BIT_OFFSET);
+        }
+
 	static constexpr int LATCH_BIT_OFFSET = 63;
 	static constexpr uint64_t LATCH_BIT_MASK = 0x1ull;
 
         static constexpr int SCC_DATA_OFFSET = 0;
 	static constexpr uint64_t SCC_DATA_MASK = 0x1fffffffffull;
 
-        static constexpr int READ_LOCK_BITS_OFFSET = 40;
-	static constexpr uint64_t READ_LOCK_BITS_MASK = 0x7full;
+        static constexpr int READ_LOCK_BITS_OFFSET = 41;
+	static constexpr uint64_t READ_LOCK_BITS_MASK = 0x3full;
+
+        static constexpr int WRITE_LOCK_BIT_OFFSET = 40;
+	static constexpr uint64_t WRITE_LOCK_BIT_MASK = 0x1ull;
 
         static constexpr int scc_bits_base_index = 47;
         static constexpr int scc_bits_num = 16;
@@ -361,10 +380,20 @@ class TwoPLPashaHelper {
                 value += (reader_count << READ_LOCK_BIT_OFFSET);
         }
 
-	static uint64_t read_lock_max()
+        static uint64_t read_lock_max()
 	{
 		return READ_LOCK_BIT_MASK;
 	}
+
+        void set_write_lock_bit(uint64_t &value)
+        {
+                value |= (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+        }
+
+        void clear_write_lock_bit(uint64_t &value)
+        {
+                value &= ~(WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
+        }
 
 	static uint64_t read_lock(std::atomic<uint64_t> &meta, bool &success)
 	{
@@ -408,7 +437,7 @@ class TwoPLPashaHelper {
                         tid = remove_lock_bit(old_value);
 
                         // can we get the lock?
-                        if (is_write_locked(old_value) || smeta->get_reader_count() == smeta->get_reader_count_max()) {
+                        if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
                                 success = false;
                                 smeta->unlock();
                                 goto out_unlock_lmeta;
@@ -475,7 +504,7 @@ out_unlock_lmeta:
                         tid = remove_lock_bit(old_value);
 
                         // can we get the lock?
-                        if (is_write_locked(old_value) || smeta->get_reader_count() == smeta->get_reader_count_max()) {
+                        if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
                                 success = false;
                                 smeta->unlock();
                                 goto out_unlock_lmeta;
@@ -514,7 +543,7 @@ out_unlock_lmeta:
                 tid = remove_lock_bit(old_value);
 
                 // can we get the lock?
-                if (is_write_locked(old_value) || smeta->get_reader_count() == smeta->get_reader_count_max()) {
+                if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
                         success = false;
                         smeta->unlock();
                         return tid;
@@ -548,7 +577,7 @@ out_unlock_lmeta:
                 tid = remove_lock_bit(old_value);
 
                 // can we get the lock?
-                if (is_write_locked(old_value) || smeta->get_reader_count() == smeta->get_reader_count_max()) {
+                if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
                         success = false;
                         smeta->unlock();
                         return tid;
@@ -589,7 +618,7 @@ out_unlock_lmeta:
                 tid = remove_lock_bit(old_value);
 
                 // can we get the lock?
-                if (is_write_locked(old_value) || smeta->get_reader_count() == smeta->get_reader_count_max()) {
+                if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
                         success = false;
                         smeta->unlock();
                         return tid;
@@ -648,15 +677,14 @@ out_unlock_lmeta:
                         tid = remove_lock_bit(old_value);
 
                         // can we get the lock?
-                        if (smeta->get_reader_count() > 0 || is_write_locked(old_value)) {
+                        if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
                                 success = false;
                                 smeta->unlock();
                                 goto out_unlock_lmeta;
                         }
 
                         // OK, we can get the lock
-                        new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-                        scc_data->tid = new_value;
+                        smeta->set_write_locked();
                         success = true;
 
                         smeta->unlock();
@@ -716,15 +744,14 @@ out_unlock_lmeta:
                         tid = remove_lock_bit(old_value);
 
                         // can we get the lock?
-                        if (smeta->get_reader_count() > 0 || is_write_locked(old_value)) {
+                        if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
                                 success = false;
                                 smeta->unlock();
                                 goto out_unlock_lmeta;
                         }
 
                         // OK, we can get the lock
-                        new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-                        scc_data->tid = new_value;
+                        smeta->set_write_locked();
                         success = true;
 
                         // read the data
@@ -756,15 +783,14 @@ out_unlock_lmeta:
                 tid = remove_lock_bit(old_value);
 
                 // can we get the lock?
-                if (smeta->get_reader_count() > 0 || is_write_locked(old_value)) {
+                if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
                         success = false;
                         smeta->unlock();
                         return tid;
                 }
 
                 // OK, we can get the lock
-                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-                scc_data->tid = new_value;
+                smeta->set_write_locked();
                 success = true;
 
                 smeta->unlock();
@@ -791,15 +817,14 @@ out_unlock_lmeta:
                 tid = remove_lock_bit(old_value);
 
                 // can we get the lock?
-                if (smeta->get_reader_count() > 0 || is_write_locked(old_value)) {
+                if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
                         success = false;
                         smeta->unlock();
                         return tid;
                 }
 
                 // OK, we can get the lock
-                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-                scc_data->tid = new_value;
+                smeta->set_write_locked();
                 success = true;
 
                 // read the data
@@ -833,15 +858,14 @@ out_unlock_lmeta:
                 tid = remove_lock_bit(old_value);
 
                 // can we get the lock?
-                if (smeta->get_reader_count() > 0 || is_write_locked(old_value)) {
+                if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
                         success = false;
                         smeta->unlock();
                         return tid;
                 }
 
                 // OK, we can get the lock
-                new_value = old_value + (WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
-                scc_data->tid = new_value;
+                smeta->set_write_locked();
                 success = true;
 
                 // increase reference counting only if we get the lock
@@ -874,7 +898,7 @@ out_unlock_lmeta:
 
                         old_value = scc_data->tid;
 			CHECK(smeta->get_reader_count() > 0);
-			CHECK(!is_write_locked(old_value));
+			CHECK(smeta->is_write_locked() == false);
 			smeta->decrease_reader_count();
 
                         smeta->unlock();
@@ -893,7 +917,7 @@ out_unlock_lmeta:
 
                 old_value = scc_data->tid;
                 CHECK(smeta->get_reader_count() > 0);
-                CHECK(!is_write_locked(old_value));
+                CHECK(smeta->is_write_locked() == false);
                 smeta->decrease_reader_count();
 
                 smeta->unlock();
@@ -921,9 +945,8 @@ out_unlock_lmeta:
 
                         old_value = scc_data->tid;
                         CHECK(smeta->get_reader_count() == 0);
-                        CHECK(is_write_locked(old_value));
-                        new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
-                        scc_data->tid = new_value;
+                        CHECK(smeta->is_write_locked() == true);
+                        smeta->clear_write_locked();
 
                         smeta->unlock();
                 }
@@ -941,9 +964,8 @@ out_unlock_lmeta:
 
                 old_value = scc_data->tid;
                 CHECK(smeta->get_reader_count() == 0);
-                CHECK(is_write_locked(old_value));
-                new_value = old_value - (1ull << WRITE_LOCK_BIT_OFFSET);
-                scc_data->tid = new_value;
+                CHECK(smeta->is_write_locked() == true);
+                smeta->clear_write_locked();
 
                 smeta->unlock();
 	}
@@ -971,9 +993,8 @@ out_unlock_lmeta:
 
                         old_value = scc_data->tid;
                         CHECK(smeta->get_reader_count() == 0);
-                        CHECK(is_write_locked(old_value));
-                        CHECK(!is_write_locked(new_value));
-                        scc_data->tid = new_value;
+                        CHECK(smeta->is_write_locked() == true);
+                        smeta->clear_write_locked();
 
                         smeta->unlock();
                 }
@@ -991,9 +1012,8 @@ out_unlock_lmeta:
 
                 old_value = scc_data->tid;
                 CHECK(smeta->get_reader_count() == 0);
-                CHECK(is_write_locked(old_value));
-                CHECK(!is_write_locked(new_value));
-                scc_data->tid = new_value;
+                CHECK(smeta->is_write_locked() == true);
+                smeta->clear_write_locked();
 
                 smeta->unlock();
 	}
@@ -1167,6 +1187,11 @@ out_unlock_lmeta:
                         }
                         scc_data->tid = lmeta->tid;
                         smeta->set_reader_count(read_lock_num(lmeta->tid));
+                        if (is_write_locked(lmeta->tid) == true) {
+                                smeta->set_write_locked();
+                        } else {
+                                smeta->clear_write_locked();
+                        }
 
                         // copy data
                         scc_manager->do_write(smeta, coordinator_id, scc_data->data, local_data, table->value_size());
@@ -1271,6 +1296,11 @@ out_unlock_lmeta:
                                 }
                                 cur_scc_data->tid = cur_lmeta->tid;
                                 cur_smeta->set_reader_count(read_lock_num(cur_lmeta->tid));
+                                if (is_write_locked(cur_lmeta->tid) == true) {
+                                        cur_smeta->set_write_locked();
+                                } else {
+                                        cur_smeta->clear_write_locked();
+                                }
 
                                 // copy data
                                 scc_manager->do_write(cur_smeta, coordinator_id, cur_scc_data->data, cur_data, table->value_size());
@@ -1429,6 +1459,11 @@ out_unlock_lmeta:
                         lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
                         lmeta->tid = scc_data->tid;
                         set_read_lock_num(lmeta->tid, smeta->get_reader_count());
+                        if (smeta->is_write_locked() == true) {
+                                set_write_lock_bit(lmeta->tid);
+                        } else {
+                                clear_write_lock_bit(lmeta->tid);
+                        }
 
                         // copy data back
                         scc_manager->do_read(smeta, coordinator_id, local_data, smeta->get_scc_data()->data, table->value_size());
@@ -1519,6 +1554,11 @@ out_unlock_lmeta:
                                 cur_lmeta->is_valid = cur_scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
                                 cur_lmeta->tid = cur_scc_data->tid;
                                 set_read_lock_num(cur_lmeta->tid, cur_smeta->get_reader_count());
+                                if (cur_smeta->is_write_locked() == true) {
+                                        set_write_lock_bit(cur_lmeta->tid);
+                                } else {
+                                        clear_write_lock_bit(cur_lmeta->tid);
+                                }
 
                                 // copy data back
                                 scc_manager->do_read(cur_smeta, coordinator_id, cur_data, cur_smeta->get_scc_data()->data, table->value_size());
@@ -1770,11 +1810,11 @@ out_unlock_lmeta:
 	}
 
     public:
-	static constexpr int LOCK_BIT_OFFSET = 56;
-	static constexpr uint64_t LOCK_BIT_MASK = 0xffull;
+	static constexpr int LOCK_BIT_OFFSET = 57;
+	static constexpr uint64_t LOCK_BIT_MASK = 0x7full;
 
-	static constexpr int READ_LOCK_BIT_OFFSET = 56;
-	static constexpr uint64_t READ_LOCK_BIT_MASK = 0x7full;
+	static constexpr int READ_LOCK_BIT_OFFSET = 57;
+	static constexpr uint64_t READ_LOCK_BIT_MASK = 0x3full;
 
 	static constexpr int WRITE_LOCK_BIT_OFFSET = 63;
 	static constexpr uint64_t WRITE_LOCK_BIT_MASK = 0x1ull;
