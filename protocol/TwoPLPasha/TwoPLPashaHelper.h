@@ -294,7 +294,7 @@ class TwoPLPashaHelper {
                         void *src = smeta->get_scc_data()->data;
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                        scc_manager->do_read(smeta, coordinator_id, dest, src, size);
+                        memcpy(dest, src, size);
                         tid_ = scc_data->tid;
                         smeta->unlock();
                 }
@@ -312,7 +312,7 @@ class TwoPLPashaHelper {
 
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                scc_manager->do_read(smeta, coordinator_id, dest, src, size);
+                memcpy(dest, src, size);
                 tid_ = scc_data->tid;
 		smeta->unlock();
 
@@ -336,7 +336,7 @@ class TwoPLPashaHelper {
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                        scc_manager->do_write(smeta, coordinator_id, data_ptr, value, value_size);
+                        memcpy(data_ptr, value, value_size);
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -350,7 +350,7 @@ class TwoPLPashaHelper {
 
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                scc_manager->do_write(smeta, coordinator_id, data_ptr, value, value_size);
+                memcpy(data_ptr, value, value_size);
                 smeta->unlock();
 	}
 
@@ -500,6 +500,9 @@ out_unlock_lmeta:
                                 goto out_unlock_lmeta;
                         }
 
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                         old_value = scc_data->tid;
                         tid = remove_lock_bit(old_value);
 
@@ -515,7 +518,7 @@ out_unlock_lmeta:
                         success = true;
 
                         // read the data
-                        scc_manager->do_read(smeta, coordinator_id, dest, src, size);
+                        memcpy(dest, src, size);
 
                         smeta->unlock();
                 }
@@ -573,6 +576,9 @@ out_unlock_lmeta:
                         return remove_lock_bit(old_value);
                 }
 
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
 
@@ -588,7 +594,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // read the data
-                scc_manager->do_read(smeta, coordinator_id, dest, src, size);
+                memcpy(dest, src, size);
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
@@ -600,7 +606,7 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-        static uint64_t remote_read_lock_and_inc_ref_cnt(char *row, bool &success)
+        uint64_t remote_read_lock_and_inc_ref_cnt(char *row, uint64_t size, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
@@ -613,6 +619,9 @@ out_unlock_lmeta:
                         smeta->unlock();
                         return remove_lock_bit(old_value);
                 }
+
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
@@ -740,6 +749,9 @@ out_unlock_lmeta:
                                 goto out_unlock_lmeta;
                         }
 
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                         old_value = scc_data->tid;
                         tid = remove_lock_bit(old_value);
 
@@ -755,7 +767,7 @@ out_unlock_lmeta:
                         success = true;
 
                         // read the data
-                        scc_manager->do_read(smeta, coordinator_id, dest, src, size);
+                        memcpy(dest, src, size);
 
                         smeta->unlock();
                 }
@@ -813,6 +825,9 @@ out_unlock_lmeta:
                         return remove_lock_bit(old_value);
                 }
 
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
 
@@ -828,7 +843,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // read the data
-                scc_manager->do_read(smeta, coordinator_id, dest, src, size);
+                memcpy(dest, src, size);
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
@@ -840,7 +855,7 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-        static uint64_t remote_write_lock_and_inc_ref_cnt(char *row, bool &success)
+        uint64_t remote_write_lock_and_inc_ref_cnt(char *row, uint64_t size, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
@@ -853,6 +868,9 @@ out_unlock_lmeta:
                         smeta->unlock();
                         return tid;
                 }
+
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
@@ -970,7 +988,7 @@ out_unlock_lmeta:
                 smeta->unlock();
 	}
 
-	static void write_lock_release(std::atomic<uint64_t> &meta, uint64_t new_value)
+	void write_lock_release(std::atomic<uint64_t> &meta, uint64_t size, uint64_t new_value)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 uint64_t old_value = 0;
@@ -996,12 +1014,13 @@ out_unlock_lmeta:
                         CHECK(smeta->is_write_locked() == true);
                         smeta->clear_write_locked();
 
+                        scc_manager->finish_write(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaMetadataShared) + size);
                         smeta->unlock();
                 }
                 lmeta->unlock();
 	}
 
-        static void remote_write_lock_release(char *row, uint64_t new_value)
+        void remote_write_lock_release(char *row, uint64_t size, uint64_t new_value)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
@@ -1015,6 +1034,7 @@ out_unlock_lmeta:
                 CHECK(smeta->is_write_locked() == true);
                 smeta->clear_write_locked();
 
+                scc_manager->finish_write(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaMetadataShared) + size);
                 smeta->unlock();
 	}
 
@@ -1194,7 +1214,7 @@ out_unlock_lmeta:
                         }
 
                         // copy data
-                        scc_manager->do_write(smeta, coordinator_id, scc_data->data, local_data, table->value_size());
+                        memcpy(scc_data->data, local_data, table->value_size());
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
@@ -1209,6 +1229,8 @@ out_unlock_lmeta:
                         // mark the local row as migrated
                         lmeta->migrated_row = smeta_ptr;
                         lmeta->is_migrated = true;
+
+                        scc_manager->finish_write(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + table->value_size());
 
                         // release the CXL latch
                         smeta->unlock();
@@ -1303,7 +1325,7 @@ out_unlock_lmeta:
                                 }
 
                                 // copy data
-                                scc_manager->do_write(cur_smeta, coordinator_id, cur_scc_data->data, cur_data, table->value_size());
+                                memcpy(cur_scc_data->data, cur_data, table->value_size());
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
@@ -1332,6 +1354,8 @@ out_unlock_lmeta:
                                 // mark the local row as migrated
                                 cur_lmeta->migrated_row = smeta_ptr;
                                 cur_lmeta->is_migrated = true;
+
+                                scc_manager->finish_write(cur_smeta, coordinator_id, cur_scc_data, sizeof(TwoPLPashaSharedDataSCC) + table->value_size());
 
                                 // release the CXL latch
                                 cur_smeta->unlock();
@@ -1455,6 +1479,8 @@ out_unlock_lmeta:
                                 return false;
                         }
 
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + table->value_size());
+
                         // copy metadata back
                         lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
                         lmeta->tid = scc_data->tid;
@@ -1466,7 +1492,7 @@ out_unlock_lmeta:
                         }
 
                         // copy data back
-                        scc_manager->do_read(smeta, coordinator_id, local_data, smeta->get_scc_data()->data, table->value_size());
+                        memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
 
                         // set the migrated row as invalid
                         scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1550,6 +1576,8 @@ out_unlock_lmeta:
                                         return;
                                 }
 
+                                scc_manager->prepare_read(cur_smeta, coordinator_id, cur_scc_data, sizeof(TwoPLPashaSharedDataSCC) + table->value_size());
+
                                 // copy metadata back
                                 cur_lmeta->is_valid = cur_scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
                                 cur_lmeta->tid = cur_scc_data->tid;
@@ -1561,7 +1589,7 @@ out_unlock_lmeta:
                                 }
 
                                 // copy data back
-                                scc_manager->do_read(cur_smeta, coordinator_id, cur_data, cur_smeta->get_scc_data()->data, table->value_size());
+                                memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
 
                                 // set the migrated row as invalid
                                 cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);

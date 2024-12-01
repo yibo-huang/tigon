@@ -315,13 +315,13 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         // try to acquire the lock and increase the reference count if locking succeeds
                                         bool lock_success = false;
                                         if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                                TwoPLPashaHelper::remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                twopl_pasha_global_helper->remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
-                                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                                TwoPLPashaHelper::remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), lock_success);
+                                                twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
                                         } else {
                                                 CHECK(0);
                                         }

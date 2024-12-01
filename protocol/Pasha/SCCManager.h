@@ -31,6 +31,8 @@ class SCCManager {
         // we do not need to worry about memory ordering
         virtual void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) = 0;
         virtual void do_write(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) = 0;
+        virtual void prepare_read(void *scc_meta, std::size_t cur_host_id, void *scc_data, uint64_t size) {}
+        virtual void finish_write(void *scc_meta, std::size_t cur_host_id, void *scc_data, uint64_t size) {}
 
         void print_stats()
         {

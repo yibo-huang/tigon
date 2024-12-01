@@ -19,7 +19,7 @@ namespace star
  */
 class TwoPLPashaSCCWriteThrough : public SCCManager {
     public:
-        void init_scc_metadata(void *scc_meta, std::size_t cur_host_id)
+        void init_scc_metadata(void *scc_meta, std::size_t cur_host_id) override
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(scc_meta);
                 std::size_t host_bit_index = 0;
@@ -34,13 +34,23 @@ class TwoPLPashaSCCWriteThrough : public SCCManager {
                 }
         }
 
-        void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size)
+        void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) override
+        {
+                CHECK(0);
+        }
+
+        void do_write(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) override
+        {
+                CHECK(0);
+        }
+
+        void prepare_read(void *scc_meta, std::size_t cur_host_id, void *scc_data, uint64_t size) override
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(scc_meta);
                 std::size_t cur_host_bit_index = cur_host_id + TwoPLPashaMetadataShared::scc_bits_base_index;
 
                 if (smeta->is_bit_set(cur_host_bit_index) == false) {
-                        clflush(src, size);
+                        clflush(scc_data, size);
                         smeta->set_bit(cur_host_bit_index);
 
                         // statistics
@@ -49,12 +59,9 @@ class TwoPLPashaSCCWriteThrough : public SCCManager {
                         // statistics
                         num_cache_hit.fetch_add(1);
                 }
-
-                // do read
-                std::memcpy(dst, src, size);
         }
 
-        void do_write(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size)
+        void finish_write(void *scc_meta, std::size_t cur_host_id, void *scc_data, uint64_t size) override
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(scc_meta);
                 std::size_t cur_host_bit_index = cur_host_id + TwoPLPashaMetadataShared::scc_bits_base_index;
@@ -73,9 +80,7 @@ class TwoPLPashaSCCWriteThrough : public SCCManager {
                         }
                 }
 
-                // do write
-                std::memcpy(dst, src, size);
-                clwb(dst, size);
+                clwb(scc_data, size);
         }
 };
 

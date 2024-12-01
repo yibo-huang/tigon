@@ -608,11 +608,11 @@ template <class Database> class TwoPLPasha {
 				if (partitioner.has_master_partition(partitionId)) {
                                         auto cached_row = readKey.get_cached_local_row();
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
-                                        TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row), commit_tid);
+                                        twopl_pasha_global_helper->write_lock_release(*std::get<0>(cached_row), table->value_size(), commit_tid);
                                 } else {
                                         char *migrated_row = readKey.get_cached_migrated_row();
                                         CHECK(migrated_row != nullptr);
-                                        twopl_pasha_global_helper->remote_write_lock_release(migrated_row, commit_tid);
+                                        twopl_pasha_global_helper->remote_write_lock_release(migrated_row, table->value_size(), commit_tid);
                                 }
 			}
 		}
@@ -632,12 +632,12 @@ template <class Database> class TwoPLPasha {
                                         auto next_row_entity = insertKey.get_next_row_entity();
                                         std::atomic<uint64_t> *meta = next_row_entity.meta;
                                         CHECK(meta != nullptr);
-                                        TwoPLPashaHelper::write_lock_release(*meta, commit_tid);
+                                        twopl_pasha_global_helper->write_lock_release(*meta, table->value_size(), commit_tid);
                                 } else {
                                         auto next_row_entity = insertKey.get_next_row_entity();
                                         char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
                                         CHECK(cxl_row != nullptr);
-                                        twopl_pasha_global_helper->remote_write_lock_release(cxl_row, commit_tid);
+                                        twopl_pasha_global_helper->remote_write_lock_release(cxl_row, table->value_size(), commit_tid);
                                 }
                         }
 		}
