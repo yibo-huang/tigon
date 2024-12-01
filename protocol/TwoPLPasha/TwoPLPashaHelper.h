@@ -192,7 +192,7 @@ retry:
         // read lock
         uint64_t get_reader_count()
         {
-                return atomic_word.load() & (READ_LOCK_BITS_MASK << READ_LOCK_BITS_OFFSET);
+                return (atomic_word.load() >> READ_LOCK_BITS_OFFSET) & READ_LOCK_BITS_MASK;
         }
 
         void set_reader_count(uint64_t reader_count)
@@ -1212,6 +1212,8 @@ out_unlock_lmeta:
                         } else {
                                 smeta->clear_write_locked();
                         }
+                        CHECK(read_lock_num(lmeta->tid) == smeta->get_reader_count());
+                        CHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data
                         memcpy(scc_data->data, local_data, table->value_size());
@@ -1323,6 +1325,8 @@ out_unlock_lmeta:
                                 } else {
                                         cur_smeta->clear_write_locked();
                                 }
+                                CHECK(read_lock_num(cur_lmeta->tid) == cur_smeta->get_reader_count());
+                                CHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data
                                 memcpy(cur_scc_data->data, cur_data, table->value_size());
@@ -1490,6 +1494,8 @@ out_unlock_lmeta:
                         } else {
                                 clear_write_lock_bit(lmeta->tid);
                         }
+                        CHECK(read_lock_num(lmeta->tid) == smeta->get_reader_count());
+                        CHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data back
                         memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
@@ -1587,6 +1593,8 @@ out_unlock_lmeta:
                                 } else {
                                         clear_write_lock_bit(cur_lmeta->tid);
                                 }
+                                CHECK(read_lock_num(cur_lmeta->tid) == cur_smeta->get_reader_count());
+                                CHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data back
                                 memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
