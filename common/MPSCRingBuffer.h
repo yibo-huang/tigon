@@ -70,7 +70,7 @@ class MPSCRingBuffer {
                 uint64_t cur_count = 0, cur_tail = 0;
                 Entry *entry = nullptr;
 
-                DCHECK(data_size <= entry_data_size);
+                CHECK(data_size <= entry_data_size);
 
                 /* try to gain access to the queue */
                 cur_count = std::atomic_fetch_add_explicit(&count, 1, std::memory_order_acquire);
@@ -127,7 +127,7 @@ class MPSCRingBuffer {
                         dequeue_size = entry->remaining_size;
 
                 /* partial dequeue is not supported for now */
-                DCHECK(dequeue_size == entry->remaining_size);
+                CHECK(dequeue_size == entry->remaining_size);
 
                 /* memcpy the data to the user-provided buffer and update the metadata */
                 clflush(entry->data, dequeue_size);
