@@ -392,11 +392,11 @@ class SundialMessageHandler {
 		responseMessage.flush();
 
 		if (txn->get_logger()) {
-			// // write the vote
-			// std::ostringstream ss;
-			// ss << success;
-			// output += ss.str();
-			// txn->get_logger()->write(output.c_str(), output.size(), true, txn->startTime);
+			// write the vote
+			std::ostringstream ss;
+			ss << success;
+			output += ss.str();
+			txn->get_logger()->write(output.c_str(), output.size(), true, txn->startTime);
 		}
 
 		if (txn->get_logger()) {
@@ -470,11 +470,11 @@ class SundialMessageHandler {
 		responseMessage.set_gen_time(Time::now());
 
 		if (persist_commit_record) {
-			// DCHECK(txn->get_logger());
-			// std::ostringstream ss;
-			// ss << commit_ts << true;
-			// auto output = ss.str();
-			// auto lsn = txn->get_logger()->write(output.c_str(), output.size(), false, txn->startTime);
+			DCHECK(txn->get_logger());
+			std::ostringstream ss;
+			ss << commit_ts << true;
+			auto output = ss.str();
+			auto lsn = txn->get_logger()->write(output.c_str(), output.size(), false, txn->startTime);
 			// txn->get_logger()->sync(lsn, );
 		}
 	}

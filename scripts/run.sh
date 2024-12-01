@@ -695,7 +695,7 @@ typeset RUN_TYPE=$1
 typeset PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE=2048
 typeset PASHA_CXL_TRANS_ENTRY_NUM=8192
 
-typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=65536
+typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=8192
 typeset BASELINE_CXL_TRANS_ENTRY_NUM=8192
 
 if [ $RUN_TYPE = "TPCC" ]; then
@@ -794,7 +794,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=100   # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_TIME=40000   # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
