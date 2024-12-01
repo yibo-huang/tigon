@@ -15,18 +15,6 @@ if [ $# != 0 ]; then
         exit -1
 fi
 
-# common parameters
-typeset HOST_NUM=8
-typeset WORKER_NUM=3
-typeset OLD_WORKER_NUM=2
-typeset DEFAULT_HCC_SIZE_LIMIT=200000000
-
-# common parameters for TPCC
-
-# common parameters for YCSB
-typeset WRITE_INTENSIVE_RW_RATIO=50
-typeset READ_INTENSIVE_RW_RATIO=90
-
 function run_remote_txn_overhead_tpcc {
         if [ $# != 14 ]; then
                 print_usage
@@ -145,160 +133,166 @@ function run_remote_txn_overhead_smallbank {
         $SCRIPT_DIR/run.sh SmallBank $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA 100 $USE_CXL_TRANS $USE_OUTPUT_THREAD $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $MAX_MIGRATED_ROWS_SIZE $SCC_MECHANISM $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOGGING_TYPE 0 >> $RESULT_FILE 2>&1
 }
 
+########### General Configuration BEGIN ###########
 
-########### Microbenchmark BEGIN ###########
-typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/micro
+# common parameters
+typeset HOST_NUM=8
+typeset WORKER_NUM=3
+typeset OLD_WORKER_NUM=2
+
+typeset DEFAULT_HCC_SIZE_LIMIT=$(( 1024*1024*200 ))     # 200 MB
+
+typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_1=$(( 1024*1024*200 ))         # 200 MB
+typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_2=$(( 1024*1024*150 ))         # 150 MB
+typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_3=$(( 1024*1024*100 ))         # 100 MB
+typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4=$(( 1024*1024*50 ))          # 50 MB
+typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5=$(( 1024*1024*10 ))          # 10 MB
+
+# common parameters for TPCC
+typeset TPCC_RUN_TIME=40
+typeset TPCC_WARMUP_TIME=20
+
+# common parameters for YCSB
+typeset YCSB_RUN_TIME=40
+typeset YCSB_WARMUP_TIME=20
+
+typeset READ_INTENSIVE_RW_RATIO=95
+typeset WRITE_INTENSIVE_RW_RATIO=50
+
+########### General Configuration END ###########
+
+
+
+
+
+########### Baselines BEGIN ###########
+
+# Microbenchmarks
+typeset RESULT_DIR=$SCRIPT_DIR/../results/native-baselines/$current_date_time/micro/
 mkdir -p $RESULT_DIR
 
 # YCSB: read-only + high-skewness (0.7) + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10   # Tigon
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                   # TwoPL-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                 # Sundial-CXL-improved
-
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # TwoPL-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # TwoPL-NET
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10       # Sundial-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10       # Sundial-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME             # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME           # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME         # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME       # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME         # TwoPL-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 100 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME       # Sundial-NET
 
 # YCSB: write-only + high-skewness (0.7) + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10     # Tigon
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                     # TwoPL-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                   # Sundial-CXL-improved
-
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10           # TwoPL-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10           # TwoPL-NET
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # Sundial-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # Sundial-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME               # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME             # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME           # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME         # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME           # TwoPL-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 0 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME         # Sundial-NET
 
 # YCSB: scan-only + high-skewness + varying percentages of remote operations
 
 # YCSB: insert-only + pre-determined pattern + varying percentages of remote operations
 
-########### Microbenchmark END ###########
+# End-to-End Performance
+typeset RESULT_DIR=$SCRIPT_DIR/../results/native-baselines/$current_date_time/macro/
+mkdir -p $RESULT_DIR
+
+# TPCC
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME              # TwoPL-CXL-improved
+run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME            # Sundial-CXL-improved
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME          # TwoPL-CXL
+run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME        # Sundial-CXL
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME          # TwoPL-NET
+run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME        # Sundial-NET
+
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME           # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME         # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME       # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME       # TwoPL-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Sundial-NET
+
+# YCSB write-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME           # TwoPL-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME         # Sundial-CXL-improved
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME       # TwoPL-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Sundial-CXL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME       # TwoPL-NET
+run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Sundial-NET
+
+########### Baselines END ###########
 
 
 
 
 
-########### End-to-End Performance BEGIN ###########
+########### Tigon Microbenchmark BEGIN ###########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/micro/
+mkdir -p $RESULT_DIR
+
+# YCSB: read-only + high-skewness (0.7) + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+
+# YCSB: write-only + high-skewness (0.7) + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+
+# YCSB: scan-only + high-skewness + varying percentages of remote operations
+
+# YCSB: insert-only + pre-determined pattern + varying percentages of remote operations
+
+########### Tigon Microbenchmark END ###########
+
+
+
+
+
+########### Tigon End-to-End Performance BEGIN ###########
 typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/macro
 mkdir -p $RESULT_DIR
 
 # TPCC
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10       # Tigon-TwoPL
-run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10     # Tigon-Sundial
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                       # TwoPL-CXL-improved
-run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                     # Sundial-CXL-improved
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME       # Tigon-TwoPL
+run_remote_txn_overhead_tpcc $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME     # Tigon-Sundial
 
-# run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10   # TwoPL-CXL
-# run_remote_txn_overhead_tpcc $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10   # TwoPL-NET
-# run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10 # Sundial-CXL
-# run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10 # Sundial-NET
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME   # Tigon-Sundial
 
-# YCSB (80% read + 20% write + 0.7 skewness)
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10     # Tigon-TwoPL
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10   # Tigon-Sundial
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                     # TwoPL-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                   # Sundial-CXL-improved
+# YCSB write-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
+run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME   # Tigon-Sundial
 
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10           # TwoPL-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10           # TwoPL-NET
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # Sundial-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 80 0.7 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # Sundial-NET
-
-# YCSB (80% read + 20% write + 0.99 skewness)
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10     # Tigon-TwoPL
-run_remote_txn_overhead_ycsb $RESULT_DIR SundialPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10   # Tigon-Sundial
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                     # TwoPL-CXL-improved
-run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10                   # Sundial-CXL-improved
-
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 80 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10           # TwoPL-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR TwoPL $HOST_NUM $OLD_WORKER_NUM rmw 80 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10           # TwoPL-NET
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 80 0.99 1 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # Sundial-CXL
-# run_remote_txn_overhead_ycsb $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM rmw 80 0.99 0 1 NoMoveOut OnDemand 0 NoOP None GROUP_WAL 15 10         # Sundial-NET
-
-########### End-to-End Performance END ###########
+########### Tigon End-to-End Performance END ###########
 
 
 
 
 
-########### Data Movement BEGIN ###########
-typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/macro
+########### Tigon Data Movement BEGIN ###########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/data-movement
 mkdir -p $RESULT_DIR
 
 # TPCC
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10          # Tigon-TwoPL unlimited
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_1 WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_2 WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_3 WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4 WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5 WriteThrough None GROUP_WAL $TPCC_RUN_TIME $TPCC_WARMUP_TIME
 
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 200000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 150000000 WriteThrough None GROUP_WAL 40 30          # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 100000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 50000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 10 MB
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_1 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_2 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_3 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
 
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 OnDemandFIFO OnDemand 200000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 OnDemandFIFO OnDemand 150000000 WriteThrough None GROUP_WAL 40 30          # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 OnDemandFIFO OnDemand 100000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 OnDemandFIFO OnDemand 50000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 OnDemandFIFO OnDemand 10000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 10 MB
+# YCSB write-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_1 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_2 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_3 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5 WriteThrough None GROUP_WAL $YCSB_RUN_TIME $YCSB_WARMUP_TIME
 
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand 200000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand 150000000 WriteThrough None GROUP_WAL 40 30          # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand 100000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand 50000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand 10000000 WriteThrough None GROUP_WAL 40 30         # Tigon-TwoPL + 10 MB
-
-# YCSB (80% read + 20% write + 0.7 skewness)
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10      # Tigon-TwoPL + unlimited
-
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 200000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 150000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 100000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 50000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 10 MB
-
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 OnDemandFIFO OnDemand 200000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 OnDemandFIFO OnDemand 150000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 OnDemandFIFO OnDemand 100000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 OnDemandFIFO OnDemand 50000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 OnDemandFIFO OnDemand 10000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 10 MB
-
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 Clock OnDemand 200000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 Clock OnDemand 150000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 Clock OnDemand 100000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 Clock OnDemand 50000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.7 1 0 Clock OnDemand 10000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 10 MB
-
-# YCSB (80% read + 20% write + 0.99 skewness)
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 NoMoveOut OnDemand 0 WriteThrough NonPart GROUP_WAL 15 10      # Tigon-TwoPL + unlimited
-
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 LRU OnDemand 200000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 LRU OnDemand 150000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 LRU OnDemand 100000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 LRU OnDemand 50000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 LRU OnDemand 10000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 10 MB
-
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 OnDemandFIFO OnDemand 200000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 OnDemandFIFO OnDemand 150000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 OnDemandFIFO OnDemand 100000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 OnDemandFIFO OnDemand 50000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 OnDemandFIFO OnDemand 10000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 10 MB
-
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 Clock OnDemand 200000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 200 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 Clock OnDemand 150000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 150 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 Clock OnDemand 100000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 100 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 Clock OnDemand 50000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 50 MB
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80 0.99 1 0 Clock OnDemand 10000000 WriteThrough None GROUP_WAL 15 10      # Tigon-TwoPL + 10 MB
-
-########### Data Movement END ###########
-
-
-
-
-
-########### Software Cache-Coherence BEGIN ###########
-
-########### Software Cache-Coherence END ###########
+########### Tigon Data Movement END ###########
 
 
 
@@ -307,3 +301,11 @@ run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 80
 ########## Migration Policy BEGIN ##########
 
 ########## Migration Policy END ##########
+
+
+
+
+
+########### Software Cache-Coherence BEGIN ###########
+
+########### Software Cache-Coherence END ###########
