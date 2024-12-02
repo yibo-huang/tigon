@@ -115,6 +115,12 @@ template <class Database> class TwoPLPasha {
                                         if (partitioner.has_master_partition(partitionId)) {
                                                 auto cached_row = readKey.get_cached_local_row();
                                                 CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                                // model CXL search overhead
+                                                if (this->context.model_cxl_search_overhead == true) {
+                                                        twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                                }
+
                                                 TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
                                         } else {
                                                 char *migrated_row = readKey.get_cached_migrated_row();
@@ -128,6 +134,12 @@ template <class Database> class TwoPLPasha {
                                         if (partitioner.has_master_partition(partitionId)) {
                                                 auto cached_row = readKey.get_cached_local_row();
                                                 CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                                // model CXL search overhead
+                                                if (this->context.model_cxl_search_overhead == true) {
+                                                        twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                                }
+
                                                 TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row));
                                         } else {
                                                 char *migrated_row = readKey.get_cached_migrated_row();
@@ -279,6 +291,12 @@ template <class Database> class TwoPLPasha {
                                         if (partitioner.has_master_partition(partitionId)) {
                                                 auto cached_row = readKey.get_cached_local_row();
                                                 CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                                // model CXL search overhead
+                                                if (this->context.model_cxl_search_overhead == true) {
+                                                        twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                                }
+
                                                 TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
                                         } else {
                                                 char *migrated_row = readKey.get_cached_migrated_row();
@@ -292,6 +310,12 @@ template <class Database> class TwoPLPasha {
                                         if (partitioner.has_master_partition(partitionId)) {
                                                 auto cached_row = readKey.get_cached_local_row();
                                                 CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                                // model CXL search overhead
+                                                if (this->context.model_cxl_search_overhead == true) {
+                                                        twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                                }
+
                                                 TwoPLPashaHelper::write_lock_release(*std::get<0>(cached_row));
                                         } else {
                                                 char *migrated_row = readKey.get_cached_migrated_row();
@@ -599,6 +623,12 @@ template <class Database> class TwoPLPasha {
                                         auto value_size = table->value_size();
                                         auto cached_row = writeKey.get_cached_local_row();
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                        // model CXL search overhead
+                                        if (this->context.model_cxl_search_overhead == true) {
+                                                twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                        }
+
                                         twopl_pasha_global_helper->update(cached_row, value, value_size);
                                 } else {
                                         auto key = writeKey.get_key();
@@ -726,6 +756,12 @@ template <class Database> class TwoPLPasha {
 				if (partitioner.has_master_partition(partitionId)) {
 					auto cached_row = readKey.get_cached_local_row();
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                        // model CXL search overhead
+                                        if (this->context.model_cxl_search_overhead == true) {
+                                                twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                        }
+
 					TwoPLPashaHelper::read_lock_release(*std::get<0>(cached_row));
 				} else {
 					char *migrated_row = readKey.get_cached_migrated_row();
@@ -738,6 +774,12 @@ template <class Database> class TwoPLPasha {
 				if (partitioner.has_master_partition(partitionId)) {
                                         auto cached_row = readKey.get_cached_local_row();
                                         CHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
+
+                                        // model CXL search overhead
+                                        if (this->context.model_cxl_search_overhead == true) {
+                                                twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                        }
+
                                         twopl_pasha_global_helper->write_lock_release(*std::get<0>(cached_row), table->value_size(), commit_tid);
                                 } else {
                                         char *migrated_row = readKey.get_cached_migrated_row();

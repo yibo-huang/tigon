@@ -1110,6 +1110,22 @@ out_unlock_lmeta:
                 return cxl_tbl_vecs[table_id][partition_id];
         }
 
+        // used for modelling the overhead of always go through the CXL indexes for local search
+        void model_cxl_search_overhead(const std::tuple<MetaDataType *, void *> &row, std::size_t table_id, std::size_t partition_id, const void *key)
+        {
+                MetaDataType &meta = *std::get<0>(row);
+                TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
+
+                lmeta->lock();
+                if (lmeta->is_migrated == true) {
+                        // the tuple is migrated, so we should search through the CXL index
+                        CXLTableBase *target_cxl_table = cxl_tbl_vecs[table_id][partition_id];
+                        char *migrated_row = reinterpret_cast<char *>(target_cxl_table->search(key));
+                        CHECK(migrated_row != nullptr);
+                }
+                lmeta->unlock();
+        }
+
         // used for remote point queries
         char *get_migrated_row(std::size_t table_id, std::size_t partition_id, const void *key, bool inc_ref_cnt)
         {

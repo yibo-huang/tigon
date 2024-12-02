@@ -100,6 +100,10 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 				auto row = table->search(key);
                                 CHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
 
+                                if (this->context.model_cxl_search_overhead == true) {
+                                        twopl_pasha_global_helper->model_cxl_search_overhead(row, table_id, partition_id, key);
+                                }
+
                                 cached_local_row = row;
 
                                 uint64_t tid = 0;
