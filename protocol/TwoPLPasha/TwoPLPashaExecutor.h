@@ -444,26 +444,22 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 bool local_scan = false;
 
                                 if (this->partitioner->has_master_partition(partition_id) ||
-                                (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
+                                        (this->partitioner->is_partition_replicated_on(partition_id, this->coordinator_id) && this->context.read_on_replica)) {
                                         local_scan = true;
                                 }
 
                                 if (local_scan) {
-                                        // we do the next-key locking logic inside this function
-                                        bool scan_success = true;       // it is possible that the range is empty - we accept this case
                                         auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
                                                 CHECK(key != nullptr);
                                                 CHECK(meta_ptr != nullptr);
                                                 CHECK(data_ptr != nullptr);
 
-                                                bool locking_next_tuple = false;
+                                                if (limit != 0 && scan_results.size() == limit) {
+                                                        return true;
+                                                }
 
-                                                if (is_last_tuple == true) {
-                                                        locking_next_tuple = true;
-                                                } else if (limit != 0 && scan_results.size() == limit) {
-                                                        locking_next_tuple = true;
-                                                } else if (table->compare_key(key, max_key) > 0) {
-                                                        locking_next_tuple = true;
+                                                if (table->compare_key(key, max_key) > 0) {
+                                                        return true;
                                                 }
 
                                                 if (table->compare_key(key, min_key) >= 0) {
@@ -476,181 +472,19 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                         return false;
                                                 }
 
-                                                // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
-                                                // But we can ignore it for now because we never generate
-                                                // transactions with duplicated or overlapped queries.
+                                                ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
+                                                scan_results.push_back(cur_row);
 
-                                                // try to acquire the lock
-                                                std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
-                                                bool lock_success = false;
-                                                if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                                        TwoPLPashaHelper::read_lock(meta, lock_success);
-                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                                        TwoPLPashaHelper::write_lock(meta, lock_success);
-                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
-                                                        TwoPLPashaHelper::write_lock(meta, lock_success);
-                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                                        TwoPLPashaHelper::write_lock(meta, lock_success);
-                                                } else {
-                                                        CHECK(0);
-                                                }
-
-                                                if (lock_success == true) {
-                                                        // acquiring lock succeeds
-                                                        ITable::row_entity cur_row(key, table->key_size(), meta_ptr, data_ptr, table->value_size());
-                                                        if (locking_next_tuple == false) {
-                                                                scan_results.push_back(cur_row);
-                                                                // continue scan
-                                                                return false;
-                                                        } else {
-                                                                // scan succeeds - store the next-tuple and quit
-                                                                next_row_entity = cur_row;
-                                                                scan_success = true;
-                                                                return true;
-                                                        }
-                                                } else {
-                                                        // stop and fail immediately if we fail to acquire a lock
-                                                        scan_success = false;
-                                                        return true;
-                                                }
+                                                // continue scan
+                                                return false;
                                         };
 
                                         table->scan(min_key, local_scan_processor);
-                                        migration_required = false;     // local scan does not require data migration
-                                        return scan_success;
                                 } else {
-                                        // we do the next-key locking logic inside this function
-                                        bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
-                                        auto remote_scan_processor = [&](const void *key, void *cxl_row, bool is_last_tuple) -> bool {
-                                                CHECK(key != nullptr);
-                                                CHECK(cxl_row != nullptr);
-
-                                                bool locking_next_tuple = false;
-
-                                                if (is_last_tuple == true) {
-                                                        locking_next_tuple = true;
-                                                } else if (limit != 0 && scan_results.size() == limit) {
-                                                        locking_next_tuple = true;
-                                                } else if (table->compare_key(key, max_key) > 0) {
-                                                        locking_next_tuple = true;
-                                                }
-
-                                                if (table->compare_key(key, min_key) >= 0) {
-                                                        if (scan_results.size() > 0) {
-                                                                if (table->compare_key(key, scan_results[scan_results.size() - 1].key) <= 0) {
-                                                                        return false;
-                                                                }
-                                                        }
-                                                } else {
-                                                        return false;
-                                                }
-
-                                                // check if the previous key and the next key are real
-                                                TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
-                                                TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-
-                                                smeta->lock();
-                                                if (table->compare_key(key, min_key) == 0) {
-                                                        // if the first key matches the min_key, then we do not care about the previous key
-                                                        CHECK(scan_results.size() == 0);
-                                                        if (smeta->get_next_key_real_bit() == false) {
-                                                                migration_required = true;
-                                                        }
-                                                } else if (scan_results.size() == limit) {
-                                                        // we do not care about the next key of the next key
-                                                        if (smeta->get_prev_key_real_bit() == false) {
-                                                                migration_required = true;
-                                                        }
-                                                } else {
-                                                        // for intermediate keys, we care about both the next and previous keys
-                                                        if (smeta->get_next_key_real_bit() == false || smeta->get_prev_key_real_bit() == false) {
-                                                                migration_required = true;
-                                                        }
-                                                }
-                                                smeta->unlock();
-
-                                                // stop immediately if data migration is needed
-                                                if (migration_required == true) {
-                                                        scan_success = false;
-                                                        return true;
-                                                }
-
-                                                // TODO: Theoretically, we need to check if the current tuple is already locked by previous queries.
-                                                // But we can ignore it for now because we never generate
-                                                // transactions with duplicated or overlapped queries.
-
-                                                // try to acquire the lock and increase the reference count if locking succeeds
-                                                bool lock_success = false;
-                                                if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                                        twopl_pasha_global_helper->remote_read_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
-                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                                        twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
-                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
-                                                        twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
-                                                } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                                        twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
-                                                } else {
-                                                        CHECK(0);
-                                                }
-
-                                                if (lock_success == true) {
-                                                        // acquiring lock succeeds
-                                                        ITable::row_entity cur_row(key, table->key_size(), nullptr, cxl_row, table->value_size());
-                                                        if (locking_next_tuple == false) {
-                                                                scan_results.push_back(cur_row);
-                                                                // continue scan
-                                                                return false;
-                                                        } else {
-                                                                // scan succeeds - store the next-tuple and quit
-                                                                next_row_entity = cur_row;
-                                                                scan_success = true;
-                                                                return true;
-                                                        }
-                                                } else {
-                                                        // stop and fail immediately if we fail to acquire a lock
-                                                        scan_success = false;
-                                                        return true;
-                                                }
-                                        };
-
-                                        CXLTableBase *target_cxl_table = twopl_pasha_global_helper->get_cxl_table(table_id, partition_id);
-                                        target_cxl_table->scan(min_key, remote_scan_processor);
-
-                                        // we assume that every scan will return at least one value - similar to our assumption on point queries
-                                        // so if the results are none, we need to do data migration!
-                                        if (scan_results.size() == 0 && scan_success == false) {
-                                                migration_required = true;
-                                        }
-
-                                        if (migration_required == true) {
-                                                CHECK(scan_success == false);
-                                                // data is not in the shared region
-                                                // ask the remote host to do the data migration
-                                                auto coordinatorID = this->partitioner->master_coordinator(partition_id);
-                                                txn.network_size += MessageFactoryType::new_data_migration_message_for_scan(*(this->messages[coordinatorID]), *table, min_key, max_key, limit, txn.transaction_id, key_offset);
-                                                txn.pendingResponses++;
-
-                                                // release locks
-                                                for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        auto cxl_row = scan_results[i].data;
-                                                        if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                                                TwoPLPashaHelper::remote_read_lock_release(reinterpret_cast<char *>(cxl_row));
-                                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                                                TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
-                                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
-                                                                TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
-                                                        } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                                                TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
-                                                        } else {
-                                                                CHECK(0);
-                                                        }
-                                                        TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
-                                                }
-
-                                                scan_results.clear();
-                                        }
-                                        return scan_success;
+                                        CHECK(0);      // right now we only support local scan
                                 }
+
+                                return true;
                         };
 
                         txn.insertRequestHandler = [this, &txn](std::size_t table_id, std::size_t partition_id, uint32_t key_offset,
@@ -688,16 +522,26 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 }
 
                                 if (local_delete) {
-                                        // do nothing here
-                                        // we assume all the deletes are "read and delete"
-                                        // so the write locks should already been taken
-                                } else {
-                                        // do nothing here
-                                        // we assume all the deletes are "read and delete"
-                                        // so the write locks should already been taken
-                                }
+                                        auto row = table->search(key);
+                                        if (std::get<0>(row) == nullptr && std::get<1>(row) == nullptr) {
+                                                // someone else has deleted the row, so we abort
+                                                txn.abort_delete = true;
+                                                return false;
+                                        }
 
-                                return true;
+                                        std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(std::get<0>(row));
+                                        bool lock_success = false;
+                                        TwoPLPashaHelper::write_lock(meta, lock_success);
+
+                                        if (lock_success) {
+                                                return true;
+                                        } else {
+                                                txn.abort_delete = true;
+                                                return false;
+                                        }
+                                } else {
+                                        CHECK(0);      // right now we only support local delete
+                                }
                         };
                 };
 
