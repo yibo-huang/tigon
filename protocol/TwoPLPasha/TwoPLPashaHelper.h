@@ -60,6 +60,7 @@ struct TwoPLPashaSharedDataSCC {
         TwoPLPashaSharedDataSCC()
                 : tid(0)
                 , flags(0)
+                , is_data_modified_since_migrated(false)
                 , ref_cnt(0)
         {}
 
@@ -81,6 +82,8 @@ struct TwoPLPashaSharedDataSCC {
 
         // is_valid
         uint8_t flags{ 0 };
+
+        bool is_data_modified_since_migrated{ false };
 
         // multi-host transaction accessing a cxl row would increase its reference count by 1
         // a migrated row can only be moved out if its ref_cnt == 0
@@ -339,6 +342,7 @@ class TwoPLPashaHelper {
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                         memcpy(data_ptr, value, value_size);
+                        scc_data->is_data_modified_since_migrated = true;
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -353,6 +357,7 @@ class TwoPLPashaHelper {
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                 memcpy(data_ptr, value, value_size);
+                scc_data->is_data_modified_since_migrated = true;
                 smeta->unlock();
 	}
 
@@ -1235,6 +1240,7 @@ out_unlock_lmeta:
 
                         // copy data
                         memcpy(scc_data->data, local_data, table->value_size());
+                        scc_data->is_data_modified_since_migrated = false;   // optimization to reduce memcpy when moving data out
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
@@ -1348,6 +1354,7 @@ out_unlock_lmeta:
 
                                 // copy data
                                 memcpy(cur_scc_data->data, cur_data, table->value_size());
+                                cur_scc_data->is_data_modified_since_migrated = false;       // optimization to reduce memcpy when moving data out
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
@@ -1520,7 +1527,9 @@ out_unlock_lmeta:
                         CHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data back
-                        memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
+                        if (scc_data->is_data_modified_since_migrated == true) {
+                                memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
+                        }
 
                         // set the migrated row as invalid
                         scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1619,7 +1628,9 @@ out_unlock_lmeta:
                                 CHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data back
-                                memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
+                                if (cur_scc_data->is_data_modified_since_migrated == true) {
+                                        memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
+                                }
 
                                 // set the migrated row as invalid
                                 cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
