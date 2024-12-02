@@ -626,7 +626,7 @@ template <class Database> class TwoPLPasha {
 
                                         // model CXL search overhead
                                         if (this->context.model_cxl_search_overhead == true) {
-                                                twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
+                                                twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, writeKey.get_key());
                                         }
 
                                         twopl_pasha_global_helper->update(cached_row, value, value_size);
