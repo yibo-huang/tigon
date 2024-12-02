@@ -107,6 +107,7 @@ class Context {
         std::string migration_policy;
         std::string when_to_move_out;
         uint64_t hw_cc_budget = 1024 * 1024 * 200;     // 200 MB
+        bool enable_phantom_detection = true;
 
         // Pasha software cache-coherence
         std::string scc_mechanism;
