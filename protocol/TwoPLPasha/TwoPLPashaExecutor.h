@@ -665,7 +665,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 }
 
                                 if (local_insert) {
-                                        bool insert_success = twopl_pasha_global_helper->insert_and_update_next_key_info(table, key, value, require_lock_next_key, next_row_entity);
+                                        bool insert_success = table->insert(key, value, true);
                                         if (insert_success == false) {
                                                 txn.abort_insert = true;
                                                 return false;
@@ -673,9 +673,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 return true;
                                         }
                                 } else {
-                                        // instead of sending remote insert request here,
-                                        // we send it in the commit phase such that we do not need to worry about aborting.
-                                        return true;
+                                        CHECK(0);      // right now we only support local insert
                                 }
                         };
 
