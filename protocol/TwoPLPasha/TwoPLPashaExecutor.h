@@ -44,7 +44,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                         std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs = db.create_or_retrieve_cxl_tables(context);
 
                         // init helper
-                        twopl_pasha_global_helper = new TwoPLPashaHelper(coordinator_id, cxl_tbl_vecs);
+                        twopl_pasha_global_helper = new TwoPLPashaHelper(coordinator_id, context, cxl_tbl_vecs);
                         CHECK(twopl_pasha_global_helper != nullptr);
 
                         // init migration manager

@@ -12,6 +12,7 @@
 #include "common/CCSet.h"
 #include "common/CCHashTable.h"
 #include "common/CXLMemory.h"
+#include "core/Context.h"
 #include "core/CXLTable.h"
 #include "core/Table.h"
 #include "glog/logging.h"
@@ -266,8 +267,9 @@ class TwoPLPashaHelper {
     public:
 	using MetaDataType = std::atomic<uint64_t>;
 
-        TwoPLPashaHelper(std::size_t coordinator_id, std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs)
+        TwoPLPashaHelper(std::size_t coordinator_id, Context context, std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs)
                 : coordinator_id(coordinator_id)
+                , context(context)
                 , cxl_tbl_vecs(cxl_tbl_vecs)
         {
         }
@@ -1444,12 +1446,16 @@ out_unlock_lmeta:
 	{
                 bool move_in_success = false;
 
-                if (table->tableType() == ITable::HASHMAP) {
-                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
-                } else if (table->tableType() == ITable::BTREE) {
-                        move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
+                if (this->context.enable_phantom_detection == true) {
+                        if (table->tableType() == ITable::HASHMAP) {
+                                move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
+                        } else if (table->tableType() == ITable::BTREE) {
+                                move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
+                        } else {
+                                CHECK(0);
+                        }
                 } else {
-                        CHECK(0);
+                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 }
 
                 // statistics
@@ -1638,12 +1644,16 @@ out_unlock_lmeta:
 	{
                 bool move_out_success = false;
 
-                if (table->tableType() == ITable::HASHMAP) {
-                        move_out_success = move_from_hashmap_to_partition(table, key, row);
-                } else if (table->tableType() == ITable::BTREE) {
-                        move_out_success = move_from_btree_to_partition(table, key, row);
+                if (this->context.enable_phantom_detection == true) {
+                        if (table->tableType() == ITable::HASHMAP) {
+                                move_out_success = move_from_hashmap_to_partition(table, key, row);
+                        } else if (table->tableType() == ITable::BTREE) {
+                                move_out_success = move_from_btree_to_partition(table, key, row);
+                        } else {
+                                CHECK(0);
+                        }
                 } else {
-                        CHECK(0);
+                        move_out_success = move_from_hashmap_to_partition(table, key, row);
                 }
 
                 // statistics
@@ -1857,6 +1867,8 @@ out_unlock_lmeta:
 
     private:
         std::size_t coordinator_id;
+
+        Context context;
 
         std::vector<std::vector<CXLTableBase *> > &cxl_tbl_vecs;
 
