@@ -33,6 +33,10 @@ def main():
         csv = os.path.join(args.res_dir, "macro", "baseline-tpcc.csv")
 
     df = pd.read_csv(csv, index_col=0)
+
+    if benchmark == "ycsb":
+        df = df.reindex(list(range(0, 101, 20)))
+
     xs = df.index
 
     # Configure axis range
