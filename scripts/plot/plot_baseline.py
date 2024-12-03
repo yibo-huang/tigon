@@ -31,9 +31,9 @@ max_y_rounded_up = math.ceil(max_y / 200000.0) * 200000.0
 plt.ylim(0, max_y_rounded_up)
 
 figure, axes = plt.subplots(nrows=1, ncols=2, sharey=True)
-figure.set_size_inches(w=12, h=3)
+figure.set_size_inches(w=6, h=3)
 figure.set_layout_engine("constrained")
-figure.supxlabel("Multi-partition Transaction Percentage")
+figure.supxlabel("Multi-partition Transaction Percentage (NewOrder/Payment)")
 figure.supylabel("Throughput (txns/sec)")
 
 for (label, row), marker in zip(
@@ -69,6 +69,7 @@ for (label, row), marker in zip(
     )
 
 for axis in axes:
+    axis.tick_params(axis="x", labelsize=8.0)
     axis.grid(axis="y")
     axis.yaxis.set_major_formatter(
         ticker.FuncFormatter(
@@ -80,6 +81,7 @@ for axis in axes:
         frameon=False,
         fancybox=False,
         framealpha=1,
+        markerfirst=False,
     )
 
 
