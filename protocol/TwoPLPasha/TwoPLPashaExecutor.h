@@ -45,7 +45,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                         // init helper
                         twopl_pasha_global_helper = new TwoPLPashaHelper(coordinator_id, context, cxl_tbl_vecs);
-                        CHECK(twopl_pasha_global_helper != nullptr);
+                        DCHECK(twopl_pasha_global_helper != nullptr);
 
                         // init migration manager
                         uint64_t hw_cc_budget_per_host = context.hw_cc_budget / context.coordinator_num;
@@ -64,7 +64,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                         } else if (context.pre_migrate == "NonPart") {
                                 db.move_non_part_tables_into_cxl(std::bind(&MigrationManager::move_row_in, migration_manager, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         } else {
-                                CHECK(0);
+                                DCHECK(0);
                         }
 
                         // commit metadata init
@@ -98,7 +98,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 				remote = false;
 
 				auto row = table->search(key);
-                                CHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
+                                DCHECK(std::get<0>(row) != nullptr && std::get<1>(row) != nullptr);
 
                                 if (this->context.model_cxl_search_overhead == true) {
                                         twopl_pasha_global_helper->model_cxl_search_overhead(row, table_id, partition_id, key);
@@ -190,9 +190,9 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         // we do the next-key locking logic inside this function
                                         bool scan_success = true;       // it is possible that the range is empty - we accept this case
                                         auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
-                                                CHECK(key != nullptr);
-                                                CHECK(meta_ptr != nullptr);
-                                                CHECK(data_ptr != nullptr);
+                                                DCHECK(key != nullptr);
+                                                DCHECK(meta_ptr != nullptr);
+                                                DCHECK(data_ptr != nullptr);
 
                                                 bool locking_next_tuple = false;
 
@@ -230,7 +230,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                         twopl_pasha_global_helper->write_lock(meta, table->value_size(), lock_success);
                                                 } else {
-                                                        CHECK(0);
+                                                        DCHECK(0);
                                                 }
 
                                                 if (lock_success == true) {
@@ -260,8 +260,8 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         // we do the next-key locking logic inside this function
                                         bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
                                         auto remote_scan_processor = [&](const void *key, void *cxl_row, bool is_last_tuple) -> bool {
-                                                CHECK(key != nullptr);
-                                                CHECK(cxl_row != nullptr);
+                                                DCHECK(key != nullptr);
+                                                DCHECK(cxl_row != nullptr);
 
                                                 bool locking_next_tuple = false;
 
@@ -290,7 +290,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 smeta->lock();
                                                 if (table->compare_key(key, min_key) == 0) {
                                                         // if the first key matches the min_key, then we do not care about the previous key
-                                                        CHECK(scan_results.size() == 0);
+                                                        DCHECK(scan_results.size() == 0);
                                                         if (smeta->get_next_key_real_bit() == false) {
                                                                 migration_required = true;
                                                         }
@@ -328,7 +328,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                         twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table->value_size(), lock_success);
                                                 } else {
-                                                        CHECK(0);
+                                                        DCHECK(0);
                                                 }
 
                                                 if (lock_success == true) {
@@ -361,7 +361,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                         }
 
                                         if (migration_required == true) {
-                                                CHECK(scan_success == false);
+                                                DCHECK(scan_success == false);
                                                 // data is not in the shared region
                                                 // ask the remote host to do the data migration
                                                 auto coordinatorID = this->partitioner->master_coordinator(partition_id);
@@ -380,7 +380,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                                                 TwoPLPashaHelper::remote_write_lock_release(reinterpret_cast<char *>(cxl_row));
                                                         } else {
-                                                                CHECK(0);
+                                                                DCHECK(0);
                                                         }
                                                         TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
                                                 }
@@ -454,9 +454,9 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                                 if (local_scan) {
                                         auto local_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
-                                                CHECK(key != nullptr);
-                                                CHECK(meta_ptr != nullptr);
-                                                CHECK(data_ptr != nullptr);
+                                                DCHECK(key != nullptr);
+                                                DCHECK(meta_ptr != nullptr);
+                                                DCHECK(data_ptr != nullptr);
 
                                                 if (limit != 0 && scan_results.size() == limit) {
                                                         return true;

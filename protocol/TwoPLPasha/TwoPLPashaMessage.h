@@ -246,7 +246,7 @@ class TwoPLPashaMessageHandler {
                         if (success) {
                                 readKey.set_tid(tid);
                                 readKey.set_cached_migrated_row(migrated_row);
-                                CHECK(readKey.get_local_index_read_bit() == 0);
+                                DCHECK(readKey.get_local_index_read_bit() == 0);
                                 if (readKey.get_read_lock_request_bit()) {
                                         readKey.set_read_lock_bit();
                                 }
@@ -305,9 +305,9 @@ class TwoPLPashaMessageHandler {
                 // do a scan to find all the tuples within the range plus the next tuple
                 std::vector<ITable::row_entity> scan_results;
                 auto scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
-                        CHECK(key != nullptr);
-                        CHECK(meta_ptr != nullptr);
-                        CHECK(data_ptr != nullptr);
+                        DCHECK(key != nullptr);
+                        DCHECK(meta_ptr != nullptr);
+                        DCHECK(data_ptr != nullptr);
 
                         bool migrating_next_key = false;
 
@@ -405,9 +405,9 @@ class TwoPLPashaMessageHandler {
                 bool scan_success = false;       // it is possible that the range is empty - we return fail and abort in this case
                 bool migration_required = false;
                 auto remote_scan_processor = [&](const void *key, void *cxl_row, bool is_last_tuple) -> bool {
-                        CHECK(key != nullptr);
-                        CHECK(cxl_row != nullptr);
-                        CHECK(scan_results.size() <= limit);
+                        DCHECK(key != nullptr);
+                        DCHECK(cxl_row != nullptr);
+                        DCHECK(scan_results.size() <= limit);
 
                         bool locking_next_tuple = false;
 
@@ -473,7 +473,7 @@ class TwoPLPashaMessageHandler {
                         } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
                                 twopl_pasha_global_helper->remote_write_lock_and_inc_ref_cnt(reinterpret_cast<char *>(cxl_row), table.value_size(), lock_success);
                         } else {
-                                CHECK(0);
+                                DCHECK(0);
                         }
 
                         if (lock_success == true) {
@@ -503,7 +503,7 @@ class TwoPLPashaMessageHandler {
                 if (migration_required == true) {
                         // if race condition happens, we abort and try again later
                         // race condition example: the row is moved out before we access it
-                        CHECK(scan_success == false);
+                        DCHECK(scan_success == false);
                         txn->abort_lock = true;
                 } else {
                         if (scan_success == false) {
@@ -562,7 +562,7 @@ class TwoPLPashaMessageHandler {
                 // insert a placeholder
                 ITable::row_entity next_row_entity;
                 bool insert_success = twopl_pasha_global_helper->insert_and_update_next_key_info(&table, key, value, false, next_row_entity);
-                CHECK(insert_success == true);
+                DCHECK(insert_success == true);
 
                 // move it into CXL memory
                 auto row = table.search(key);
@@ -604,10 +604,10 @@ class TwoPLPashaMessageHandler {
 		dec >> success >> key_offset;
 
                 // always succeeds
-                CHECK(success == true);
+                DCHECK(success == true);
 
                 TwoPLPashaRWKey &insertKey = txn->insertSet[key_offset];
-                CHECK(insertKey.get_processed() == true);
+                DCHECK(insertKey.get_processed() == true);
 
                 // mark the placeholder as valid
                 auto key = insertKey.get_key();
@@ -651,12 +651,12 @@ class TwoPLPashaMessageHandler {
 
 	static void replication_request_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		CHECK(0);
+		DCHECK(0);
 	}
 
 	static void replication_response_handler(MessagePiece inputPiece, Message &responseMessage, ITable &table, Transaction *txn)
 	{
-		CHECK(0);
+		DCHECK(0);
 	}
 
     public:
