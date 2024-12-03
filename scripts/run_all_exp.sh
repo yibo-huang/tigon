@@ -117,7 +117,7 @@ function run_remote_txn_overhead_smallbank {
         typeset TIME_TO_RUN=${15}
         typeset TIME_TO_WARMUP=${16}
 
-        typeset KEYS=1000000
+        typeset KEYS=150000
 
         typeset RESULT_FILE=$RESULT_DIR/smallbank-$PROTOCOL-$HOST_NUM-$WORKER_NUM-$KEYS-$ZIPF_THETA-$USE_CXL_TRANS-$USE_OUTPUT_THREAD-$MIGRATION_POLICY-$WHEN_TO_MOVE_OUT-$MAX_MIGRATED_ROWS_SIZE-$SCC_MECHANISM-$PRE_MIGRATE-$LOGGING_TYPE-$MODEL_CXL_SEARCH_OVERHEAD.txt
 
@@ -152,12 +152,12 @@ typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4=$(( 1024*1024*50 ))          # 50 MB
 typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5=$(( 1024*1024*10 ))          # 10 MB
 
 # common parameters for TPCC
-typeset TPCC_RUN_TIME=40
-typeset TPCC_WARMUP_TIME=20
+typeset TPCC_RUN_TIME=90
+typeset TPCC_WARMUP_TIME=60
 
 # common parameters for YCSB
-typeset YCSB_RUN_TIME=40
-typeset YCSB_WARMUP_TIME=20
+typeset YCSB_RUN_TIME=60
+typeset YCSB_WARMUP_TIME=30
 
 typeset READ_INTENSIVE_RW_RATIO=95
 typeset WRITE_INTENSIVE_RW_RATIO=50
@@ -233,14 +233,13 @@ typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/micro/
 mkdir -p $RESULT_DIR
 
 # YCSB: read-only + high-skewness (0.7) + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 100 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
 
 # YCSB: write-only + high-skewness (0.7) + varying percentages of remote operations
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw 0 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
 
-# YCSB: scan-only + high-skewness + varying percentages of remote operations
-
-# YCSB: insert-only + pre-determined pattern + varying percentages of remote operations
+# YCSB: mixed + high-skewness + varying percentages of remote operations
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM mixed 100 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
 
 ########### Tigon Microbenchmark END ###########
 
@@ -253,16 +252,32 @@ typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/macro
 mkdir -p $RESULT_DIR
 
 # TPCC
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME               # Tigon-TwoPL
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPashaPhantom $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME        # Tigon-TwoPL without phantome detection
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME               # Tigon-TwoPL
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPashaPhantom $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME        # Tigon-TwoPL without phantome detection
 
 # YCSB read-intensive + 0.7 skewness
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
 
 # YCSB write-intensive + 0.7 skewness
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough None GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
 
 ########### Tigon End-to-End Performance END ###########
+
+
+
+
+
+########### Benefit of Shortcut BEGIN ###########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/shortcut
+mkdir -p $RESULT_DIR
+
+# TPCC
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 1 $TPCC_RUN_TIME $TPCC_WARMUP_TIME     # Tigon-TwoPL without the optimization
+
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 1 $YCSB_RUN_TIME $YCSB_WARMUP_TIME    # Tigon-TwoPL without the optimization
+
+########### Benefit of Shortcut END ###########
 
 
 
@@ -299,14 +314,38 @@ run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $W
 
 
 
-########## Migration Policy BEGIN ##########
+########### Logging BEGIN ###########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/logging
+mkdir -p $RESULT_DIR
 
-########## Migration Policy END ##########
+# TPCC
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart BLACKHOLE 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME  # Tigon-TwoPL
+
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart BLACKHOLE 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME # Tigon-TwoPL
+
+########### Logging END ###########
 
 
 
 
 
 ########### Software Cache-Coherence BEGIN ###########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/logging
+mkdir -p $RESULT_DIR
+
+# TPCC
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME               # Tigon-TwoPL
+
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME     # Tigon-TwoPL
 
 ########### Software Cache-Coherence END ###########
+
+
+
+
+
+########## Migration Policy BEGIN ##########
+
+########## Migration Policy END ##########

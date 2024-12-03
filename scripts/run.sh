@@ -476,7 +476,7 @@ function run_exp_smallbank {
         typeset MODEL_CXL_SEARCH_OVERHEAD=${22}
         typeset GATHER_OUTPUT=${23}
 
-        typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)
+        typeset PARTITION_NUM=$(expr $HOST_NUM) # one partition per host
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
