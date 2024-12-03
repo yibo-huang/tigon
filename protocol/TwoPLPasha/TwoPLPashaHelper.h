@@ -24,13 +24,55 @@
 
 namespace star
 {
+struct TwoPLPashaSharedDataSCC {
+        TwoPLPashaSharedDataSCC()
+                : tid(0)
+                , flags(0)
+                , ref_cnt(0)
+                , is_data_modified_since_moved_in(false)
+        {}
+
+        static constexpr int valid_flag_index = 0;
+
+        bool get_flag(int flag_index) {
+                return (flags & (1 << flag_index)) != 0;
+        }
+
+        void set_flag(int flag_index) {
+                flags |= (1 << flag_index);  // Set the specific bit to 1
+        }
+
+        void clear_flag(int flag_index) {
+                flags &= ~(1 << flag_index);  // Clear the specific bit to 0
+        }
+
+        uint64_t tid{ 0 };
+
+        // is_valid
+        uint8_t flags{ 0 };
+
+        // multi-host transaction accessing a cxl row would increase its reference count by 1
+        // a migrated row can only be moved out if its ref_cnt == 0
+        // TODO: should be removed ultimately
+        uint8_t ref_cnt{ 0 };
+
+        bool is_data_modified_since_moved_in{ false };
+
+        // migration policy metadata - keep it here to maintain compatibility with LRU
+        // TODO: should be moved to HWcc ultimately
+        char migration_policy_meta[MigrationManager::migration_policy_meta_size];
+
+        char data[];
+};
 
 struct TwoPLPashaMetadataLocal {
         TwoPLPashaMetadataLocal()
                 : tid(0)
                 , is_valid(false)
                 , is_migrated(false)
+                , is_data_modified_since_moved_out(true)
                 , migrated_row(nullptr)
+                , scc_data(nullptr)
         {
                 // this spinlock will only be shared within a single process
                 pthread_spin_init(&latch, PTHREAD_PROCESS_PRIVATE);
@@ -53,48 +95,12 @@ struct TwoPLPashaMetadataLocal {
         bool is_valid{ false };
 
         bool is_migrated{ false };
+
+        bool is_data_modified_since_moved_out{ true };      // conservatively set this as true by default
+
         char *migrated_row{ nullptr };
-};
 
-struct TwoPLPashaSharedDataSCC {
-        TwoPLPashaSharedDataSCC()
-                : tid(0)
-                , flags(0)
-                , is_data_modified_since_migrated(false)
-                , ref_cnt(0)
-        {}
-
-        static constexpr int valid_flag_index = 0;
-
-        bool get_flag(int flag_index) {
-                return (flags & (1 << flag_index)) != 0;
-        }
-
-        void set_flag(int flag_index) {
-                flags |= (1 << flag_index);  // Set the specific bit to 1
-        }
-
-        void clear_flag(int flag_index) {
-                flags &= ~(1 << flag_index);  // Clear the specific bit to 0
-        }
-
-        uint64_t tid{ 0 };
-
-        // is_valid
-        uint8_t flags{ 0 };
-
-        bool is_data_modified_since_migrated{ false };
-
-        // multi-host transaction accessing a cxl row would increase its reference count by 1
-        // a migrated row can only be moved out if its ref_cnt == 0
-        // TODO: should be removed ultimately
-        uint8_t ref_cnt{ 0 };
-
-        // migration policy metadata - keep it here to maintain compatibility with LRU
-        // TODO: should be moved to HWcc ultimately
-        char migration_policy_meta[MigrationManager::migration_policy_meta_size];
-
-        char data[];
+        TwoPLPashaSharedDataSCC *scc_data{ nullptr };
 };
 
 struct TwoPLPashaMetadataShared {
@@ -334,6 +340,7 @@ class TwoPLPashaHelper {
                 if (lmeta->is_migrated == false) {
                         void *data_ptr = std::get<1>(row);
                         std::memcpy(data_ptr, value, value_size);
+                        lmeta->is_data_modified_since_moved_out = true;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
@@ -342,7 +349,7 @@ class TwoPLPashaHelper {
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                         memcpy(data_ptr, value, value_size);
-                        scc_data->is_data_modified_since_migrated = true;
+                        scc_data->is_data_modified_since_moved_in = true;
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -357,7 +364,7 @@ class TwoPLPashaHelper {
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                 memcpy(data_ptr, value, value_size);
-                scc_data->is_data_modified_since_migrated = true;
+                scc_data->is_data_modified_since_moved_in = true;
                 smeta->unlock();
 	}
 
@@ -1206,10 +1213,16 @@ out_unlock_lmeta:
 
 		lmeta->lock();
                 if (lmeta->is_migrated == false) {
-                        // allocate the CXL row
-                        char *smeta_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
-                        auto scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
-                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(smeta_ptr);
+                        TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
+                        TwoPLPashaSharedDataSCC *scc_data = nullptr;
+                        if (lmeta->scc_data == nullptr) {
+                                // there is no cached copy in CXL - allocate SCC data
+                                scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
+                                lmeta->scc_data = scc_data;
+                        } else {
+                                // we have a cached copy in CXL - reuse it
+                                scc_data = lmeta->scc_data;
+                        }
                         new(smeta) TwoPLPashaMetadataShared(scc_data);
 
                         // init migration policy metadata
@@ -1239,8 +1252,11 @@ out_unlock_lmeta:
                         CHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data
-                        memcpy(scc_data->data, local_data, table->value_size());
-                        scc_data->is_data_modified_since_migrated = false;   // optimization to reduce memcpy when moving data out
+                        if (lmeta->is_data_modified_since_moved_out == true) {
+                                memcpy(scc_data->data, local_data, table->value_size());
+                        }
+                        lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
+                        scc_data->is_data_modified_since_moved_in = false;   // optimization to reduce memcpy when moving data out
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
@@ -1249,11 +1265,11 @@ out_unlock_lmeta:
 
                         // insert into the corresponding CXL table
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                        ret = target_cxl_table->insert(key, smeta_ptr);
+                        ret = target_cxl_table->insert(key, smeta);
                         CHECK(ret == true);
 
                         // mark the local row as migrated
-                        lmeta->migrated_row = smeta_ptr;
+                        lmeta->migrated_row = reinterpret_cast<char *>(smeta);
                         lmeta->is_migrated = true;
 
                         scc_manager->finish_write(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + table->value_size());
@@ -1321,9 +1337,16 @@ out_unlock_lmeta:
                         cur_lmeta->lock();
                         if (cur_lmeta->is_migrated == false) {
                                 // allocate the CXL row
-                                char *smeta_ptr = reinterpret_cast<char *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
-                                auto cur_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
-                                TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(smeta_ptr);
+                                TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
+                                TwoPLPashaSharedDataSCC *cur_scc_data = nullptr;
+                                if (cur_lmeta->scc_data == nullptr) {
+                                        // there is no cached copy in CXL - allocate SCC data
+                                        cur_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
+                                        cur_lmeta->scc_data = cur_scc_data;
+                                } else {
+                                        // we have a cached copy in CXL - reuse it
+                                        cur_scc_data = cur_lmeta->scc_data;
+                                }
                                 new(cur_smeta) TwoPLPashaMetadataShared(cur_scc_data);
 
                                 // init migration policy metadata
@@ -1353,8 +1376,11 @@ out_unlock_lmeta:
                                 CHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data
-                                memcpy(cur_scc_data->data, cur_data, table->value_size());
-                                cur_scc_data->is_data_modified_since_migrated = false;       // optimization to reduce memcpy when moving data out
+                                if (cur_lmeta->is_data_modified_since_moved_out == true) {
+                                        memcpy(cur_scc_data->data, cur_data, table->value_size());
+                                }
+                                cur_lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
+                                cur_scc_data->is_data_modified_since_moved_in = false;   // optimization to reduce memcpy when moving data out
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
@@ -1381,7 +1407,7 @@ out_unlock_lmeta:
                                 CHECK(ret == true);
 
                                 // mark the local row as migrated
-                                cur_lmeta->migrated_row = smeta_ptr;
+                                cur_lmeta->migrated_row = reinterpret_cast<char *>(cur_smeta);
                                 cur_lmeta->is_migrated = true;
 
                                 scc_manager->finish_write(cur_smeta, coordinator_id, cur_scc_data, sizeof(TwoPLPashaSharedDataSCC) + table->value_size());
@@ -1527,9 +1553,11 @@ out_unlock_lmeta:
                         CHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data back
-                        if (scc_data->is_data_modified_since_migrated == true) {
+                        if (scc_data->is_data_modified_since_moved_in == true) {
                                 memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
                         }
+                        lmeta->is_data_modified_since_moved_out = false;
+                        scc_data->is_data_modified_since_moved_in = false;
 
                         // set the migrated row as invalid
                         scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1545,7 +1573,7 @@ out_unlock_lmeta:
 
                         // free the CXL row
                         // TODO: register EBR
-                        cxl_memory.cxlalloc_free_wrapper(smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
+                        // cxl_memory.cxlalloc_free_wrapper(smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
                         cxl_memory.cxlalloc_free_wrapper(smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                         // release the CXL latch
@@ -1628,9 +1656,11 @@ out_unlock_lmeta:
                                 CHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data back
-                                if (cur_scc_data->is_data_modified_since_migrated == true) {
+                                if (cur_scc_data->is_data_modified_since_moved_in == true) {
                                         memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
                                 }
+                                cur_lmeta->is_data_modified_since_moved_out = false;
+                                cur_scc_data->is_data_modified_since_moved_in = false;
 
                                 // set the migrated row as invalid
                                 cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1641,7 +1671,7 @@ out_unlock_lmeta:
 
                                 // free the CXL row
                                 // TODO: register EBR
-                                cxl_memory.cxlalloc_free_wrapper(cur_smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
+                                // cxl_memory.cxlalloc_free_wrapper(cur_smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
                                 cxl_memory.cxlalloc_free_wrapper(cur_smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                                 // release the CXL latch
