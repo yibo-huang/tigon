@@ -109,9 +109,9 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                 uint64_t tid = 0;
 
 				if (write_lock) {
-					tid = twopl_pasha_global_helper->take_write_lock_and_read(row, value, table->value_size(), success);
+					tid = twopl_pasha_global_helper->take_write_lock_and_read(row, value, table->value_size(), success, this->n_local_cxl_access);
 				} else {
-					tid = twopl_pasha_global_helper->take_read_lock_and_read(row, value, table->value_size(), success);
+					tid = twopl_pasha_global_helper->take_read_lock_and_read(row, value, table->value_size(), success, this->n_local_cxl_access);
 				}
 
 				if (success == true) {

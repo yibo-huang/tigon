@@ -469,7 +469,7 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-        uint64_t take_read_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success)
+        uint64_t take_read_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success, std::atomic<uint64_t> &local_cxl_access)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
@@ -514,9 +514,6 @@ out_unlock_lmeta:
                                 goto out_unlock_lmeta;
                         }
 
-                        // SCC prepare read
-                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
-
                         old_value = scc_data->tid;
                         tid = remove_lock_bit(old_value);
 
@@ -531,8 +528,14 @@ out_unlock_lmeta:
                         smeta->increase_reader_count();
                         success = true;
 
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                         // read the data
                         if (scc_data->is_data_modified_since_moved_in == true) {
+                                // statistics
+                                local_cxl_access.fetch_add(1);
+
                                 src = smeta->get_scc_data()->data;
                         } else {
                                 src = std::get<1>(row);
@@ -723,7 +726,7 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-        uint64_t take_write_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success)
+        uint64_t take_write_lock_and_read(const std::tuple<MetaDataType *, void *> &row, void *dest, std::size_t size, bool &success, std::atomic<uint64_t> &local_cxl_access)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
@@ -768,9 +771,6 @@ out_unlock_lmeta:
                                 goto out_unlock_lmeta;
                         }
 
-                        // SCC prepare read
-                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
-
                         old_value = scc_data->tid;
                         tid = remove_lock_bit(old_value);
 
@@ -785,8 +785,14 @@ out_unlock_lmeta:
                         smeta->set_write_locked();
                         success = true;
 
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                         // read the data
                         if (scc_data->is_data_modified_since_moved_in == true) {
+                                // statistics
+                                local_cxl_access.fetch_add(1);
+
                                 src = smeta->get_scc_data()->data;
                         } else {
                                 src = std::get<1>(row);
