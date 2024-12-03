@@ -111,13 +111,13 @@ struct TwoPLPashaMetadataShared {
                 bool ret = cxlalloc_pointer_to_offset(scc_data, &scc_data_cxl_offset);
                 CHECK(ret == true);
 
-                atomic_word.store(scc_data_cxl_offset << SCC_DATA_OFFSET);
+                atomic_word.store(scc_data_cxl_offset << SCC_DATA_OFFSET, std::memory_order_release);
         }
 
 	void lock()
 	{
 retry:
-		uint64_t v_before_lock = atomic_word.load();
+		uint64_t v_before_lock = atomic_word.load(std::memory_order_acquire);
                 uint64_t v_after_lock = (v_before_lock | (LATCH_BIT_MASK << LATCH_BIT_OFFSET));
 
 		if ((v_before_lock & (LATCH_BIT_MASK << LATCH_BIT_OFFSET)) == 0) {
@@ -135,16 +135,16 @@ retry:
 	{
                 // nobody can modify this atomic word without acquiring the latch
                 // so it is safe to just do regular store instead compare_and_swap
-                uint64_t v_before_unlock = atomic_word.load();
+                uint64_t v_before_unlock = atomic_word.load(std::memory_order_acquire);
                 uint64_t v_after_unlock = (v_before_unlock & ~(LATCH_BIT_MASK << LATCH_BIT_OFFSET));
                 CHECK(((v_before_unlock & (LATCH_BIT_MASK << LATCH_BIT_OFFSET)) != 0) == true);
 
-		atomic_word.store(v_after_unlock);
+		atomic_word.store(v_after_unlock, std::memory_order_release);
 	}
 
         TwoPLPashaSharedDataSCC *get_scc_data()
         {
-                uint64_t scc_data_cxl_offset = atomic_word.load() & (SCC_DATA_MASK << SCC_DATA_OFFSET);
+                uint64_t scc_data_cxl_offset = atomic_word.load(std::memory_order_acquire) & (SCC_DATA_MASK << SCC_DATA_OFFSET);
                 void *scc_data_ptr = cxlalloc_offset_to_pointer(scc_data_cxl_offset);
 
                 return reinterpret_cast<TwoPLPashaSharedDataSCC *>(scc_data_ptr);
@@ -184,41 +184,49 @@ retry:
         // Function to set a bit at a given position in the bitmap
         void set_bit(uint64_t bit_index)
         {
-                atomic_word |= (1ull << bit_index);  // Set the specific bit to 1
+                uint64_t orig_atomic_word = atomic_word.load(std::memory_order_acquire);
+                atomic_word.store(orig_atomic_word | (1ull << bit_index), std::memory_order_release);  // Set the specific bit to 1
         }
 
         // Function to clear a bit at a given position in the bitmap
         void clear_bit(uint64_t bit_index)
         {
-                atomic_word &= ~(1ull << bit_index);  // Clear the specific bit to 0
+                uint64_t orig_atomic_word = atomic_word.load(std::memory_order_acquire);
+                atomic_word.store(orig_atomic_word & ~(1ull << bit_index), std::memory_order_release);  // Clear the specific bit to 0
         }
 
         // Function to check if a bit is set (returns true if set, false if clear)
         bool is_bit_set(uint64_t bit_index)
         {
-                return (atomic_word & (1ull << bit_index)) != 0;
+                return (atomic_word.load(std::memory_order_acquire) & (1ull << bit_index)) != 0;
         }
 
         // read lock
         uint64_t get_reader_count()
         {
-                return (atomic_word.load() >> READ_LOCK_BITS_OFFSET) & READ_LOCK_BITS_MASK;
+                return (atomic_word.load(std::memory_order_acquire) >> READ_LOCK_BITS_OFFSET) & READ_LOCK_BITS_MASK;
         }
 
         void set_reader_count(uint64_t reader_count)
         {
-                atomic_word &= ~(READ_LOCK_BITS_MASK << READ_LOCK_BITS_OFFSET);
-                atomic_word += (reader_count << READ_LOCK_BITS_OFFSET);
+                uint64_t orig_atomic_word = atomic_word.load(std::memory_order_acquire);
+                orig_atomic_word &= ~(READ_LOCK_BITS_MASK << READ_LOCK_BITS_OFFSET);
+                orig_atomic_word += (reader_count << READ_LOCK_BITS_OFFSET);
+                atomic_word.store(orig_atomic_word, std::memory_order_release);
         }
 
         void increase_reader_count()
         {
-                atomic_word += (1ull << READ_LOCK_BITS_OFFSET);
+                uint64_t orig_atomic_word = atomic_word.load(std::memory_order_acquire);
+                orig_atomic_word += (1ull << READ_LOCK_BITS_OFFSET);
+                atomic_word.store(orig_atomic_word, std::memory_order_release);
         }
 
         void decrease_reader_count()
         {
-                atomic_word -= (1ull << READ_LOCK_BITS_OFFSET);
+                uint64_t orig_atomic_word = atomic_word.load(std::memory_order_acquire);
+                orig_atomic_word -= (1ull << READ_LOCK_BITS_OFFSET);
+                atomic_word.store(orig_atomic_word, std::memory_order_release);
         }
 
         uint64_t get_reader_count_max()
@@ -939,16 +947,11 @@ out_unlock_lmeta:
                         lmeta->tid = new_value;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
-                        CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                        old_value = scc_data->tid;
 			CHECK(smeta->get_reader_count() > 0);
 			CHECK(smeta->is_write_locked() == false);
 			smeta->decrease_reader_count();
-
                         smeta->unlock();
                 }
                 lmeta->unlock();
@@ -986,16 +989,11 @@ out_unlock_lmeta:
                         lmeta->tid = new_value;
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
-                        TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
-                        CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                        old_value = scc_data->tid;
                         CHECK(smeta->get_reader_count() == 0);
                         CHECK(smeta->is_write_locked() == true);
                         smeta->clear_write_locked();
-
                         smeta->unlock();
                 }
                 lmeta->unlock();
