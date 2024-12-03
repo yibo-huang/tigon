@@ -504,7 +504,7 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                        void *src = smeta->get_scc_data()->data;
+                        void *src = nullptr;
 
                         smeta->lock();
 
@@ -532,6 +532,11 @@ out_unlock_lmeta:
                         success = true;
 
                         // read the data
+                        if (scc_data->is_data_modified_since_moved_in == true) {
+                                src = smeta->get_scc_data()->data;
+                        } else {
+                                src = std::get<1>(row);
+                        }
                         memcpy(dest, src, size);
 
                         smeta->unlock();
@@ -753,7 +758,7 @@ out_unlock_lmeta:
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                        void *src = smeta->get_scc_data()->data;
+                        void *src = nullptr;
 
                         smeta->lock();
 
@@ -781,6 +786,11 @@ out_unlock_lmeta:
                         success = true;
 
                         // read the data
+                        if (scc_data->is_data_modified_since_moved_in == true) {
+                                src = smeta->get_scc_data()->data;
+                        } else {
+                                src = std::get<1>(row);
+                        }
                         memcpy(dest, src, size);
 
                         smeta->unlock();
