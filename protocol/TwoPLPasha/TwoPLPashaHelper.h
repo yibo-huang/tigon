@@ -29,7 +29,6 @@ struct TwoPLPashaSharedDataSCC {
                 : tid(0)
                 , flags(0)
                 , ref_cnt(0)
-                , is_data_modified_since_moved_in(false)
         {}
 
         static constexpr int valid_flag_index = 0;
@@ -55,8 +54,6 @@ struct TwoPLPashaSharedDataSCC {
         // a migrated row can only be moved out if its ref_cnt == 0
         // TODO: should be removed ultimately
         uint8_t ref_cnt{ 0 };
-
-        bool is_data_modified_since_moved_in{ false };
 
         // migration policy metadata - keep it here to maintain compatibility with LRU
         // TODO: should be moved to HWcc ultimately
@@ -250,17 +247,34 @@ retry:
                 clear_bit(WRITE_LOCK_BIT_OFFSET);
         }
 
+        bool is_data_modified_since_moved_in()
+        {
+                return is_bit_set(is_data_modified_since_moved_in_bit_index);
+        }
+
+        void set_is_data_modified_since_moved_in()
+        {
+                set_bit(is_data_modified_since_moved_in_bit_index);
+        }
+
+        void clear_is_data_modified_since_moved_in()
+        {
+                clear_bit(is_data_modified_since_moved_in_bit_index);
+        }
+
 	static constexpr int LATCH_BIT_OFFSET = 63;
 	static constexpr uint64_t LATCH_BIT_MASK = 0x1ull;
 
         static constexpr int SCC_DATA_OFFSET = 0;
 	static constexpr uint64_t SCC_DATA_MASK = 0x1fffffffffull;
 
-        static constexpr int READ_LOCK_BITS_OFFSET = 41;
-	static constexpr uint64_t READ_LOCK_BITS_MASK = 0x3full;
+        static constexpr int READ_LOCK_BITS_OFFSET = 42;
+	static constexpr uint64_t READ_LOCK_BITS_MASK = 0x1full;
 
-        static constexpr int WRITE_LOCK_BIT_OFFSET = 40;
+        static constexpr int WRITE_LOCK_BIT_OFFSET = 41;
 	static constexpr uint64_t WRITE_LOCK_BIT_MASK = 0x1ull;
+
+        static constexpr int is_data_modified_since_moved_in_bit_index = 40;
 
         static constexpr int scc_bits_base_index = 47;
         static constexpr int scc_bits_num = 16;
@@ -271,7 +285,9 @@ retry:
 
         // bit 63: latch bit
         // bit 62 - 47: software cache-coherence metadata
-        // bit 46 - 40: read lock bits
+        // bit 46 - 42: read lock bits
+        // bit 41 - 41: write lock bit
+        // bit 40 - 40: is_data_modified_since_moved_in
         // bit 39 - 38: is_next_key_real, is_prev_key_real
         // bit 37 - 37: second chance bit
         // bit 36 - 0: scc_data - enough for referencing 128 GB shared CXL memory
@@ -357,7 +373,7 @@ class TwoPLPashaHelper {
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                         memcpy(data_ptr, value, value_size);
-                        scc_data->is_data_modified_since_moved_in = true;
+                        smeta->set_is_data_modified_since_moved_in();
                         smeta->unlock();
                 }
 		lmeta->unlock();
@@ -372,7 +388,7 @@ class TwoPLPashaHelper {
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                 memcpy(data_ptr, value, value_size);
-                scc_data->is_data_modified_since_moved_in = true;
+                smeta->set_is_data_modified_since_moved_in();
                 smeta->unlock();
 	}
 
@@ -516,14 +532,35 @@ out_unlock_lmeta:
 
                         smeta->lock();
 
-                        if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
-                                smeta->unlock();
-                                success = false;
-                                goto out_unlock_lmeta;
-                        }
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
-                        old_value = scc_data->tid;
-                        tid = remove_lock_bit(old_value);
+                        if (smeta->is_data_modified_since_moved_in() == true) {
+                                // statistics
+                                local_cxl_access.fetch_add(1);
+
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
+
+                                old_value = scc_data->tid;
+                                tid = remove_lock_bit(old_value);
+
+                                src = smeta->get_scc_data()->data;
+                        } else {
+                                if (lmeta->is_valid == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
+
+                                old_value = lmeta->tid;
+                                tid = remove_lock_bit(old_value);
+
+                                src = std::get<1>(row);
+                        }
 
                         // can we get the lock?
                         if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
@@ -536,18 +573,7 @@ out_unlock_lmeta:
                         smeta->increase_reader_count();
                         success = true;
 
-                        // SCC prepare read
-                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
-
                         // read the data
-                        if (scc_data->is_data_modified_since_moved_in == true) {
-                                // statistics
-                                local_cxl_access.fetch_add(1);
-
-                                src = smeta->get_scc_data()->data;
-                        } else {
-                                src = std::get<1>(row);
-                        }
                         memcpy(dest, src, size);
 
                         smeta->unlock();
@@ -773,14 +799,35 @@ out_unlock_lmeta:
 
                         smeta->lock();
 
-                        if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
-                                smeta->unlock();
-                                success = false;
-                                goto out_unlock_lmeta;
-                        }
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
-                        old_value = scc_data->tid;
-                        tid = remove_lock_bit(old_value);
+                        if (smeta->is_data_modified_since_moved_in() == true) {
+                                // statistics
+                                local_cxl_access.fetch_add(1);
+
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
+
+                                old_value = scc_data->tid;
+                                tid = remove_lock_bit(old_value);
+
+                                src = smeta->get_scc_data()->data;
+                        } else {
+                                if (lmeta->is_valid == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
+
+                                old_value = lmeta->tid;
+                                tid = remove_lock_bit(old_value);
+
+                                src = std::get<1>(row);
+                        }
 
                         // can we get the lock?
                         if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
@@ -793,18 +840,7 @@ out_unlock_lmeta:
                         smeta->set_write_locked();
                         success = true;
 
-                        // SCC prepare read
-                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
-
                         // read the data
-                        if (scc_data->is_data_modified_since_moved_in == true) {
-                                // statistics
-                                local_cxl_access.fetch_add(1);
-
-                                src = smeta->get_scc_data()->data;
-                        } else {
-                                src = std::get<1>(row);
-                        }
                         memcpy(dest, src, size);
 
                         smeta->unlock();
@@ -964,9 +1000,6 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-                CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                old_value = scc_data->tid;
                 CHECK(smeta->get_reader_count() > 0);
                 CHECK(smeta->is_write_locked() == false);
                 smeta->decrease_reader_count();
@@ -1006,13 +1039,9 @@ out_unlock_lmeta:
                 uint64_t old_value = 0, new_value = 0;
 
 		smeta->lock();
-                CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                old_value = scc_data->tid;
                 CHECK(smeta->get_reader_count() == 0);
                 CHECK(smeta->is_write_locked() == true);
                 smeta->clear_write_locked();
-
                 smeta->unlock();
 	}
 
@@ -1035,9 +1064,6 @@ out_unlock_lmeta:
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
-                        CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                        old_value = scc_data->tid;
                         CHECK(smeta->get_reader_count() == 0);
                         CHECK(smeta->is_write_locked() == true);
                         smeta->clear_write_locked();
@@ -1270,7 +1296,7 @@ out_unlock_lmeta:
                                 memcpy(scc_data->data, local_data, table->value_size());
                         }
                         lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
-                        scc_data->is_data_modified_since_moved_in = false;   // optimization to reduce memcpy when moving data out
+                        smeta->clear_is_data_modified_since_moved_in();   // optimization to reduce memcpy when moving data out
 
                         // increase the reference count for the requesting host
                         if (inc_ref_cnt == true) {
@@ -1394,7 +1420,7 @@ out_unlock_lmeta:
                                         memcpy(cur_scc_data->data, cur_data, table->value_size());
                                 }
                                 cur_lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
-                                cur_scc_data->is_data_modified_since_moved_in = false;   // optimization to reduce memcpy when moving data out
+                                cur_smeta->clear_is_data_modified_since_moved_in();   // optimization to reduce memcpy when moving data out
 
                                 // increase the reference count for the requesting host
                                 if (inc_ref_cnt == true) {
@@ -1567,11 +1593,11 @@ out_unlock_lmeta:
                         CHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data back
-                        if (scc_data->is_data_modified_since_moved_in == true) {
+                        if (smeta->is_data_modified_since_moved_in() == true) {
                                 memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
                         }
                         lmeta->is_data_modified_since_moved_out = false;
-                        scc_data->is_data_modified_since_moved_in = false;
+                        smeta->clear_is_data_modified_since_moved_in();
 
                         // set the migrated row as invalid
                         scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1670,11 +1696,11 @@ out_unlock_lmeta:
                                 CHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data back
-                                if (cur_scc_data->is_data_modified_since_moved_in == true) {
+                                if (cur_smeta->is_data_modified_since_moved_in() == true) {
                                         memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
                                 }
                                 cur_lmeta->is_data_modified_since_moved_out = false;
-                                cur_scc_data->is_data_modified_since_moved_in = false;
+                                cur_smeta->clear_is_data_modified_since_moved_in();
 
                                 // set the migrated row as invalid
                                 cur_scc_data->clear_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
@@ -1927,11 +1953,11 @@ out_unlock_lmeta:
 	}
 
     public:
-	static constexpr int LOCK_BIT_OFFSET = 57;
-	static constexpr uint64_t LOCK_BIT_MASK = 0x7full;
+	static constexpr int LOCK_BIT_OFFSET = 58;
+	static constexpr uint64_t LOCK_BIT_MASK = 0x3full;
 
-	static constexpr int READ_LOCK_BIT_OFFSET = 57;
-	static constexpr uint64_t READ_LOCK_BIT_MASK = 0x3full;
+	static constexpr int READ_LOCK_BIT_OFFSET = 58;
+	static constexpr uint64_t READ_LOCK_BIT_MASK = 0x1full;
 
 	static constexpr int WRITE_LOCK_BIT_OFFSET = 63;
 	static constexpr uint64_t WRITE_LOCK_BIT_MASK = 0x1ull;
