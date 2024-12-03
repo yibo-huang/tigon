@@ -222,13 +222,13 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                                                 std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(meta_ptr);
                                                 bool lock_success = false;
                                                 if (type == TwoPLPashaRWKey::SCAN_FOR_READ) {
-                                                        TwoPLPashaHelper::read_lock(meta, lock_success);
+                                                        twopl_pasha_global_helper->read_lock(meta, table->value_size(), lock_success);
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_UPDATE) {
-                                                        TwoPLPashaHelper::write_lock(meta, lock_success);
+                                                        twopl_pasha_global_helper->write_lock(meta, table->value_size(), lock_success);
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_INSERT) {
-                                                        TwoPLPashaHelper::write_lock(meta, lock_success);
+                                                        twopl_pasha_global_helper->write_lock(meta, table->value_size(), lock_success);
                                                 } else if (type == TwoPLPashaRWKey::SCAN_FOR_DELETE) {
-                                                        TwoPLPashaHelper::write_lock(meta, lock_success);
+                                                        twopl_pasha_global_helper->write_lock(meta, table->value_size(), lock_success);
                                                 } else {
                                                         CHECK(0);
                                                 }
@@ -535,7 +535,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
 
                                         std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(std::get<0>(row));
                                         bool lock_success = false;
-                                        TwoPLPashaHelper::write_lock(meta, lock_success);
+                                        twopl_pasha_global_helper->write_lock(meta, table->value_size(), lock_success);
 
                                         if (lock_success) {
                                                 return true;

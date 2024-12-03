@@ -326,7 +326,7 @@ class TwoPLPashaHelper {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
-                        void *src = smeta->get_scc_data()->data;
+                        void *src = scc_data->data;
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                         memcpy(dest, src, size);
@@ -342,7 +342,7 @@ class TwoPLPashaHelper {
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                void *src = smeta->get_scc_data()->data;
+                void *src = scc_data->data;
                 uint64_t tid_ = 0;
 
 		smeta->lock();
@@ -368,7 +368,7 @@ class TwoPLPashaHelper {
                 } else {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(lmeta->migrated_row);
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                        void *data_ptr = smeta->get_scc_data()->data;
+                        void *data_ptr = scc_data->data;
 
                         smeta->lock();
                         CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
@@ -383,7 +383,7 @@ class TwoPLPashaHelper {
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                void *data_ptr = smeta->get_scc_data()->data;
+                void *data_ptr = scc_data->data;
 
 		smeta->lock();
                 CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
@@ -433,7 +433,7 @@ class TwoPLPashaHelper {
                 value &= ~(WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
         }
 
-	static uint64_t read_lock(std::atomic<uint64_t> &meta, bool &success)
+	uint64_t read_lock(std::atomic<uint64_t> &meta, uint64_t size, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 uint64_t old_value = 0, new_value = 0;
@@ -464,6 +464,9 @@ class TwoPLPashaHelper {
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
+
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                         if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
                                 smeta->unlock();
@@ -548,7 +551,7 @@ out_unlock_lmeta:
                                 old_value = scc_data->tid;
                                 tid = remove_lock_bit(old_value);
 
-                                src = smeta->get_scc_data()->data;
+                                src = scc_data->data;
                         } else {
                                 if (lmeta->is_valid == false) {
                                         smeta->unlock();
@@ -584,56 +587,24 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-        static uint64_t remote_read_lock(char *row, bool &success)
-	{
-		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                uint64_t old_value = 0, new_value = 0;
-                uint64_t tid = 0;
-
-		smeta->lock();
-
-                // because this function is only called by remote point queries,
-                // which are assumed to always succeed,
-                // so this assertion should always hold
-                CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                old_value = scc_data->tid;
-                tid = remove_lock_bit(old_value);
-
-                // can we get the lock?
-                if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
-                        success = false;
-                        smeta->unlock();
-                        return tid;
-                }
-
-                // OK, we can get the lock
-                smeta->increase_reader_count();
-                success = true;
-
-                smeta->unlock();
-
-		return tid;
-	}
-
         uint64_t remote_take_read_lock_and_read(char *row, void *dest, std::size_t size, bool inc_ref_cnt, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                void *src = smeta->get_scc_data()->data;
+                void *src = scc_data->data;
                 uint64_t old_value = 0, new_value = 0;
                 uint64_t tid = 0;
 
 		smeta->lock();
+
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                 if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
                         success = false;
                         smeta->unlock();
                         return remove_lock_bit(old_value);
                 }
-
-                // SCC prepare read
-                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
@@ -670,14 +641,15 @@ out_unlock_lmeta:
                 uint64_t tid = 0;
 
 		smeta->lock();
+
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                 if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
                         success = false;
                         smeta->unlock();
                         return remove_lock_bit(old_value);
                 }
-
-                // SCC prepare read
-                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
@@ -701,7 +673,7 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-	static uint64_t write_lock(std::atomic<uint64_t> &meta, bool &success)
+	uint64_t write_lock(std::atomic<uint64_t> &meta, uint64_t size, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 uint64_t old_value = 0, new_value = 0;
@@ -732,6 +704,10 @@ out_unlock_lmeta:
                         TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
 
                         smeta->lock();
+
+                        // SCC prepare read
+                        scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                         if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
                                 smeta->unlock();
                                 success = false;
@@ -815,7 +791,7 @@ out_unlock_lmeta:
                                 old_value = scc_data->tid;
                                 tid = remove_lock_bit(old_value);
 
-                                src = smeta->get_scc_data()->data;
+                                src = scc_data->data;
                         } else {
                                 if (lmeta->is_valid == false) {
                                         smeta->unlock();
@@ -851,56 +827,24 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-        static uint64_t remote_write_lock(char *row, bool &success)
-	{
-		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                uint64_t old_value = 0, new_value = 0;
-                uint64_t tid = 0;
-
-		smeta->lock();
-
-                // because this function is only called by remote point queries,
-                // which are assumed to always succeed,
-                // so this assertion should always hold
-                CHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-
-                old_value = scc_data->tid;
-                tid = remove_lock_bit(old_value);
-
-                // can we get the lock?
-                if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
-                        success = false;
-                        smeta->unlock();
-                        return tid;
-                }
-
-                // OK, we can get the lock
-                smeta->set_write_locked();
-                success = true;
-
-                smeta->unlock();
-
-		return tid;
-	}
-
         uint64_t remote_take_write_lock_and_read(char *row, void *dest, std::size_t size, bool inc_ref_cnt, bool &success)
 	{
 		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
                 TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                void *src = smeta->get_scc_data()->data;
+                void *src = scc_data->data;
                 uint64_t old_value = 0, new_value = 0;
                 uint64_t tid = 0;
 
 		smeta->lock();
+
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                 if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
                         success = false;
                         smeta->unlock();
                         return remove_lock_bit(old_value);
                 }
-
-                // SCC prepare read
-                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
@@ -937,14 +881,15 @@ out_unlock_lmeta:
                 uint64_t tid = 0;
 
 		smeta->lock();
+
+                // SCC prepare read
+                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
+
                 if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
                         success = false;
                         smeta->unlock();
                         return tid;
                 }
-
-                // SCC prepare read
-                scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
                 old_value = scc_data->tid;
                 tid = remove_lock_bit(old_value);
@@ -1594,7 +1539,7 @@ out_unlock_lmeta:
 
                         // copy data back
                         if (smeta->is_data_modified_since_moved_in() == true) {
-                                memcpy(local_data, smeta->get_scc_data()->data, table->value_size());
+                                memcpy(local_data, scc_data->data, table->value_size());
                         }
                         lmeta->is_data_modified_since_moved_out = false;
                         smeta->clear_is_data_modified_since_moved_in();
@@ -1778,7 +1723,7 @@ out_unlock_lmeta:
                                 CHECK(next_meta != nullptr);
                                 std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(next_meta);
                                 bool lock_success = false;
-                                TwoPLPashaHelper::write_lock(meta, lock_success);
+                                write_lock(meta, table->value_size(), lock_success);
                                 if (lock_success == true) {
                                         ITable::row_entity next_row(next_key, table->key_size(), &meta, next_data, table->value_size());
                                         next_row_entity = next_row;
