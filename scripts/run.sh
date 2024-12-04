@@ -10,10 +10,10 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI/COLLECT_OUTPUTS] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE MODEL_CXL_SEARCH GATHER_OUTPUTS"
-        echo "YCSB: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE MODEL_CXL_SEARCH GATHER_OUTPUTS"
-        echo "SmallBank: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE MODEL_CXL_SEARCH GATHER_OUTPUTS"
-        echo "TATP: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "TPCC: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "YCSB: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "SmallBank: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "TATP: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
@@ -815,7 +815,7 @@ typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=65536
 typeset BASELINE_CXL_TRANS_ENTRY_NUM=8192
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 19 ]; then
+        if [ $# != 20 ]; then
                 print_usage
                 exit -1
         fi
@@ -836,8 +836,9 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset TIME_TO_RUN=${15}
         typeset TIME_TO_WARMUP=${16}
         typeset LOGGING_TYPE=${17}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${18}
-        typeset GATHER_OUTPUT=${19}
+        typeset EPOCH_LEN=${18}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${19}
+        typeset GATHER_OUTPUT=${20}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -855,7 +856,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=40000     # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_TIME=$EPOCH_LEN     # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
@@ -870,7 +871,7 @@ if [ $RUN_TYPE = "TPCC" ]; then
         run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 21 ]; then
+        if [ $# != 22 ]; then
                 print_usage
                 exit -1
         fi
@@ -893,8 +894,9 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset TIME_TO_RUN=${17}
         typeset TIME_TO_WARMUP=${18}
         typeset LOGGING_TYPE=${19}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${20}
-        typeset GATHER_OUTPUT=${21}
+        typeset EPOCH_LEN=${20}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${21}
+        typeset GATHER_OUTPUT=${22}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -912,7 +914,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=40000   # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_TIME=$EPOCH_LEN   # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
@@ -927,7 +929,7 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "SmallBank" ]; then
-        if [ $# != 19 ]; then
+        if [ $# != 20 ]; then
                 print_usage
                 exit -1
         fi
@@ -948,8 +950,9 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
         typeset TIME_TO_RUN=${15}
         typeset TIME_TO_WARMUP=${16}
         typeset LOGGING_TYPE=${17}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${18}
-        typeset GATHER_OUTPUT=${19}
+        typeset EPOCH_LEN=${18}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${19}
+        typeset GATHER_OUTPUT=${20}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -967,7 +970,7 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=40000   # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_TIME=$EPOCH_LEN   # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
@@ -982,7 +985,7 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
         run_exp_smallbank $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "TATP" ]; then
-        if [ $# != 19 ]; then
+        if [ $# != 20 ]; then
                 print_usage
                 exit -1
         fi
@@ -1003,8 +1006,9 @@ elif [ $RUN_TYPE = "TATP" ]; then
         typeset TIME_TO_RUN=${15}
         typeset TIME_TO_WARMUP=${16}
         typeset LOGGING_TYPE=${17}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${18}
-        typeset GATHER_OUTPUT=${19}
+        typeset EPOCH_LEN=${18}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${19}
+        typeset GATHER_OUTPUT=${20}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -1022,7 +1026,7 @@ elif [ $RUN_TYPE = "TATP" ]; then
 
         elif [ $LOGGING_TYPE = "GROUP_WAL" ]; then
                 typeset LOTUS_CHECKPOINT=1
-                typeset WAL_GROUP_COMMIT_TIME=40000   # SiloR uses 40ms
+                typeset WAL_GROUP_COMMIT_TIME=$EPOCH_LEN   # SiloR uses 40ms
                 typeset WAL_GROUP_COMMIT_BATCH_SIZE=10
 
         elif [ $LOGGING_TYPE = "BLACKHOLE" ]; then
