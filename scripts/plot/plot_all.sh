@@ -29,5 +29,5 @@ $SCRIPT_DIR/plot_ycsb.py $PASHA_RES_DIR/macro 50 0.7
 $SCRIPT_DIR/plot_tpcc_shortcut.py $PASHA_RES_DIR/shortcut
 $SCRIPT_DIR/plot_ycsb_shortcut.py $PASHA_RES_DIR/shortcut 95 0.7
 
-# # Data Movement
-# $SCRIPT_DIR/plot_tpcc_.py $PASHA_RES_DIR/shortcut
+# Data Movement
+$SCRIPT_DIR/plot_tpcc_data_movement.py $PASHA_RES_DIR/data-movement
