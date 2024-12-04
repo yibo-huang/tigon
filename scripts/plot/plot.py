@@ -20,13 +20,14 @@ DEFAULT_PLOT = {
     "linewidth": 1.0,
 }
 DEFAULT_LEGEND = {
-    "loc": "upper right",
-    "frameon": False,
-    "fancybox": False,
     "framealpha": 1,
 }
 DEFAULT_FIGURE = {
     "layout_engine": "constrained",
+}
+DEFAULT_SAVE = {
+    "format": "pdf",
+    "bbox_inches": "tight",
 }
 
 SUPYLABEL = "Throughput (txns/sec)"
@@ -45,23 +46,20 @@ class Experiment(StrEnum):
 
 def main():
     args = cli().parse_args()
+
+    match args.experiment, args.benchmark:
+        case Experiment.BASELINE, _:
+            baseline(args)
+        case Experiment.DEFAULT, common.Benchmark.TPCC:
+            default_tpcc(args)
+        case Experiment.DEFAULT, common.Benchmark.YCSB:
+            default_ycsb(args)
+
+
+def default_tpcc(args):
     input = path(args)
     df = pd.read_csv(input, index_col=0)
 
-    match args.experiment:
-        case Experiment.BASELINE:
-            baseline(args, df)
-        case Experiment.DEFAULT:
-            default(args, df)
-
-    plt.savefig(
-        input.with_suffix(".pdf"),
-        format="pdf",
-        bbox_inches="tight",
-    )
-
-
-def default(args, df):
     figure, axis = plt.subplots(nrows=1, ncols=1)
 
     figure.set(**DEFAULT_FIGURE)
@@ -85,9 +83,64 @@ def default(args, df):
 
     axis.yaxis.set_major_formatter(format_yaxis(max_y))
     axis.legend(**DEFAULT_LEGEND)
+    plt.savefig(input.with_suffix(".pdf"), **DEFAULT_SAVE)
 
 
-def baseline(args, df):
+def default_ycsb(args):
+    figure, axes = plt.subplots(nrows=2, ncols=2, sharex=True)
+
+    figure.set(**DEFAULT_FIGURE)
+    figure.set_size_inches(w=12, h=8)
+    figure.supxlabel(supxlabel(args.benchmark))
+    figure.supylabel(SUPYLABEL)
+    figure.get_layout_engine().set(hspace=0, h_pad=0.02, wspace=0, w_pad=0.02)
+
+    layout = {
+        100: (0, 0),
+        95: (0, 1),
+        50: (1, 0),
+        0: (1, 1),
+    }
+
+    max_ys = [0, 0]
+    for row in range(2):
+        axes[row, 0].sharey(axes[row, 1])
+
+    for rw_ratio, (i, j) in layout.items():
+        axis = axes[i, j]
+        axis.set_title(
+            f"{rw_ratio}% R, {100 - rw_ratio}% W",
+            y=0.9,
+            bbox=dict(boxstyle="round", facecolor="white"),
+        )
+        args.rw_ratio = rw_ratio
+        df = pd.read_csv(path(args), index_col=0)
+
+        for system, row in df.T.iterrows():
+            axis.plot(
+                df.index,
+                row,
+                color=color(system),
+                marker=marker(system),
+                label=system,
+                **DEFAULT_PLOT,
+            )
+
+        max_ys[i] = max(max_ys[i], ylim(df))
+        axis.set_ylim(bottom=0, top=max_ys[i])
+        axis.grid(axis="both")
+
+        axis.yaxis.set_major_formatter(format_yaxis(max_ys[i]))
+        axis.label_outer(remove_inner_ticks=True)
+
+    axes[0, 1].legend(**DEFAULT_LEGEND)
+    plt.savefig(PurePath(args.res_dir, "micro", "ycsb-0.7.pdf"))
+
+
+def baseline(args):
+    input = path(args)
+    df = pd.read_csv(input, index_col=0)
+
     if args.benchmark == common.Benchmark.YCSB:
         df = df.reindex(list(range(0, 101, 20)))
 
@@ -139,6 +192,8 @@ def baseline(args, df):
         axis.yaxis.set_major_formatter(format_yaxis(max_y))
         axis.legend(**DEFAULT_LEGEND)
 
+    plt.savefig(input.with_suffix(".pdf"), **DEFAULT_SAVE)
+
 
 def color(system: str) -> str:
     if "Sundial" in system:
@@ -170,8 +225,11 @@ def supxlabel(benchmark: common.Benchmark) -> str:
 
 
 def format_yaxis(max_y: float) -> ticker.FuncFormatter:
-    if max_y > 1e6:
+    # HACK: this is about where pyplot switches from 0.5M to 0.25M increments
+    if max_y > 2e6:
         return ticker.FuncFormatter(lambda y, pos: "0" if y == 0 else f"{y / 1e6:.1f}M")
+    if max_y > 1e6:
+        return ticker.FuncFormatter(lambda y, pos: "0" if y == 0 else f"{y / 1e6:.2f}M")
     else:
         return ticker.FuncFormatter(
             lambda y, pos: "0" if y == 0 else f"{int(y / 1e3)}K"
@@ -180,7 +238,8 @@ def format_yaxis(max_y: float) -> ticker.FuncFormatter:
 
 def ylim(df: pd.DataFrame) -> float:
     max_y = df.to_numpy().max()
-    return math.ceil(max_y / 200000.0) * 200000.0
+    round = 5e5 if max_y > 1e6 else 1e5
+    return math.ceil(max_y / round) * round
 
 
 def path(args) -> PurePath:
@@ -194,7 +253,8 @@ def path(args) -> PurePath:
             csv = PurePath("macro", "baseline-tpcc.csv")
 
         case Experiment.DEFAULT, common.Benchmark.YCSB:
-            csv = PurePath("micro", f"ycsb-{args.rw_ratio}-{args.zipf_theta}.csv")
+            parent = "micro" if args.rw_ratio == 0 or args.rw_ratio == 100 else "macro"
+            csv = PurePath(parent, f"ycsb-{args.rw_ratio}-{args.zipf_theta}.csv")
         case Experiment.DEFAULT, common.Benchmark.TPCC:
             csv = PurePath("macro", "tpcc.csv")
     return PurePath(args.res_dir, csv)
