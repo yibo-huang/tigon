@@ -1,43 +1,51 @@
 #!/usr/bin/env python3
 
 import argparse
+from enum import auto, StrEnum
 import math
-import os
+from pathlib import PurePath
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-marker_size = 10.0
-marker_edge_width = 1.6
-linewidth = 1.0
+import common
+
+
+MARKER_SIZE = 10.0
+MARKER_EDGE_WIDTH = 1.6
+MARKER_FACE_COLOR = "none"
+LINEWIDTH = 1.0
+
+
+class Experiment(StrEnum):
+    # Baseline optimizations
+    BASELINE = auto()
+    # Custom YCSB workload
+    CUSTOM = auto()
+    # No modifier
+    DEFAULT = auto()
+    # Hardware cache coherence sensitivity
+    HWCC = auto()
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(dest="benchmark")
+    args = cli().parse_args()
+    input = path(args)
+    df = pd.read_csv(input, index_col=0)
 
-    subparsers.add_parser("tpcc")
+    if args.experiment == Experiment.BASELINE:
+        baseline(args, df)
 
-    ycsb = subparsers.add_parser("ycsb")
-    ycsb.add_argument("-z", "--zipf-theta", required=True)
-    ycsb.add_argument("-r", "--rw-ratio", required=True)
+    plt.savefig(
+        input.with_suffix(".pdf"),
+        format="pdf",
+        bbox_inches="tight",
+    )
 
-    parser.add_argument("res_dir")
-    args = parser.parse_args()
 
-    csv = None
-    if args.benchmark == "ycsb":
-        csv = os.path.join(
-            args.res_dir,
-            "micro",
-            f"baseline-ycsb-{args.rw_ratio}-{args.zipf_theta}.csv",
-        )
-    else:
-        csv = os.path.join(args.res_dir, "macro", "baseline-tpcc.csv")
-
-    df = pd.read_csv(csv, index_col=0)
-
-    if args.benchmark == "ycsb":
+def baseline(args, df):
+    if args.benchmark == common.Benchmark.YCSB:
         df = df.reindex(list(range(0, 101, 20)))
 
     xs = df.index
@@ -51,7 +59,7 @@ def main():
     figure.set_layout_engine("constrained")
     figure.supxlabel(
         "Multi-partition Transaction Percentage"
-        + (" (NewOrder/Payment)" if args.benchmark == "tpcc" else "")
+        + (" (NewOrder/Payment)" if args.benchmark == common.Benchmark.TPCC else "")
     )
     figure.supylabel("Throughput (txns/sec)")
 
@@ -65,10 +73,10 @@ def main():
             row,
             color="#FFC003",
             marker=marker,
-            markersize=marker_size,
-            linewidth=linewidth,
-            markeredgewidth=marker_edge_width,
-            mfc="none",
+            markersize=MARKER_SIZE,
+            linewidth=LINEWIDTH,
+            markeredgewidth=MARKER_EDGE_WIDTH,
+            markerfacecolor=MARKER_FACE_COLOR,
             label=label,
         )
 
@@ -82,10 +90,10 @@ def main():
             row,
             color="#4372C4",
             marker=marker,
-            markersize=marker_size,
-            linewidth=linewidth,
-            markeredgewidth=marker_edge_width,
-            mfc="none",
+            markersize=MARKER_SIZE,
+            linewidth=LINEWIDTH,
+            markeredgewidth=MARKER_EDGE_WIDTH,
+            mfc=MARKER_FACE_COLOR,
             label=label,
         )
 
@@ -115,22 +123,37 @@ def main():
             framealpha=1,
         )
 
-    if args.benchmark == "tpcc":
-        plt.savefig(
-            os.path.join(args.res_dir, "macro", "baseline-tpcc.pdf"),
-            format="pdf",
-            bbox_inches="tight",
-        )
-    else:
-        plt.savefig(
-            os.path.join(
-                args.res_dir,
-                "micro",
-                f"baseline-ycsb-{args.rw_ratio}-{args.zipf_theta}.pdf",
-            ),
-            format="pdf",
-            bbox_inches="tight",
-        )
+
+def path(args) -> PurePath:
+    csv = None
+    match args.experiment, args.benchmark:
+        case Experiment.BASELINE, common.Benchmark.YCSB:
+            csv = PurePath(
+                "micro", f"baseline-ycsb-{args.rw_ratio}-{args.zipf_theta}.csv"
+            )
+        case Experiment.BASELINE, common.Benchmark.TPCC:
+            csv = PurePath("macro", "baseline-tpcc.csv")
+
+        case Experiment.DEFAULT, common.Benchmark.YCSB:
+            csv = PurePath("micro", f"ycsb-{args.rw_ratio}-{args.zipf_theta}.csv")
+        case Experiment.DEFAULT, common.Benchmark.TPCC:
+            csv = PurePath("macro", "tpcc.csv")
+    return PurePath(args.res_dir, csv)
+
+
+def cli() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="benchmark")
+
+    subparsers.add_parser(common.Benchmark.TPCC)
+
+    ycsb = subparsers.add_parser(common.Benchmark.YCSB)
+    ycsb.add_argument("-z", "--zipf-theta")
+    ycsb.add_argument("-r", "--rw-ratio")
+
+    parser.add_argument("-e", "--experiment", default=Experiment.DEFAULT)
+    parser.add_argument("res_dir")
+    return parser
 
 
 if __name__ == "__main__":
