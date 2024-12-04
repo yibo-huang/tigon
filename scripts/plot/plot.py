@@ -122,7 +122,7 @@ def default_ycsb(args):
                 row,
                 color=color(system),
                 marker=marker(system),
-                label=system,
+                label=system if i == 0 and j == 0 else None,
                 **DEFAULT_PLOT,
             )
 
@@ -133,7 +133,12 @@ def default_ycsb(args):
         axis.yaxis.set_major_formatter(format_yaxis(max_ys[i]))
         axis.label_outer(remove_inner_ticks=True)
 
-    axes[0, 1].legend(**DEFAULT_LEGEND)
+    figure.legend(
+        **DEFAULT_LEGEND,
+        # https://github.com/matplotlib/matplotlib/pull/19743
+        loc="outside upper center",
+        ncol=len(df.T),
+    )
     plt.savefig(PurePath(args.res_dir, "micro", "ycsb-0.7.pdf"))
 
 
