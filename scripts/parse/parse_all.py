@@ -161,18 +161,21 @@ def parse_tpcc_shortcut(pasha_res_dir, pasha_no_shortcut_res_dir):
 
 
 
-### shortcut optimization ###
-# def construct_input_list_ycsb_data_movement(pasha_res_dir, pasha_no_shortcut_res_dir, rw_ratio, zipf_theta):
-#         input_file_list = list()
-#         input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
-#         input_file_list.append(("Tigon-AlwaysSearchCXL", pasha_no_shortcut_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "1" + ".txt"))
-#         return input_file_list
+### data movement ###
+def construct_input_list_ycsb_data_movement(pasha_res_dir, pasha_data_movement_res_dir, rw_ratio, zipf_theta):
+        input_file_list = list()
+        input_file_list.append(("Tigon-200MB", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-150MB", pasha_data_movement_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "157286400" + "-" + "WriteThrough" + "-" + "None" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-100MB", pasha_data_movement_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "104857600" + "-" + "WriteThrough" + "-" + "None" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-50MB", pasha_data_movement_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "52428800" + "-" + "WriteThrough" + "-" + "None" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-10MB", pasha_data_movement_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "10485760" + "-" + "WriteThrough" + "-" + "None" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        return input_file_list
 
-# def parse_ycsb_data_movement(pasha_res_dir, pasha_no_shortcut_res_dir, rw_ratio, zipf_theta):
-#         input_file_list = construct_input_list_ycsb_data_movement(pasha_res_dir, pasha_no_shortcut_res_dir, rw_ratio, zipf_theta)
-#         output_file_name = pasha_res_dir + "/ycsb-shortcut-" + rw_ratio + "-" + zipf_theta + ".csv"
-#         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
-#         parse_results(input_file_list, output_file_name, header_row)
+def parse_ycsb_data_movement(pasha_res_dir, pasha_data_movement_res_dir, rw_ratio, zipf_theta):
+        input_file_list = construct_input_list_ycsb_data_movement(pasha_res_dir, pasha_data_movement_res_dir, rw_ratio, zipf_theta)
+        output_file_name = pasha_data_movement_res_dir + "/ycsb-data-movement-" + rw_ratio + "-" + zipf_theta + ".csv"
+        header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+        parse_results(input_file_list, output_file_name, header_row)
 
 def construct_input_list_tpcc_data_movement(pasha_res_dir, pasha_data_movement_res_dir):
         input_file_list = list()
@@ -220,3 +223,5 @@ parse_tpcc_shortcut(pasha_res_dir + "/macro", pasha_res_dir + "/shortcut")
 
 ### data movement
 parse_tpcc_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-movement")
+parse_ycsb_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-movement", "95", "0.7")
+parse_ycsb_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-movement", "50", "0.7")
