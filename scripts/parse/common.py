@@ -59,6 +59,7 @@ class MigrationPolicy(StrEnum):
     EAGERLY = "Eagerly"
     NO_MOVE_OUT = "NoMoveOut"
     LRU = "LRU"
+    CLOCK = "Clock"
 
 
 class WhenToMoveOut(StrEnum):
@@ -99,6 +100,8 @@ class Input:
         scc_mechanism: SccMechanism,
         pre_migrate: PreMigrate,
         logging_type: LoggingType,
+        wal_group_commit_time: int,
+        model_cxl_search_overhead: bool,
     ):
         self.benchmark = benchmark
         self.protocol = protocol
@@ -111,6 +114,8 @@ class Input:
         self.max_migrated_rows_size = max_migrated_rows_size
         self.scc_mechanism = scc_mechanism
         self.logging_type = logging_type
+        self.wal_group_commit_time = wal_group_commit_time
+        self.model_cxl_search_overhead = model_cxl_search_overhead
 
     def parse(path: str):
         name = os.path.basename(path)
@@ -176,6 +181,8 @@ class TpccInput(Input):
             ("scc_mechanism", SccMechanism),
             ("pre_migrate", PreMigrate),
             ("logging_type", LoggingType),
+            ("wal_group_commit_time", int),
+            ("model_cxl_search_overhead", lambda value: value == "1"),
         ]
         return TpccInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
@@ -214,6 +221,8 @@ class YcsbInput(Input):
             ("scc_mechanism", SccMechanism),
             ("pre_migrate", PreMigrate),
             ("logging_type", LoggingType),
+            ("wal_group_commit_time", int),
+            ("model_cxl_search_overhead", lambda value: value == "1"),
         ]
         return YcsbInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
@@ -246,6 +255,7 @@ class SmallbankInput(Input):
             ("scc_mechanism", SccMechanism),
             ("pre_migrate", PreMigrate),
             ("logging_type", LoggingType),
+            ("model_cxl_search_overhead", lambda value: value == "1"),
         ]
         return SmallbankInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
