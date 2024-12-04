@@ -97,6 +97,7 @@ def baseline(args, df):
     figure.set_size_inches(w=6, h=3)
     figure.supxlabel(supxlabel(args.benchmark))
     figure.supylabel(SUPYLABEL)
+    figure.get_layout_engine().set(wspace=0, w_pad=0.02)
 
     # Plot Sundial on left
     for system, row in df.T.loc[
@@ -131,6 +132,7 @@ def baseline(args, df):
         # https://stackoverflow.com/questions/22642511/change-y-range-to-start-from-0-with-matplotlib
         axis.set_ylim(bottom=0, top=max_y)
 
+        axis.label_outer(remove_inner_ticks=True)
         axis.tick_params(axis="x", labelsize=8.0)
         axis.grid(axis="y")
 
@@ -205,8 +207,8 @@ def cli() -> argparse.ArgumentParser:
     subparsers.add_parser(common.Benchmark.TPCC)
 
     ycsb = subparsers.add_parser(common.Benchmark.YCSB)
-    ycsb.add_argument("-z", "--zipf-theta")
-    ycsb.add_argument("-r", "--rw-ratio")
+    ycsb.add_argument("-z", "--zipf-theta", type=float)
+    ycsb.add_argument("-r", "--rw-ratio", type=int)
 
     parser.add_argument("-e", "--experiment", default=Experiment.DEFAULT)
     parser.add_argument("res_dir")
