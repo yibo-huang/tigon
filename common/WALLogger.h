@@ -363,7 +363,7 @@ struct LogBuffer {
         uint64_t size = 0;
 
         // statistics
-        std::vector<uint64_t> txn_latency_until_publish;
+        std::vector<uint64_t> txn_start_times;
 };
 
 static constexpr uint64_t max_log_buffer_queue_size = 128;
@@ -405,7 +405,7 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 
                 if (persist == true) {
                         auto latency = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - txn_start_time).count();
-                        cur_log_buffer->txn_latency_until_publish.push_back(latency);
+                        cur_log_buffer->txn_start_times.push_back(Time::now() - latency);
                 }
 
                 return size;
@@ -506,10 +506,11 @@ class PashaGroupCommitLogger : public WALLogger {
                                 disk_sync_size += log_buffer->size;
 
                                 // calculate transaction latency and collect stats
-                                committed_txn_cnt += log_buffer->txn_latency_until_publish.size();
-                                for (auto i = 0; i < log_buffer->txn_latency_until_publish.size(); i++) {
-                                        auto latency = log_buffer->txn_latency_until_publish[i] + sync_latency + queuing_up_time;
-                                        txn_latency.add(latency);
+                                committed_txn_cnt += log_buffer->txn_start_times.size();
+                                auto now = Time::now();
+                                for (auto i = 0; i < log_buffer->txn_start_times.size(); i++) {
+                                        auto latency = now - log_buffer->txn_start_times[i];
+                                        txn_latency.add(latency / 1000);
                                 }
 
                                 // refresh begin time here because VM has clock drift between threads
