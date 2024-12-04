@@ -12,10 +12,24 @@ import matplotlib.ticker as ticker
 import common
 
 
-MARKER_SIZE = 10.0
-MARKER_EDGE_WIDTH = 1.6
-MARKER_FACE_COLOR = "none"
-LINEWIDTH = 1.0
+# Default settings
+DEFAULT_PLOT = {
+    "markersize": 10.0,
+    "markeredgewidth": 1.6,
+    "markerfacecolor": "none",
+    "linewidth": 1.0,
+}
+DEFAULT_LEGEND = {
+    "loc": "upper right",
+    "frameon": False,
+    "fancybox": False,
+    "framealpha": 1,
+}
+DEFAULT_FIGURE = {
+    "layout_engine": "constrained",
+}
+
+SUPYLABEL = "Throughput (txns/sec)"
 
 
 class Experiment(StrEnum):
@@ -34,8 +48,11 @@ def main():
     input = path(args)
     df = pd.read_csv(input, index_col=0)
 
-    if args.experiment == Experiment.BASELINE:
-        baseline(args, df)
+    match args.experiment:
+        case Experiment.BASELINE:
+            baseline(args, df)
+        case Experiment.DEFAULT:
+            default(args, df)
 
     plt.savefig(
         input.with_suffix(".pdf"),
@@ -44,84 +61,124 @@ def main():
     )
 
 
+def default(args, df):
+    figure, axis = plt.subplots(nrows=1, ncols=1)
+
+    figure.set(**DEFAULT_FIGURE)
+    figure.set_size_inches(w=6, h=4)
+    figure.supxlabel(supxlabel(args.benchmark))
+    figure.supylabel(SUPYLABEL)
+
+    for system, row in df.T.iterrows():
+        axis.plot(
+            df.index,
+            row,
+            color=color(system),
+            marker=marker(system),
+            label=system,
+            **DEFAULT_PLOT,
+        )
+
+    max_y = ylim(df)
+    axis.set_ylim(bottom=0, top=max_y)
+    axis.grid(axis="y")
+
+    axis.yaxis.set_major_formatter(format_yaxis(max_y))
+    axis.legend(**DEFAULT_LEGEND)
+
+
 def baseline(args, df):
     if args.benchmark == common.Benchmark.YCSB:
         df = df.reindex(list(range(0, 101, 20)))
 
-    xs = df.index
-
-    # Configure axis range
-    max_y = df.to_numpy().max()
-    max_y_rounded_up = math.ceil(max_y / 200000.0) * 200000.0
-
     figure, axes = plt.subplots(nrows=1, ncols=2, sharey=True)
+
+    figure.set(**DEFAULT_FIGURE)
     figure.set_size_inches(w=6, h=3)
-    figure.set_layout_engine("constrained")
-    figure.supxlabel(
-        "Multi-partition Transaction Percentage"
-        + (" (NewOrder/Payment)" if args.benchmark == common.Benchmark.TPCC else "")
-    )
-    figure.supylabel("Throughput (txns/sec)")
+    figure.supxlabel(supxlabel(args.benchmark))
+    figure.supylabel(SUPYLABEL)
 
     # Plot Sundial on left
-    for (label, row), marker in zip(
-        df.T.loc[["Sundial-CXL-improved", "Sundial-CXL", "Sundial-NET"]].iterrows(),
-        ["^", "s", "o"],
-    ):
+    for system, row in df.T.loc[
+        ["Sundial-CXL-improved", "Sundial-CXL", "Sundial-NET"]
+    ].iterrows():
         axes[0].plot(
-            xs,
+            df.index,
             row,
-            color="#FFC003",
-            marker=marker,
-            markersize=MARKER_SIZE,
-            linewidth=LINEWIDTH,
-            markeredgewidth=MARKER_EDGE_WIDTH,
-            markerfacecolor=MARKER_FACE_COLOR,
-            label=label,
+            color=color(system),
+            marker=marker(system),
+            label=system,
+            **DEFAULT_PLOT,
         )
 
     # Plot TwoPL on right
-    for (label, row), marker in zip(
-        df.T.loc[["TwoPL-CXL-improved", "TwoPL-CXL", "TwoPL-NET"]].iterrows(),
-        ["^", "s", "o"],
-    ):
+    for system, row in df.T.loc[
+        ["TwoPL-CXL-improved", "TwoPL-CXL", "TwoPL-NET"]
+    ].iterrows():
         axes[1].plot(
-            xs,
+            df.index,
             row,
-            color="#4372C4",
-            marker=marker,
-            markersize=MARKER_SIZE,
-            linewidth=LINEWIDTH,
-            markeredgewidth=MARKER_EDGE_WIDTH,
-            mfc=MARKER_FACE_COLOR,
-            label=label,
+            color=color(system),
+            marker=marker(system),
+            label=system,
+            **DEFAULT_PLOT,
         )
+
+    max_y = ylim(df)
 
     for axis in axes:
         # Must be after plotting
         # https://stackoverflow.com/questions/22642511/change-y-range-to-start-from-0-with-matplotlib
-        axis.set_ylim(bottom=0, top=max_y_rounded_up)
+        axis.set_ylim(bottom=0, top=max_y)
 
         axis.tick_params(axis="x", labelsize=8.0)
         axis.grid(axis="y")
 
-        formatter = None
-        if max_y > 1e6:
-            formatter = ticker.FuncFormatter(
-                lambda y, pos: "0" if y == 0 else f"{y / 1e6:.1f}M"
-            )
-        else:
-            formatter = ticker.FuncFormatter(
-                lambda y, pos: "0" if y == 0 else f"{int(y / 1e3)}K"
-            )
+        axis.yaxis.set_major_formatter(format_yaxis(max_y))
+        axis.legend(**DEFAULT_LEGEND)
 
-        axis.yaxis.set_major_formatter(formatter)
-        axis.legend(
-            loc="upper right",
-            frameon=False,
-            fancybox=False,
-            framealpha=1,
+
+def color(system: str) -> str:
+    if "Sundial" in system:
+        return "#FFC003"
+    elif "TwoPL" in system:
+        return "#4372C4"
+    elif "Tigon" in system:
+        return "black"
+
+
+def marker(system: str) -> str:
+    if "NET" in system:
+        return "o"
+    elif "CXL-improved" in system:
+        return "^"
+    elif "CXL" in system:
+        return "s"
+    elif "Phantom" in system:
+        return "o"
+    else:
+        return "^"
+
+
+def supxlabel(benchmark: common.Benchmark) -> str:
+    base = "Multi-partition Transaction Percentage"
+    if benchmark == common.Benchmark.TPCC:
+        base += " (NewOrder/Payment)"
+    return base
+
+
+def format_yaxis(max_y: float) -> ticker.FuncFormatter:
+    if max_y > 1e6:
+        return ticker.FuncFormatter(lambda y, pos: "0" if y == 0 else f"{y / 1e6:.1f}M")
+    else:
+        return ticker.FuncFormatter(
+            lambda y, pos: "0" if y == 0 else f"{int(y / 1e3)}K"
         )
+
+
+def ylim(df: pd.DataFrame) -> float:
+    max_y = df.to_numpy().max()
+    return math.ceil(max_y / 200000.0) * 200000.0
 
 
 def path(args) -> PurePath:
