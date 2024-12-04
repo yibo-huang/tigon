@@ -90,7 +90,7 @@ def default_ycsb(args):
     figure, axes = plt.subplots(nrows=2, ncols=2, sharex=True)
 
     figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=12, h=8)
+    figure.set_size_inches(w=14, h=6)
     figure.supxlabel(supxlabel(args.benchmark))
     figure.supylabel(SUPYLABEL)
     figure.get_layout_engine().set(hspace=0, h_pad=0.02, wspace=0, w_pad=0.02)
@@ -110,7 +110,7 @@ def default_ycsb(args):
         axis = axes[i, j]
         axis.set_title(
             f"{rw_ratio}% R, {100 - rw_ratio}% W",
-            y=0.9,
+            y=0.85,
             bbox=dict(boxstyle="round", facecolor="white"),
         )
         args.rw_ratio = rw_ratio
