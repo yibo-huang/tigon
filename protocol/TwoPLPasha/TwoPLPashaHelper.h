@@ -551,7 +551,15 @@ out_unlock_lmeta:
                                 old_value = scc_data->tid;
                                 tid = remove_lock_bit(old_value);
 
-                                src = scc_data->data;
+                                // we update our local cache
+                                lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
+                                lmeta->tid = scc_data->tid;
+                                memcpy(std::get<1>(row), scc_data->data, size);
+
+                                // unset the flag
+                                smeta->clear_is_data_modified_since_moved_in();
+
+                                src = std::get<1>(row);
                         } else {
                                 if (lmeta->is_valid == false) {
                                         smeta->unlock();
@@ -791,7 +799,15 @@ out_unlock_lmeta:
                                 old_value = scc_data->tid;
                                 tid = remove_lock_bit(old_value);
 
-                                src = scc_data->data;
+                                // we update our local cache
+                                lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
+                                lmeta->tid = scc_data->tid;
+                                memcpy(std::get<1>(row), scc_data->data, size);
+
+                                // unset the flag
+                                smeta->clear_is_data_modified_since_moved_in();
+
+                                src = std::get<1>(row);
                         } else {
                                 if (lmeta->is_valid == false) {
                                         smeta->unlock();
