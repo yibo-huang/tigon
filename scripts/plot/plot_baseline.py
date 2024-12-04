@@ -14,27 +14,30 @@ linewidth = 1.0
 
 def main():
     parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="benchmark")
+
+    subparsers.add_parser("tpcc")
+
+    ycsb = subparsers.add_parser("ycsb")
+    ycsb.add_argument("-z", "--zipf-theta", required=True)
+    ycsb.add_argument("-r", "--rw-ratio", required=True)
+
     parser.add_argument("res_dir")
-    parser.add_argument("-z", "--zipf-theta")
-    parser.add_argument("-r", "--rw-ratio")
     args = parser.parse_args()
 
     csv = None
-    benchmark = None
-    if args.zipf_theta is not None and args.rw_ratio is not None:
-        benchmark = "ycsb"
+    if args.benchmark == "ycsb":
         csv = os.path.join(
             args.res_dir,
             "micro",
             f"baseline-ycsb-{args.rw_ratio}-{args.zipf_theta}.csv",
         )
     else:
-        benchmark = "tpcc"
         csv = os.path.join(args.res_dir, "macro", "baseline-tpcc.csv")
 
     df = pd.read_csv(csv, index_col=0)
 
-    if benchmark == "ycsb":
+    if args.benchmark == "ycsb":
         df = df.reindex(list(range(0, 101, 20)))
 
     xs = df.index
@@ -48,7 +51,7 @@ def main():
     figure.set_layout_engine("constrained")
     figure.supxlabel(
         "Multi-partition Transaction Percentage"
-        + (" (NewOrder/Payment)" if benchmark == "tpcc" else "")
+        + (" (NewOrder/Payment)" if args.benchmark == "tpcc" else "")
     )
     figure.supylabel("Throughput (txns/sec)")
 
@@ -112,7 +115,7 @@ def main():
             framealpha=1,
         )
 
-    if benchmark == "tpcc":
+    if args.benchmark == "tpcc":
         plt.savefig(
             os.path.join(args.res_dir, "macro", "baseline-tpcc.pdf"),
             format="pdf",
