@@ -16,7 +16,9 @@ typeset BASELINE_RES_DIR=$2
 
 # Microbenchmark
 $SCRIPT_DIR/plot_ycsb_with_read_cxl.py $PASHA_RES_DIR/micro 100 0.7
+$SCRIPT_DIR/plot_ycsb.py $PASHA_RES_DIR/micro 100 0.7
 $SCRIPT_DIR/plot_ycsb.py $PASHA_RES_DIR/micro 0 0.7
+$SCRIPT_DIR/plot_ycsb_custom.py $PASHA_RES_DIR/micro 0.7
 
 # End-to-End performance
 $SCRIPT_DIR/plot_tpcc.py $PASHA_RES_DIR/macro
@@ -24,5 +26,8 @@ $SCRIPT_DIR/plot_ycsb.py $PASHA_RES_DIR/macro 95 0.7
 $SCRIPT_DIR/plot_ycsb.py $PASHA_RES_DIR/macro 50 0.7
 
 # Shortcut
-$SCRIPT_DIR/plot_tpcc_shortcut.py $PASHA_RES_DIR/macro
-$SCRIPT_DIR/plot_ycsb_shortcut.py $PASHA_RES_DIR/macro 95 0.7
+$SCRIPT_DIR/plot_tpcc_shortcut.py $PASHA_RES_DIR/shortcut
+$SCRIPT_DIR/plot_ycsb_shortcut.py $PASHA_RES_DIR/shortcut 95 0.7
+
+# # Data Movement
+# $SCRIPT_DIR/plot_tpcc_.py $PASHA_RES_DIR/shortcut
