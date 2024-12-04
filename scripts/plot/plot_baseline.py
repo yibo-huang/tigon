@@ -42,7 +42,6 @@ def main():
     # Configure axis range
     max_y = df.to_numpy().max()
     max_y_rounded_up = math.ceil(max_y / 200000.0) * 200000.0
-    plt.ylim(0, max_y_rounded_up)
 
     figure, axes = plt.subplots(nrows=1, ncols=2, sharey=True)
     figure.set_size_inches(w=6, h=3)
@@ -88,17 +87,21 @@ def main():
         )
 
     for axis in axes:
+        # Must be after plotting
+        # https://stackoverflow.com/questions/22642511/change-y-range-to-start-from-0-with-matplotlib
+        axis.set_ylim(bottom=0, top=max_y_rounded_up)
+
         axis.tick_params(axis="x", labelsize=8.0)
         axis.grid(axis="y")
 
         formatter = None
         if max_y > 1e6:
             formatter = ticker.FuncFormatter(
-                lambda x, pos: 0 if x == 0 else f"{x / 1e6:.1f}M"
+                lambda y, pos: "0" if y == 0 else f"{y / 1e6:.1f}M"
             )
         else:
             formatter = ticker.FuncFormatter(
-                lambda x, pos: 0 if x == 0 else f"{int(x / 1e3)}K"
+                lambda y, pos: "0" if y == 0 else f"{int(y / 1e3)}K"
             )
 
         axis.yaxis.set_major_formatter(formatter)
@@ -107,7 +110,6 @@ def main():
             frameon=False,
             fancybox=False,
             framealpha=1,
-            markerfirst=False,
         )
 
     if benchmark == "tpcc":
