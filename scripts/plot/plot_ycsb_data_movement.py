@@ -6,11 +6,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-if len(sys.argv) != 2:
-        print("Usage: " + sys.argv[0] + " res_dir")
+if len(sys.argv) != 4:
+        print("Usage: " + sys.argv[0] + " res_dir rw_ratio zipf_theta")
         sys.exit(-1)
 
 res_dir = sys.argv[1]
+rw_ratio = sys.argv[2]
+zipf_theta = sys.argv[3]
 
 marker_size = 10.0
 marker_edge_width=1.6
@@ -25,7 +27,7 @@ plt.yticks(**basic_font)
 plt.grid(axis='y')
 
 ### plot TPCC ###
-res_csv = res_dir + "/tpcc-data-movement.csv"
+res_csv = res_dir + "/ycsb-data-movement-" + rw_ratio + "-" + zipf_theta + ".csv"
 
 # Read the CSV file into a Pandas DataFrame
 res_df = pd.read_csv(res_csv)
@@ -68,4 +70,4 @@ plt.plot(x, tigon_10_y, color="#8B008B", marker=">", markersize=marker_size, lin
 # Configure legend
 ax.legend(loc='upper center', frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
 
-plt.savefig(res_dir + "/tpcc-data-movement.pdf", format="pdf", bbox_inches="tight")
+plt.savefig(res_dir + "/ycsb-data-movement-" + rw_ratio + "-" + zipf_theta + ".pdf", format="pdf", bbox_inches="tight")
