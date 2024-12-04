@@ -77,7 +77,7 @@ def parse_tpcc_baseline(res_dir):
 ### pasha and baselines ###
 def construct_input_list_ycsb(pasha_res_dir, baseline_res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
 
         input_file_list.append(("Sundial-CXL-improved", baseline_res_dir + "/ycsb-Sundial-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
         input_file_list.append(("TwoPL-CXL-improved", baseline_res_dir + "/ycsb-TwoPL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
@@ -89,10 +89,21 @@ def parse_ycsb(pasha_res_dir, baseline_res_dir, rw_ratio, zipf_theta):
         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
         parse_results(input_file_list, output_file_name, header_row)
 
+def construct_input_list_ycsb_custom(pasha_res_dir, zipf_theta):
+        input_file_list = list()
+        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-mixed-8-3-100" + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        return input_file_list
+
+def parse_ycsb_custom(pasha_res_dir, zipf_theta):
+        input_file_list = construct_input_list_ycsb_custom(pasha_res_dir, zipf_theta)
+        output_file_name = pasha_res_dir + "/ycsb-custom-" + zipf_theta + ".csv"
+        header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+        parse_results(input_file_list, output_file_name, header_row)
+
 def construct_input_list_ycsb_with_read_cxl(pasha_res_dir, baseline_res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
-        input_file_list.append(("Tigon-ReadCXL", pasha_res_dir + "/ycsb-TwoPLPashaReadCXL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-ReadCXL", pasha_res_dir + "/ycsb-TwoPLPashaReadCXL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
 
         input_file_list.append(("Sundial-CXL-improved", baseline_res_dir + "/ycsb-Sundial-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
         input_file_list.append(("TwoPL-CXL-improved", baseline_res_dir + "/ycsb-TwoPL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
@@ -106,8 +117,8 @@ def parse_ycsb_with_read_cxl(pasha_res_dir, baseline_res_dir, rw_ratio, zipf_the
 
 def construct_input_list_tpcc(pasha_res_dir, baseline_res_dir):
         input_file_list = list()
-        input_file_list.append(("Tigon", pasha_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
-        input_file_list.append(("Tigon-Phantom", pasha_res_dir + "/tpcc-TwoPLPashaPhantom-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon", pasha_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-Phantom", pasha_res_dir + "/tpcc-TwoPLPashaPhantom-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
 
         input_file_list.append(("Sundial-CXL-improved", baseline_res_dir + "/tpcc-Sundial-8-3-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
         input_file_list.append(("TwoPL-CXL-improved", baseline_res_dir + "/tpcc-TwoPL-8-3-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
@@ -125,8 +136,8 @@ def parse_tpcc(pasha_res_dir, baseline_res_dir):
 ### shortcut optimization ###
 def construct_input_list_ycsb_shortcut(pasha_res_dir, pasha_no_shortcut_res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
-        input_file_list.append(("Tigon-AlwaysSearchCXL", pasha_no_shortcut_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "1" + ".txt"))
+        input_file_list.append(("Tigon", pasha_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-AlwaysSearchCXL", pasha_no_shortcut_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "1" + ".txt"))
         return input_file_list
 
 def parse_ycsb_shortcut(pasha_res_dir, pasha_no_shortcut_res_dir, rw_ratio, zipf_theta):
@@ -137,8 +148,8 @@ def parse_ycsb_shortcut(pasha_res_dir, pasha_no_shortcut_res_dir, rw_ratio, zipf
 
 def construct_input_list_tpcc_shortcut(pasha_res_dir, pasha_no_shortcut_res_dir):
         input_file_list = list()
-        input_file_list.append(("Tigon", pasha_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "0" + ".txt"))
-        input_file_list.append(("Tigon-AlwaysSearchCXL", pasha_no_shortcut_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL" + "-" + "1" + ".txt"))
+        input_file_list.append(("Tigon", pasha_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-AlwaysSearchCXL", pasha_no_shortcut_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "1" + ".txt"))
         return input_file_list
 
 def parse_tpcc_shortcut(pasha_res_dir, pasha_no_shortcut_res_dir):
@@ -166,6 +177,7 @@ parse_tpcc_baseline(baseline_res_dir + "/macro")
 
 ### pasha and baselines ###
 parse_ycsb_with_read_cxl(pasha_res_dir + "/micro", baseline_res_dir + "/micro", "100", "0.7")
+parse_ycsb_custom(pasha_res_dir + "/micro", "0.7")
 parse_ycsb(pasha_res_dir + "/micro", baseline_res_dir + "/micro", "100", "0.7")
 parse_ycsb(pasha_res_dir + "/micro", baseline_res_dir + "/micro", "0", "0.7")
 parse_ycsb(pasha_res_dir + "/macro", baseline_res_dir + "/macro", "95", "0.7")
