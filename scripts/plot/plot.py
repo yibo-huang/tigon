@@ -52,6 +52,40 @@ class Experiment(StrEnum):
 def main():
     args = cli().parse_args()
 
+    if args.benchmark == "all":
+        # Ignored by TPC-C, and YCSB workloads are currently run with 0.7
+        args.zipf_theta = 0.7
+
+        both = [common.Benchmark.TPCC, common.Benchmark.YCSB]
+
+        # Default TPC-C and YCSB
+        for benchmark in both:
+            args.benchmark = benchmark
+            args.experiment = Experiment.DEFAULT
+            run(args)
+
+        # FIXME: different `res_dir` directory
+        # Baseline TPC-C
+        # args.benchmark = common.Benchmark.TPCC
+        # args.experiment = Experiment.BASELINE
+        # run(args)
+
+        # HWCC TPC-C
+        args.benchmark = common.Benchmark.TPCC
+        args.experiment = Experiment.HWCC
+        run(args)
+
+        # ReadCXL optimization
+        args.benchmark = common.Benchmark.YCSB
+        args.experiment = Experiment.READ_CXL
+        args.rw_ratio = 100
+        run(args)
+
+    else:
+        run(args)
+
+
+def run(args):
     # Requires special handling because we combine multiple input files
     # into a single output figure.
     if (
@@ -76,7 +110,9 @@ def main():
             print(f"Unimplemented combination: {unknown}", file=sys.stderr)
             sys.exit(1)
 
-    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
+    output = input.with_suffix(f".{args.format}")
+    print(f"Saving {args} to {output}...", file=sys.stderr)
+    plt.savefig(output, dpi=args.dpi, **DEFAULT_SAVE)
 
 
 def read_cxl(args, df):
@@ -183,8 +219,11 @@ def default_ycsb(args):
         loc="outside upper center",
         ncol=len(df.T),
     )
+
+    output = PurePath(args.res_dir, "micro", f"ycsb-0.7.{args.format}")
+    print(f"Saving {args} to {output}...", file=sys.stderr)
     plt.savefig(
-        PurePath(args.res_dir, "micro", f"ycsb-0.7.{args.format}"),
+        output,
         dpi=args.dpi,
         **DEFAULT_SAVE,
     )
@@ -310,7 +349,7 @@ def set_ylim(axis, df: pd.DataFrame) -> float:
         if max_y > 2e6:
             return f"{y / 1e6:.1f}M"
         if max_y > 1e6:
-            return "{y / 1e6:.2f}M"
+            return f"{y / 1e6:.2f}M"
         else:
             return f"{int(y / 1e3)}K"
 
@@ -340,6 +379,9 @@ def path(args) -> PurePath:
             csv = PurePath(
                 "micro", f"ycsb-with-read-cxl-{args.rw_ratio}-{args.zipf_theta}.csv"
             )
+        case unknown:
+            print(f"Unimplemented configuration: {unknown}", file=sys.stderr)
+            sys.exit(1)
 
     return PurePath(args.res_dir, csv)
 
@@ -347,6 +389,8 @@ def path(args) -> PurePath:
 def cli() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="benchmark")
+
+    subparsers.add_parser("all")
 
     subparsers.add_parser(common.Benchmark.TPCC)
 
