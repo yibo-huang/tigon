@@ -357,7 +357,7 @@ class GroupCommitLogger : public WALLogger {
 };
 
 struct LogBuffer {
-        static constexpr uint64_t max_buffer_size = 1024 * 1024 * 1;
+        static constexpr uint64_t max_buffer_size = 1024 * 1024 * 1024;
 
         char buffer[max_buffer_size];
         uint64_t size = 0;
