@@ -329,7 +329,7 @@ class TwoPLPashaHelper {
                         void *src = scc_data->data;
                         smeta->lock();
                         DCHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                        memcpy(dest, src, size);
+                        scc_manager->do_read(nullptr, coordinator_id, dest, src, size);
                         tid_ = scc_data->tid;
                         smeta->unlock();
                 }
@@ -347,7 +347,7 @@ class TwoPLPashaHelper {
 
 		smeta->lock();
                 DCHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                memcpy(dest, src, size);
+                scc_manager->do_read(nullptr, coordinator_id, dest, src, size);
                 tid_ = scc_data->tid;
 		smeta->unlock();
 
@@ -372,7 +372,7 @@ class TwoPLPashaHelper {
 
                         smeta->lock();
                         DCHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                        memcpy(data_ptr, value, value_size);
+                        scc_manager->do_write(nullptr, coordinator_id, data_ptr, value, value_size);
                         smeta->set_is_data_modified_since_moved_in();
                         smeta->unlock();
                 }
@@ -387,7 +387,7 @@ class TwoPLPashaHelper {
 
 		smeta->lock();
                 DCHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                memcpy(data_ptr, value, value_size);
+                scc_manager->do_write(nullptr, coordinator_id, data_ptr, value, value_size);
                 smeta->set_is_data_modified_since_moved_in();
                 smeta->unlock();
 	}
@@ -554,7 +554,7 @@ out_unlock_lmeta:
                                 // we update our local cache
                                 lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
                                 lmeta->tid = scc_data->tid;
-                                memcpy(std::get<1>(row), scc_data->data, size);
+                                scc_manager->do_read(nullptr, coordinator_id, std::get<1>(row), scc_data->data, size);
 
                                 // unset the flag
                                 smeta->clear_is_data_modified_since_moved_in();
@@ -584,7 +584,7 @@ out_unlock_lmeta:
                         smeta->increase_reader_count();
                         success = true;
 
-                        // read the data
+                        // read the data from the local copy
                         memcpy(dest, src, size);
 
                         smeta->unlock();
@@ -629,7 +629,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // read the data
-                memcpy(dest, src, size);
+                scc_manager->do_read(nullptr, coordinator_id, dest, src, size);
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
@@ -802,7 +802,7 @@ out_unlock_lmeta:
                                 // we update our local cache
                                 lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
                                 lmeta->tid = scc_data->tid;
-                                memcpy(std::get<1>(row), scc_data->data, size);
+                                scc_manager->do_read(nullptr, coordinator_id, std::get<1>(row), scc_data->data, size);
 
                                 // unset the flag
                                 smeta->clear_is_data_modified_since_moved_in();
@@ -832,7 +832,7 @@ out_unlock_lmeta:
                         smeta->set_write_locked();
                         success = true;
 
-                        // read the data
+                        // read the data from the local copy
                         memcpy(dest, src, size);
 
                         smeta->unlock();
@@ -877,7 +877,7 @@ out_unlock_lmeta:
                 success = true;
 
                 // read the data
-                memcpy(dest, src, size);
+                scc_manager->do_read(nullptr, coordinator_id, dest, src, size);
 
                 // increase reference counting only if we get the lock
                 if (inc_ref_cnt == true) {
@@ -1254,7 +1254,7 @@ out_unlock_lmeta:
 
                         // copy data
                         if (lmeta->is_data_modified_since_moved_out == true) {
-                                memcpy(scc_data->data, local_data, table->value_size());
+                                scc_manager->do_write(nullptr, coordinator_id, scc_data->data, local_data, table->value_size());
                         }
                         lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
                         smeta->clear_is_data_modified_since_moved_in();   // optimization to reduce memcpy when moving data out
@@ -1378,7 +1378,7 @@ out_unlock_lmeta:
 
                                 // copy data
                                 if (cur_lmeta->is_data_modified_since_moved_out == true) {
-                                        memcpy(cur_scc_data->data, cur_data, table->value_size());
+                                        scc_manager->do_write(nullptr, coordinator_id, cur_scc_data->data, cur_data, table->value_size());
                                 }
                                 cur_lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
                                 cur_smeta->clear_is_data_modified_since_moved_in();   // optimization to reduce memcpy when moving data out
@@ -1555,7 +1555,7 @@ out_unlock_lmeta:
 
                         // copy data back
                         if (smeta->is_data_modified_since_moved_in() == true) {
-                                memcpy(local_data, scc_data->data, table->value_size());
+                                scc_manager->do_read(nullptr, coordinator_id, local_data, scc_data->data, table->value_size());
                         }
                         lmeta->is_data_modified_since_moved_out = false;
                         smeta->clear_is_data_modified_since_moved_in();
@@ -1658,7 +1658,7 @@ out_unlock_lmeta:
 
                                 // copy data back
                                 if (cur_smeta->is_data_modified_since_moved_in() == true) {
-                                        memcpy(cur_data, cur_smeta->get_scc_data()->data, table->value_size());
+                                        scc_manager->do_read(nullptr, coordinator_id, cur_data, cur_smeta->get_scc_data()->data, table->value_size());
                                 }
                                 cur_lmeta->is_data_modified_since_moved_out = false;
                                 cur_smeta->clear_is_data_modified_since_moved_in();
