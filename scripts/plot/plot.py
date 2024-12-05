@@ -43,6 +43,8 @@ class Experiment(StrEnum):
     DEFAULT = auto()
     # Hardware cache coherence sensitivity
     HWCC = auto()
+    # Track modified tuples
+    READ_CXL = "read-cxl"
 
 
 def main():
@@ -57,6 +59,40 @@ def main():
             default_ycsb(args)
         case Experiment.HWCC, _:
             hwcc(args)
+        case Experiment.READ_CXL, _:
+            read_cxl(args)
+
+
+def read_cxl(args):
+    input = path(args)
+    df = pd.read_csv(input, index_col=0)
+
+    figure, axis = plt.subplots(nrows=1, ncols=1)
+
+    figure.set(**DEFAULT_FIGURE)
+    figure.set_size_inches(w=7, h=3)
+    figure.supxlabel(supxlabel(args.benchmark))
+    figure.supylabel(SUPYLABEL)
+
+    print(df)
+    for system, row in df.T.loc[["Tigon", "Tigon-ReadCXL"]].iterrows():
+        axis.plot(
+            df.index,
+            row,
+            color=color(system),
+            marker=marker(system),
+            label=system.replace("Tigon", REDACT),
+            **DEFAULT_PLOT,
+        )
+
+    max_y = ylim(df)
+    axis.set_ylim(0, top=max_y)
+    axis.grid(axis="y")
+    axis.grid(axis="x", which="major")
+    axis.yaxis.set_major_formatter(format_yaxis(max_y))
+
+    figure.legend(**DEFAULT_LEGEND, loc="upper right", borderaxespad=2)
+    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
 def hwcc(args):
@@ -332,6 +368,11 @@ def path(args) -> PurePath:
 
         case Experiment.HWCC, common.Benchmark.TPCC:
             csv = PurePath("data-movement", "tpcc-data-movement.csv")
+
+        case Experiment.READ_CXL, common.Benchmark.YCSB:
+            csv = PurePath(
+                "micro", f"ycsb-with-read-cxl-{args.rw_ratio}-{args.zipf_theta}.csv"
+            )
 
     return PurePath(args.res_dir, csv)
 
