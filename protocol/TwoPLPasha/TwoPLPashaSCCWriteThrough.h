@@ -24,14 +24,9 @@ class TwoPLPashaSCCWriteThrough : public SCCManager {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(scc_meta);
                 std::size_t host_bit_index = 0;
 
-                for (int i = 0; i < TwoPLPashaMetadataShared::scc_bits_num; i++) {
-                        host_bit_index = i + TwoPLPashaMetadataShared::scc_bits_base_index;
-                        if (i == cur_host_id) {
-                                smeta->set_bit(host_bit_index);
-                        } else {
-                                smeta->clear_bit(host_bit_index);
-                        }
-                }
+                // clear all the bits except the current host
+                smeta->clear_all_scc_bits();
+                smeta->set_scc_bit(cur_host_id);
         }
 
         void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) override
@@ -65,20 +60,13 @@ class TwoPLPashaSCCWriteThrough : public SCCManager {
         {
                 TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(scc_meta);
                 std::size_t cur_host_bit_index = cur_host_id + TwoPLPashaMetadataShared::scc_bits_base_index;
-                std::size_t host_bit_index = 0;
 
                 // should always hold for 2PL and Sundial
                 CHECK(smeta->is_bit_set(cur_host_bit_index) == true);
 
                 // clear all the bits except the current host
-                for (int i = 0; i < TwoPLPashaMetadataShared::scc_bits_num; i++) {
-                        host_bit_index = i + TwoPLPashaMetadataShared::scc_bits_base_index;
-                        if (i == cur_host_id) {
-                                smeta->set_bit(host_bit_index);
-                        } else {
-                                smeta->clear_bit(host_bit_index);
-                        }
-                }
+                smeta->clear_all_scc_bits();
+                smeta->set_scc_bit(cur_host_id);
 
                 clwb(scc_data, size);
         }

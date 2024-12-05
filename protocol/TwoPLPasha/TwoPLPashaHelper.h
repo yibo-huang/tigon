@@ -262,11 +262,26 @@ retry:
                 clear_bit(is_data_modified_since_moved_in_bit_index);
         }
 
+        // SCC
+        void clear_all_scc_bits()
+        {
+                uint64_t orig_atomic_word = atomic_word.load(std::memory_order_acquire);
+                atomic_word.store(orig_atomic_word & ~(SCC_BITS_MASK << SCC_BITS_OFFSET), std::memory_order_release);  // Clear the specific bit to 0
+        }
+
+        void set_scc_bit(uint64_t host_id)
+        {
+                set_bit(host_id + SCC_BITS_OFFSET);
+        }
+
 	static constexpr int LATCH_BIT_OFFSET = 63;
 	static constexpr uint64_t LATCH_BIT_MASK = 0x1ull;
 
         static constexpr int SCC_DATA_OFFSET = 0;
 	static constexpr uint64_t SCC_DATA_MASK = 0x1fffffffffull;
+
+        static constexpr int SCC_BITS_OFFSET = 47;
+	static constexpr uint64_t SCC_BITS_MASK = 0xffffull;
 
         static constexpr int READ_LOCK_BITS_OFFSET = 42;
 	static constexpr uint64_t READ_LOCK_BITS_MASK = 0x1full;
@@ -277,7 +292,7 @@ retry:
         static constexpr int is_data_modified_since_moved_in_bit_index = 40;
 
         static constexpr int scc_bits_base_index = 47;
-        static constexpr int scc_bits_num = 16;
+        static constexpr int scc_bits_num = 8;
 
         static constexpr int is_next_key_real_bit_index = 39;
         static constexpr int is_prev_key_real_bit_index = 38;
