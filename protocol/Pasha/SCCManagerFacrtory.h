@@ -10,7 +10,9 @@
 #include "protocol/Pasha/SCCNonTemporal.h"
 #include "protocol/Pasha/SCCNoOP.h"
 #include "protocol/Pasha/SCCWriteThrough.h"
+#include "protocol/TwoPLPasha/TwoPLPashaSCCNonTemporal.h"
 #include "protocol/TwoPLPasha/TwoPLPashaSCCWriteThrough.h"
+#include "protocol/TwoPLPasha/TwoPLPashaSCCWriteThroughNoSharedRead.h"
 
 namespace star
 {
@@ -33,11 +35,13 @@ class SCCManagerFactory {
                         }
                 } else if (protocol == "TwoPLPasha") {
                         if (scc_mechanism == "NonTemporal") {
-                                scc_manager = new SCCNonTemporal();
+                                scc_manager = new TwoPLPashaSCCNonTemporal();
                         } else if (scc_mechanism == "NoOP") {
                                 scc_manager = new SCCNoOP();
                         } else if (scc_mechanism == "WriteThrough") {
                                 scc_manager = new TwoPLPashaSCCWriteThrough();
+                        } else if (scc_mechanism == "WriteThroughNoSharedRead") {
+                                scc_manager = new TwoPLPashaSCCWriteThroughNoSharedRead();
                         } else {
                                 CHECK(0);
                         }
