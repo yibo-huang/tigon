@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+from collections.abc import Iterable
 import argparse
 from enum import auto, StrEnum
 import math
 from pathlib import PurePath
+import sys
 
 import numpy as np
 import pandas as pd
@@ -50,31 +52,36 @@ class Experiment(StrEnum):
 def main():
     args = cli().parse_args()
 
-    match args.experiment, args.benchmark:
-        case Experiment.BASELINE, _:
-            baseline(args)
-        case Experiment.DEFAULT, common.Benchmark.TPCC:
-            default_tpcc(args)
-        case Experiment.DEFAULT, common.Benchmark.YCSB:
-            default_ycsb(args)
-        case Experiment.HWCC, _:
-            hwcc(args)
-        case Experiment.READ_CXL, _:
-            read_cxl(args)
+    # Requires special handling because we combine multiple input files
+    # into a single output figure.
+    if (
+        args.experiment == Experiment.DEFAULT
+        and args.benchmark == common.Benchmark.YCSB
+    ):
+        return default_ycsb(args)
 
-
-def read_cxl(args):
     input = path(args)
     df = pd.read_csv(input, index_col=0)
 
-    figure, axis = plt.subplots(nrows=1, ncols=1)
+    match args.experiment, args.benchmark:
+        case Experiment.BASELINE, _:
+            baseline(args, df)
+        case Experiment.DEFAULT, common.Benchmark.TPCC:
+            default_tpcc(args, df)
+        case Experiment.HWCC, _:
+            hwcc(args, df)
+        case Experiment.READ_CXL, _:
+            read_cxl(args, df)
+        case unknown:
+            print(f"Unimplemented combination: {unknown}", file=sys.stderr)
+            sys.exit(1)
 
-    figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=7, h=3)
-    figure.supxlabel(supxlabel(args.benchmark))
-    figure.supylabel(SUPYLABEL)
+    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
-    print(df)
+
+def read_cxl(args, df):
+    figure, axis = subplots(args, nrows=1, ncols=1)
+
     for system, row in df.T.loc[["Tigon", "Tigon-ReadCXL"]].iterrows():
         axis.plot(
             df.index,
@@ -85,26 +92,12 @@ def read_cxl(args):
             **DEFAULT_PLOT,
         )
 
-    max_y = ylim(df)
-    axis.set_ylim(0, top=max_y)
-    axis.grid(axis="y")
-    axis.grid(axis="x", which="major")
-    axis.yaxis.set_major_formatter(format_yaxis(max_y))
-
+    set_ylim(axis, df)
     figure.legend(**DEFAULT_LEGEND, loc="upper right", borderaxespad=2)
-    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
-def hwcc(args):
-    input = path(args)
-    df = pd.read_csv(input, index_col=0)
-
-    figure, axis = plt.subplots(nrows=1, ncols=1)
-
-    figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=7, h=3)
-    figure.supxlabel(supxlabel(args.benchmark))
-    figure.supylabel(SUPYLABEL)
+def hwcc(args, df):
+    figure, axis = subplots(args, nrows=1, ncols=1)
 
     for system, row in df.T[::-1].iterrows():
         axis.plot(
@@ -116,26 +109,12 @@ def hwcc(args):
             **DEFAULT_PLOT,
         )
 
-    max_y = ylim(df)
-    axis.set_ylim(0, top=max_y)
-    axis.grid(axis="y")
-    axis.grid(axis="x", which="major")
-    axis.yaxis.set_major_formatter(format_yaxis(max_y))
-
+    set_ylim(axis, df)
     figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=5)
-    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
-def default_tpcc(args):
-    input = path(args)
-    df = pd.read_csv(input, index_col=0)
-
-    figure, axis = plt.subplots(nrows=1, ncols=1)
-
-    figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=6, h=4)
-    figure.supxlabel(supxlabel(args.benchmark))
-    figure.supylabel(SUPYLABEL)
+def default_tpcc(args, df):
+    figure, axis = subplots(args, nrows=1, ncols=1)
 
     for system, row in df.T.iterrows():
         axis.plot(
@@ -147,28 +126,18 @@ def default_tpcc(args):
             **DEFAULT_PLOT,
         )
 
-    max_y = ylim(df)
-    axis.set_ylim(bottom=0, top=max_y)
-    axis.grid(axis="y")
-
     # print(
     #     (df.T.loc["Tigon"] - df.T.loc["Sundial-CXL-improved"])
     #     / df.T.loc["Sundial-CXL-improved"]
     #     * 100
     # )
 
-    axis.yaxis.set_major_formatter(format_yaxis(max_y))
-    axis.legend(**DEFAULT_LEGEND)
-    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
+    set_ylim(axis, df)
+    figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=len(df))
 
 
 def default_ycsb(args):
-    figure, axes = plt.subplots(nrows=2, ncols=2, sharex=True)
-
-    figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=7, h=6)
-    figure.supxlabel(supxlabel(args.benchmark))
-    figure.supylabel(SUPYLABEL)
+    figure, axes = subplots(args, h=6, nrows=2, ncols=2, sharex=True)
     figure.get_layout_engine().set(hspace=0, h_pad=0.02, wspace=0, w_pad=0.02)
 
     layout = {
@@ -178,7 +147,6 @@ def default_ycsb(args):
         0: (1, 1),
     }
 
-    max_ys = [0, 0]
     for row in range(2):
         axes[row, 0].sharey(axes[row, 1])
 
@@ -203,12 +171,11 @@ def default_ycsb(args):
                 **DEFAULT_PLOT,
             )
 
-        max_ys[i] = max(max_ys[i], ylim(df))
-        axis.set_ylim(bottom=0, top=max_ys[i])
-        axis.grid(axis="both")
-
-        axis.yaxis.set_major_formatter(format_yaxis(max_ys[i]))
-        axis.label_outer(remove_inner_ticks=True)
+        # Overwrite with larger ylim of the two rows
+        a = axes[i, 1 - j].get_ylim()[1]
+        set_ylim(axis, df)
+        b = axes[i, j].get_ylim()[1]
+        axis.set_ylim(top=max(a, b))
 
     figure.legend(
         **DEFAULT_LEGEND,
@@ -223,19 +190,11 @@ def default_ycsb(args):
     )
 
 
-def baseline(args):
-    input = path(args)
-    df = pd.read_csv(input, index_col=0)
-
+def baseline(args, df):
     if args.benchmark == common.Benchmark.YCSB:
         df = df.reindex(list(range(0, 101, 20)))
 
-    figure, axes = plt.subplots(nrows=1, ncols=2, sharey=True)
-
-    figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=6, h=3)
-    figure.supxlabel(supxlabel(args.benchmark))
-    figure.supylabel(SUPYLABEL)
+    figure, axes = subplots(args, nrows=1, ncols=2, sharey=True)
     figure.get_layout_engine().set(wspace=0, w_pad=0.02)
 
     # Plot Sundial on left
@@ -276,21 +235,10 @@ def baseline(args):
     #     * 100
     # )
 
-    max_y = ylim(df)
-
     for axis in axes:
-        # Must be after plotting
-        # https://stackoverflow.com/questions/22642511/change-y-range-to-start-from-0-with-matplotlib
-        axis.set_ylim(bottom=0, top=max_y)
-
-        axis.label_outer(remove_inner_ticks=True)
+        set_ylim(axis, df)
         axis.tick_params(axis="x", labelsize=8.0)
-        axis.grid(axis="y")
-
-        axis.yaxis.set_major_formatter(format_yaxis(max_y))
         axis.legend(**DEFAULT_LEGEND)
-
-    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
 def color(system: str) -> str:
@@ -325,29 +273,48 @@ def marker(system: str) -> str:
         return "^"
 
 
-def supxlabel(benchmark: common.Benchmark) -> str:
-    base = "Multi-partition Transaction Percentage"
-    if benchmark == common.Benchmark.TPCC:
-        base += " (NewOrder/Payment)"
-    return base
+def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
+    figure, axes = plt.subplots(**kwargs)
+    figure.set(**DEFAULT_FIGURE)
+    figure.set_size_inches(w=w, h=h)
+    figure.supxlabel(
+        "Multi-partition Transaction Percentage" + " (NewOrder/Payment)"
+        if args.benchmark == common.Benchmark.TPCC
+        else ""
+    )
+    figure.supylabel(SUPYLABEL)
+
+    for row in axes if isinstance(axes, Iterable) else [axes]:
+        for axis in row if isinstance(row, Iterable) else [row]:
+            axis.grid(axis="y")
+            axis.grid(axis="x", which="major")
+            axis.label_outer(remove_inner_ticks=True)
+
+    return figure, axes
 
 
-def format_yaxis(max_y: float) -> ticker.FuncFormatter:
-    # HACK: this is about where pyplot switches from 0.5M to 0.25M increments
-    if max_y > 2e6:
-        return ticker.FuncFormatter(lambda y, pos: "0" if y == 0 else f"{y / 1e6:.1f}M")
-    if max_y > 1e6:
-        return ticker.FuncFormatter(lambda y, pos: "0" if y == 0 else f"{y / 1e6:.2f}M")
-    else:
-        return ticker.FuncFormatter(
-            lambda y, pos: "0" if y == 0 else "" if y < 0 else f"{int(y / 1e3)}K"
-        )
-
-
-def ylim(df: pd.DataFrame) -> float:
+# Must be after plotting
+# https://stackoverflow.com/questions/22642511/change-y-range-to-start-from-0-with-matplotlib
+def set_ylim(axis, df: pd.DataFrame) -> float:
     max_y = df.to_numpy().max()
-    round = 5e5 if max_y > 1e6 else 1e5
-    return math.ceil(max_y / round) * round
+    step = 5e5 if max_y > 1e6 else 1e5
+    rounded = math.ceil(max_y / step) * step
+
+    axis.set_ylim(0, top=rounded)
+
+    def format(y, pos) -> str:
+        if y == 0:
+            return "0"
+
+        # HACK: this is about where pyplot switches from 0.5M to 0.25M increments
+        if max_y > 2e6:
+            return f"{y / 1e6:.1f}M"
+        if max_y > 1e6:
+            return "{y / 1e6:.2f}M"
+        else:
+            return f"{int(y / 1e3)}K"
+
+    axis.yaxis.set_major_formatter(ticker.FuncFormatter(format))
 
 
 def path(args) -> PurePath:
