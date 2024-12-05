@@ -83,6 +83,7 @@ DEFINE_uint64(hw_cc_budget, 1024 * 1024 * 200, "budget for the hardware cache-co
 DEFINE_bool(enable_phantom_detection, true, "TwoPLPasha enables phantom detection (next-key locking)");
 DEFINE_bool(model_cxl_search_overhead, false, "Model the overhead of local operations always searching through the CXL indexes");
 
+DEFINE_bool(enable_scc, true, "enable software cache-coherence");
 DEFINE_string(scc_mechanism, "NoOP", "Pasha software cache-coherence mechanism");
 
 DEFINE_int32(time_to_run, 30, "time to run");
@@ -151,6 +152,7 @@ DEFINE_string(pre_migrate, "None", "what tuples to pre-migrate?");
         context.hw_cc_budget = FLAGS_hw_cc_budget;                                              \
         context.model_cxl_search_overhead = FLAGS_model_cxl_search_overhead;                    \
         context.enable_phantom_detection = FLAGS_enable_phantom_detection;                      \
+        context.enable_scc = FLAGS_enable_scc;                                                  \
         context.scc_mechanism = FLAGS_scc_mechanism;                                            \
         context.time_to_run = FLAGS_time_to_run;                                                \
         context.time_to_warmup = FLAGS_time_to_warmup;                                          \

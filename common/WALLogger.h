@@ -357,7 +357,7 @@ class GroupCommitLogger : public WALLogger {
 };
 
 struct LogBuffer {
-        static constexpr uint64_t max_buffer_size = 1024 * 1024 * 1024;
+        static constexpr uint64_t max_buffer_size = 1024 * 1024 * 4;
 
         char buffer[max_buffer_size];
         uint64_t size = 0;
@@ -518,6 +518,8 @@ class PashaGroupCommitLogger : public WALLogger {
                                 if (flushed_log_buffer_num >= (max_log_buffer_queue_size * log_buffer_queues.size())) {
                                         begin_time = std::chrono::steady_clock::now();
                                 }
+
+                                delete log_buffer;
                         }
                 }
 	}

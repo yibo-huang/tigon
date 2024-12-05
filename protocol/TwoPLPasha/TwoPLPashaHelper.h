@@ -1216,7 +1216,7 @@ out_unlock_lmeta:
                 if (lmeta->is_migrated == false) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
                         TwoPLPashaSharedDataSCC *scc_data = nullptr;
-                        if (lmeta->scc_data == nullptr) {
+                        if (lmeta->scc_data == nullptr || context.enable_scc == false) {
                                 // there is no cached copy in CXL - allocate SCC data
                                 scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
                                 lmeta->scc_data = scc_data;
@@ -1340,7 +1340,7 @@ out_unlock_lmeta:
                                 // allocate the CXL row
                                 TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
                                 TwoPLPashaSharedDataSCC *cur_scc_data = nullptr;
-                                if (cur_lmeta->scc_data == nullptr) {
+                                if (cur_lmeta->scc_data == nullptr || context.enable_scc == false) {
                                         // there is no cached copy in CXL - allocate SCC data
                                         cur_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
                                         cur_lmeta->scc_data = cur_scc_data;
@@ -1574,7 +1574,9 @@ out_unlock_lmeta:
 
                         // free the CXL row
                         // TODO: register EBR
-                        // cxl_memory.cxlalloc_free_wrapper(smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
+                        if (context.enable_scc == false) {
+                                cxl_memory.cxlalloc_free_wrapper(smeta->get_scc_data(), sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_FREE);
+                        }
                         cxl_memory.cxlalloc_free_wrapper(smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                         // release the CXL latch
@@ -1672,7 +1674,9 @@ out_unlock_lmeta:
 
                                 // free the CXL row
                                 // TODO: register EBR
-                                // cxl_memory.cxlalloc_free_wrapper(cur_smeta->get_scc_data(), table->value_size(), CXLMemory::DATA_FREE);
+                                if (context.enable_scc == false) {
+                                        cxl_memory.cxlalloc_free_wrapper(cur_smeta->get_scc_data(), sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_FREE);
+                                }
                                 cxl_memory.cxlalloc_free_wrapper(cur_smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                                 // release the CXL latch

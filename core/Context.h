@@ -109,6 +109,7 @@ class Context {
         uint64_t hw_cc_budget = 1024 * 1024 * 200;     // 200 MB
 
         // Pasha software cache-coherence
+        bool enable_scc = true;
         std::string scc_mechanism;
 
         // Pasha ablation study

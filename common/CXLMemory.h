@@ -6,6 +6,8 @@
 
 #include <atomic>
 
+#include "core/Context.h"
+
 #include "cxlalloc.h"
 #include <glog/logging.h>
 
@@ -41,6 +43,11 @@ class CXLMemory {
         static constexpr uint64_t cxl_data_migration_root_index = 1;
         static constexpr uint64_t cxl_lru_trackers_root_index = 2;
         static constexpr uint64_t cxl_global_epoch_root_index = 3;
+
+        void init(Context context)
+        {
+                this->context = context;
+        }
 
         void init_cxlalloc_for_given_thread(uint64_t threads_num_per_host, uint64_t thread_id, uint64_t hosts_num, uint64_t host_id)
         {
@@ -118,6 +125,9 @@ class CXLMemory {
                         size_metadata_usage.fetch_add(size);
                         break;
                 case DATA_ALLOCATION:
+                        if (context.enable_scc == false) {
+                                size_total_hw_cc_usage.fetch_add(size);
+                        }
                         size_data_usage.fetch_add(size);
                         break;
                 case TRANSPORT_ALLOCATION:
@@ -147,6 +157,9 @@ class CXLMemory {
                         size_metadata_usage.fetch_sub(size);
                         break;
                 case DATA_FREE:
+                        if (context.enable_scc == false) {
+                                size_total_hw_cc_usage.fetch_sub(size);
+                        }
                         size_data_usage.fetch_sub(size);
                         break;
                 case TRANSPORT_FREE:
@@ -213,6 +226,8 @@ class CXLMemory {
         }
 
     private:
+        Context context;
+
         std::atomic<uint64_t> size_index_usage{ 0 };
         std::atomic<uint64_t> size_metadata_usage{ 0 };
         std::atomic<uint64_t> size_data_usage{ 0 };

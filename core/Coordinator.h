@@ -41,6 +41,7 @@ class Coordinator {
 		ioStopFlag.store(false);
 
                 // init cxlalloc
+                cxl_memory.init(context);
                 cxl_memory.init_cxlalloc_for_given_thread(context.worker_num + 1, 0, context.coordinator_num, context.coordinator_id);
 
                 // init CXL transport

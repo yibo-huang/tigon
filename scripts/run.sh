@@ -10,10 +10,10 @@ source $SCRIPT_DIR/utilities.sh
 
 function print_usage {
         echo "[usage] ./run.sh [TPCC/YCSB/KILL/COMPILE/COMPILE_SYNC/CI/COLLECT_OUTPUTS] EXP-SPECIFIC"
-        echo "TPCC: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
-        echo "YCSB: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
-        echo "SmallBank: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
-        echo "TATP: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "TPCC: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "YCSB: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "SmallBank: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
+        echo "TATP: [SundialPasha/Sundial/TwoPLPasha/TwoPLPashaPhantom/TwoPL] HOST_NUM WORKER_NUM KEYS CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS"
         echo "KILL: None"
         echo "COMPILE: None"
         echo "COMPILE_SYNC: HOST_NUM"
@@ -94,7 +94,7 @@ function print_server_string {
 }
 
 function run_exp_tpcc {
-        if [ $# != 23 ]; then
+        if [ $# != 24 ]; then
                 print_usage
                 exit -1
         fi
@@ -111,16 +111,17 @@ function run_exp_tpcc {
         typeset MIGRATION_POLICY=${11}
         typeset WHEN_TO_MOVE_OUT=${12}
         typeset HW_CC_BUDGET=${13}
-        typeset SCC_MECH=${14}
-        typeset PRE_MIGRATE=${15}
-        typeset TIME_TO_RUN=${16}
-        typeset TIME_TO_WARMUP=${17}
-        typeset LOG_PATH=${18}
-        typeset LOTUS_CHECKPOINT=${19}
-        typeset WAL_GROUP_COMMIT_TIME=${20}
-        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${22}
-        typeset GATHER_OUTPUT=${23}
+        typeset ENABLE_SCC=${14}
+        typeset SCC_MECH=${15}
+        typeset PRE_MIGRATE=${16}
+        typeset TIME_TO_RUN=${17}
+        typeset TIME_TO_WARMUP=${18}
+        typeset LOG_PATH=${19}
+        typeset LOTUS_CHECKPOINT=${20}
+        typeset WAL_GROUP_COMMIT_TIME=${21}
+        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${22}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${23}
+        typeset GATHER_OUTPUT=${24}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* $WORKER_NUM)  # TPCC uses one partition per worker
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -141,7 +142,7 @@ function run_exp_tpcc {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=SundialPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
@@ -154,7 +155,7 @@ function run_exp_tpcc {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH
+                        --enable_scc=$ENABLE_SCC--scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=SundialPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
@@ -191,7 +192,7 @@ function run_exp_tpcc {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
@@ -204,7 +205,7 @@ function run_exp_tpcc {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
@@ -219,7 +220,7 @@ function run_exp_tpcc {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC &> output.txt < /dev/null &" $i
                 done
@@ -232,7 +233,7 @@ function run_exp_tpcc {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
@@ -270,7 +271,7 @@ function run_exp_tpcc {
 }
 
 function run_exp_ycsb {
-        if [ $# != 25 ]; then
+        if [ $# != 26 ]; then
                 print_usage
                 exit -1
         fi
@@ -289,16 +290,17 @@ function run_exp_ycsb {
         typeset MIGRATION_POLICY=${13}
         typeset WHEN_TO_MOVE_OUT=${14}
         typeset HW_CC_BUDGET=${15}
-        typeset SCC_MECH=${16}
-        typeset PRE_MIGRATE=${17}
-        typeset TIME_TO_RUN=${18}
-        typeset TIME_TO_WARMUP=${19}
-        typeset LOG_PATH=${20}
-        typeset LOTUS_CHECKPOINT=${21}
-        typeset WAL_GROUP_COMMIT_TIME=${22}
-        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${23}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${24}
-        typeset GATHER_OUTPUT=${25}
+        typeset ENABLE_SCC=${16}
+        typeset SCC_MECH=${17}
+        typeset PRE_MIGRATE=${18}
+        typeset TIME_TO_RUN=${19}
+        typeset TIME_TO_WARMUP=${20}
+        typeset LOG_PATH=${21}
+        typeset LOTUS_CHECKPOINT=${22}
+        typeset WAL_GROUP_COMMIT_TIME=${23}
+        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${24}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${25}
+        typeset GATHER_OUTPUT=${26}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM) # YCSB uses one partition per host
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -319,7 +321,7 @@ function run_exp_ycsb {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=SundialPasha --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
@@ -332,7 +334,7 @@ function run_exp_ycsb {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=SundialPasha --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
@@ -369,7 +371,7 @@ function run_exp_ycsb {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
@@ -382,7 +384,7 @@ function run_exp_ycsb {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
@@ -397,7 +399,7 @@ function run_exp_ycsb {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2 &> output.txt < /dev/null &" $i
                 done
@@ -410,7 +412,7 @@ function run_exp_ycsb {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --query=$QUERY_TYPE --keys=$KEYS --read_write_ratio=$RW_RATIO --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO --cross_part_num=2" 0
 
@@ -448,7 +450,7 @@ function run_exp_ycsb {
 }
 
 function run_exp_smallbank {
-        if [ $# != 23 ]; then
+        if [ $# != 24 ]; then
                 print_usage
                 exit -1
         fi
@@ -465,16 +467,17 @@ function run_exp_smallbank {
         typeset MIGRATION_POLICY=${11}
         typeset WHEN_TO_MOVE_OUT=${12}
         typeset HW_CC_BUDGET=${13}
-        typeset SCC_MECH=${14}
-        typeset PRE_MIGRATE=${15}
-        typeset TIME_TO_RUN=${16}
-        typeset TIME_TO_WARMUP=${17}
-        typeset LOG_PATH=${18}
-        typeset LOTUS_CHECKPOINT=${19}
-        typeset WAL_GROUP_COMMIT_TIME=${20}
-        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${22}
-        typeset GATHER_OUTPUT=${23}
+        typeset ENABLE_SCC=${14}
+        typeset SCC_MECH=${15}
+        typeset PRE_MIGRATE=${16}
+        typeset TIME_TO_RUN=${17}
+        typeset TIME_TO_WARMUP=${18}
+        typeset LOG_PATH=${19}
+        typeset LOTUS_CHECKPOINT=${20}
+        typeset WAL_GROUP_COMMIT_TIME=${21}
+        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${22}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${23}
+        typeset GATHER_OUTPUT=${24}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM) # one partition per host
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -495,7 +498,7 @@ function run_exp_smallbank {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
@@ -508,7 +511,7 @@ function run_exp_smallbank {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
@@ -545,7 +548,7 @@ function run_exp_smallbank {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
@@ -558,7 +561,7 @@ function run_exp_smallbank {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
@@ -573,7 +576,7 @@ function run_exp_smallbank {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
@@ -586,7 +589,7 @@ function run_exp_smallbank {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
@@ -624,7 +627,7 @@ function run_exp_smallbank {
 }
 
 function run_exp_tatp {
-        if [ $# != 23 ]; then
+        if [ $# != 24 ]; then
                 print_usage
                 exit -1
         fi
@@ -641,16 +644,17 @@ function run_exp_tatp {
         typeset MIGRATION_POLICY=${11}
         typeset WHEN_TO_MOVE_OUT=${12}
         typeset HW_CC_BUDGET=${13}
-        typeset SCC_MECH=${14}
-        typeset PRE_MIGRATE=${15}
-        typeset TIME_TO_RUN=${16}
-        typeset TIME_TO_WARMUP=${17}
-        typeset LOG_PATH=${18}
-        typeset LOTUS_CHECKPOINT=${19}
-        typeset WAL_GROUP_COMMIT_TIME=${20}
-        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${21}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${22}
-        typeset GATHER_OUTPUT=${23}
+        typeset ENABLE_SCC=${14}
+        typeset SCC_MECH=${15}
+        typeset PRE_MIGRATE=${16}
+        typeset TIME_TO_RUN=${17}
+        typeset TIME_TO_WARMUP=${18}
+        typeset LOG_PATH=${19}
+        typeset LOTUS_CHECKPOINT=${20}
+        typeset WAL_GROUP_COMMIT_TIME=${21}
+        typeset WAL_GROUP_COMMIT_BATCH_SIZE=${22}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${23}
+        typeset GATHER_OUTPUT=${24}
 
         typeset PARTITION_NUM=$(expr $HOST_NUM \* 1)    # one partition per host
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
@@ -671,7 +675,7 @@ function run_exp_tatp {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
@@ -684,7 +688,7 @@ function run_exp_tatp {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=SundialPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
@@ -721,7 +725,7 @@ function run_exp_tatp {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
@@ -734,7 +738,7 @@ function run_exp_tatp {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
@@ -749,7 +753,7 @@ function run_exp_tatp {
                                 --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                                 --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                                 --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                                --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                                --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                                 --pre_migrate=$PRE_MIGRATE
                                 --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO &> output.txt < /dev/null &" $i
                 done
@@ -762,7 +766,7 @@ function run_exp_tatp {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH --enable_phantom_detection=false --model_cxl_search_overhead=$MODEL_CXL_SEARCH_OVERHEAD
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=TwoPLPasha --keys=$KEYS --zipf=$ZIPF_THETA --cross_ratio=$CROSS_RATIO" 0
 
@@ -808,14 +812,14 @@ fi
 typeset RUN_TYPE=$1
 
 # global configurations
-typeset PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE=2048
-typeset PASHA_CXL_TRANS_ENTRY_NUM=8192
+typeset PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE=4096
+typeset PASHA_CXL_TRANS_ENTRY_NUM=16384
 
 typeset BASELINE_CXL_TRANS_ENTRY_STRUCT_SIZE=65536
 typeset BASELINE_CXL_TRANS_ENTRY_NUM=8192
 
 if [ $RUN_TYPE = "TPCC" ]; then
-        if [ $# != 20 ]; then
+        if [ $# != 21 ]; then
                 print_usage
                 exit -1
         fi
@@ -831,14 +835,15 @@ if [ $RUN_TYPE = "TPCC" ]; then
         typeset MIGRATION_POLICY=${10}
         typeset WHEN_TO_MOVE_OUT=${11}
         typeset HW_CC_BUDGET=${12}
-        typeset SCC_MECH=${13}
-        typeset PRE_MIGRATE=${14}
-        typeset TIME_TO_RUN=${15}
-        typeset TIME_TO_WARMUP=${16}
-        typeset LOGGING_TYPE=${17}
-        typeset EPOCH_LEN=${18}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${19}
-        typeset GATHER_OUTPUT=${20}
+        typeset ENABLE_SCC=${13}
+        typeset SCC_MECH=${14}
+        typeset PRE_MIGRATE=${15}
+        typeset TIME_TO_RUN=${16}
+        typeset TIME_TO_WARMUP=${17}
+        typeset LOGGING_TYPE=${18}
+        typeset EPOCH_LEN=${19}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${20}
+        typeset GATHER_OUTPUT=${21}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -868,10 +873,10 @@ if [ $RUN_TYPE = "TPCC" ]; then
                 exit -1
         fi
 
-        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
+        run_exp_tpcc $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $REMOTE_NEWORDER_PERC $REMOTE_PAYMENT_PERC $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $ENABLE_SCC $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "YCSB" ]; then
-        if [ $# != 22 ]; then
+        if [ $# != 23 ]; then
                 print_usage
                 exit -1
         fi
@@ -889,14 +894,15 @@ elif [ $RUN_TYPE = "YCSB" ]; then
         typeset MIGRATION_POLICY=${12}
         typeset WHEN_TO_MOVE_OUT=${13}
         typeset HW_CC_BUDGET=${14}
-        typeset SCC_MECH=${15}
-        typeset PRE_MIGRATE=${16}
-        typeset TIME_TO_RUN=${17}
-        typeset TIME_TO_WARMUP=${18}
-        typeset LOGGING_TYPE=${19}
-        typeset EPOCH_LEN=${20}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${21}
-        typeset GATHER_OUTPUT=${22}
+        typeset ENABLE_SCC=${15}
+        typeset SCC_MECH=${16}
+        typeset PRE_MIGRATE=${17}
+        typeset TIME_TO_RUN=${18}
+        typeset TIME_TO_WARMUP=${19}
+        typeset LOGGING_TYPE=${20}
+        typeset EPOCH_LEN=${21}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${22}
+        typeset GATHER_OUTPUT=${23}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -926,10 +932,10 @@ elif [ $RUN_TYPE = "YCSB" ]; then
                 exit -1
         fi
 
-        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
+        run_exp_ycsb $PROTOCOL $HOST_NUM $WORKER_NUM $QUERY_TYPE $KEYS $RW_RATIO $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $ENABLE_SCC $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "SmallBank" ]; then
-        if [ $# != 20 ]; then
+        if [ $# != 21 ]; then
                 print_usage
                 exit -1
         fi
@@ -945,14 +951,15 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
         typeset MIGRATION_POLICY=${10}
         typeset WHEN_TO_MOVE_OUT=${11}
         typeset HW_CC_BUDGET=${12}
-        typeset SCC_MECH=${13}
-        typeset PRE_MIGRATE=${14}
-        typeset TIME_TO_RUN=${15}
-        typeset TIME_TO_WARMUP=${16}
-        typeset LOGGING_TYPE=${17}
-        typeset EPOCH_LEN=${18}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${19}
-        typeset GATHER_OUTPUT=${20}
+        typeset ENABLE_SCC=${13}
+        typeset SCC_MECH=${14}
+        typeset PRE_MIGRATE=${15}
+        typeset TIME_TO_RUN=${16}
+        typeset TIME_TO_WARMUP=${17}
+        typeset LOGGING_TYPE=${18}
+        typeset EPOCH_LEN=${19}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${20}
+        typeset GATHER_OUTPUT=${21}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -982,10 +989,10 @@ elif [ $RUN_TYPE = "SmallBank" ]; then
                 exit -1
         fi
 
-        run_exp_smallbank $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
+        run_exp_smallbank $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $ENABLE_SCC $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "TATP" ]; then
-        if [ $# != 20 ]; then
+        if [ $# != 21 ]; then
                 print_usage
                 exit -1
         fi
@@ -1001,14 +1008,15 @@ elif [ $RUN_TYPE = "TATP" ]; then
         typeset MIGRATION_POLICY=${10}
         typeset WHEN_TO_MOVE_OUT=${11}
         typeset HW_CC_BUDGET=${12}
-        typeset SCC_MECH=${13}
-        typeset PRE_MIGRATE=${14}
-        typeset TIME_TO_RUN=${15}
-        typeset TIME_TO_WARMUP=${16}
-        typeset LOGGING_TYPE=${17}
-        typeset EPOCH_LEN=${18}
-        typeset MODEL_CXL_SEARCH_OVERHEAD=${19}
-        typeset GATHER_OUTPUT=${20}
+        typeset ENABLE_SCC=${13}
+        typeset SCC_MECH=${14}
+        typeset PRE_MIGRATE=${15}
+        typeset TIME_TO_RUN=${16}
+        typeset TIME_TO_WARMUP=${17}
+        typeset LOGGING_TYPE=${18}
+        typeset EPOCH_LEN=${19}
+        typeset MODEL_CXL_SEARCH_OVERHEAD=${20}
+        typeset GATHER_OUTPUT=${21}
 
         if [ $PROTOCOL = "SundialPasha" ] || [ $PROTOCOL = "TwoPLPasha" ]; then
                 typeset CXL_TRANS_ENTRY_STRUCT_SIZE=$PASHA_CXL_TRANS_ENTRY_STRUCT_SIZE
@@ -1038,7 +1046,7 @@ elif [ $RUN_TYPE = "TATP" ]; then
                 exit -1
         fi
 
-        run_exp_tatp $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
+        run_exp_tatp $PROTOCOL $HOST_NUM $WORKER_NUM $KEYS $ZIPF_THETA $CROSS_RATIO $USE_CXL_TRANS $USE_OUTPUT_THREAD $CXL_TRANS_ENTRY_STRUCT_SIZE $CXL_TRANS_ENTRY_NUM $MIGRATION_POLICY $WHEN_TO_MOVE_OUT $HW_CC_BUDGET $ENABLE_SCC $SCC_MECH $PRE_MIGRATE $TIME_TO_RUN $TIME_TO_WARMUP $LOG_PATH $LOTUS_CHECKPOINT $WAL_GROUP_COMMIT_TIME $WAL_GROUP_COMMIT_BATCH_SIZE $MODEL_CXL_SEARCH_OVERHEAD $GATHER_OUTPUT
         exit 0
 elif [ $RUN_TYPE = "KILL" ]; then
         if [ $# != 2 ]; then
