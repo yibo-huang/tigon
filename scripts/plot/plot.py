@@ -27,11 +27,11 @@ DEFAULT_FIGURE = {
     "layout_engine": "constrained",
 }
 DEFAULT_SAVE = {
-    "format": "pdf",
     "bbox_inches": "tight",
 }
 
 SUPYLABEL = "Throughput (txns/sec)"
+REDACT = "Tigon"
 
 
 class Experiment(StrEnum):
@@ -63,62 +63,33 @@ def hwcc(args):
     input = path(args)
     df = pd.read_csv(input, index_col=0)
 
-    figure, absolute = plt.subplots(nrows=1, ncols=1)
+    figure, axis = plt.subplots(nrows=1, ncols=1)
 
     figure.set(**DEFAULT_FIGURE)
     figure.set_size_inches(w=8, h=4)
     figure.supxlabel(supxlabel(args.benchmark))
     figure.supylabel(SUPYLABEL)
 
-    base_name = "Tigon-200MB"
-    base = df.T.loc[base_name]
-
-    absolute.plot(
-        df.index,
-        base,
-        color=color(base_name),
-        marker=marker(base_name),
-        label=base_name,
-        **DEFAULT_PLOT,
-    )
-
-    max_y = ylim(df)
-
-    relative = absolute.twinx()
-    rows = df.T.iloc[df.T.index != base_name]
-    width = 1 / (len(rows) + 1)
-
-    for index, (system, row) in enumerate(rows.iterrows()):
-        relative.bar(
-            np.arange(len(row)) + index * width - 1.5 * width,
-            (base - row) / base * 100.0,
-            width,
-            edgecolor=color(system),
-            facecolor="white",
-            hatch=hatch(system),
-            label=system,
+    for system, row in df.T[::-1].iterrows():
+        axis.plot(
+            df.index,
+            row,
+            color=color(system),
+            marker=marker(system),
+            label=system.replace("Tigon", REDACT),
+            **DEFAULT_PLOT,
         )
 
-    absolute.set_ylim(bottom=-1e5, top=max_y)
-    absolute.set_yticks(ticks=absolute.get_yticks())
-    absolute.grid(axis="y")
-    absolute.grid(axis="x", which="major")
-    absolute.yaxis.set_major_formatter(format_yaxis(max_y))
-    absolute.set_xticks(ticks=np.arange(len(df)), labels=df.index)
-    absolute.axhline(0, color="black")
+    # print((df.T.iloc[1:] - df.T.iloc[0]) / df.T.iloc[0] * 100)
 
-    relative.set_ylim(bottom=-10)
-
-    major = (np.arange(len(absolute.get_yticks())) - 1) * 10
-    minor = major[:-1] + 5
-
-    relative.set_yticks(ticks=major, labels=[f"{tick}%" for tick in major])
-    relative.set_yticks(minor=True, ticks=minor)
-    relative.grid(which="minor", axis="y", alpha=0.3)
-    relative.set_ylabel(f"Throughput Drop (vs. {base_name})")
+    max_y = ylim(df)
+    axis.set_ylim(0, top=max_y)
+    axis.grid(axis="y")
+    axis.grid(axis="x", which="major")
+    axis.yaxis.set_major_formatter(format_yaxis(max_y))
 
     figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=len(df.T))
-    plt.savefig(input.with_suffix(".pdf"), **DEFAULT_SAVE)
+    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
 def default_tpcc(args):
@@ -138,7 +109,7 @@ def default_tpcc(args):
             row,
             color=color(system),
             marker=marker(system),
-            label=system,
+            label=system.replace("Tigon", REDACT),
             **DEFAULT_PLOT,
         )
 
@@ -146,9 +117,15 @@ def default_tpcc(args):
     axis.set_ylim(bottom=0, top=max_y)
     axis.grid(axis="y")
 
+    # print(
+    #     (df.T.loc["Tigon"] - df.T.loc["Sundial-CXL-improved"])
+    #     / df.T.loc["Sundial-CXL-improved"]
+    #     * 100
+    # )
+
     axis.yaxis.set_major_formatter(format_yaxis(max_y))
     axis.legend(**DEFAULT_LEGEND)
-    plt.savefig(input.with_suffix(".pdf"), **DEFAULT_SAVE)
+    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
 def default_ycsb(args):
@@ -188,7 +165,7 @@ def default_ycsb(args):
                 row,
                 color=color(system),
                 marker=marker(system),
-                label=system if i == 0 and j == 0 else None,
+                label=system.replace("Tigon", REDACT) if i == 0 and j == 0 else None,
                 **DEFAULT_PLOT,
             )
 
@@ -205,7 +182,11 @@ def default_ycsb(args):
         loc="outside upper center",
         ncol=len(df.T),
     )
-    plt.savefig(PurePath(args.res_dir, "micro", "ycsb-0.7.pdf"))
+    plt.savefig(
+        PurePath(args.res_dir, "micro", f"ycsb-0.7.{args.format}"),
+        dpi=args.dpi,
+        **DEFAULT_SAVE,
+    )
 
 
 def baseline(args):
@@ -232,9 +213,15 @@ def baseline(args):
             row,
             color=color(system),
             marker=marker(system),
-            label=system,
+            label=system.replace("Tigon", REDACT),
             **DEFAULT_PLOT,
         )
+
+    # print(
+    #     (df.T.loc["Sundial-CXL-improved"] - df.T.loc["Sundial-NET"])
+    #     / df.T.loc["Sundial-NET"]
+    #     * 100
+    # )
 
     # Plot TwoPL on right
     for system, row in df.T.loc[
@@ -248,6 +235,12 @@ def baseline(args):
             label=system,
             **DEFAULT_PLOT,
         )
+
+    # print(
+    #     (df.T.loc["Sundial-CXL-improved"] - df.T.loc["TwoPL-CXL-improved"])
+    #     / df.T.loc["Sundial-CXL-improved"]
+    #     * 100
+    # )
 
     max_y = ylim(df)
 
@@ -263,7 +256,7 @@ def baseline(args):
         axis.yaxis.set_major_formatter(format_yaxis(max_y))
         axis.legend(**DEFAULT_LEGEND)
 
-    plt.savefig(input.with_suffix(".pdf"), **DEFAULT_SAVE)
+    plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
 def color(system: str) -> str:
@@ -284,19 +277,18 @@ def marker(system: str) -> str:
         return "s"
     elif "Phantom" in system:
         return "o"
+    elif "200MB" in system:
+        return "o"
+    elif "150MB" in system:
+        return "h"
+    elif "100MB" in system:
+        return "p"
+    elif "50MB" in system:
+        return "s"
+    elif "10MB" in system:
+        return "^"
     else:
         return "^"
-
-
-def hatch(system: str) -> str:
-    if "150MB" in system:
-        return "////"
-    elif "100MB" in system:
-        return "///"
-    elif "50MB" in system:
-        return "//"
-    elif "10MB" in system:
-        return "/"
 
 
 def supxlabel(benchmark: common.Benchmark) -> str:
@@ -320,7 +312,7 @@ def format_yaxis(max_y: float) -> ticker.FuncFormatter:
 
 def ylim(df: pd.DataFrame) -> float:
     max_y = df.to_numpy().max()
-    round = 5e5 if max_y > 1e6 else 1e5 if max_y > 5e5 else 5e4
+    round = 5e5 if max_y > 1e6 else 1e5
     return math.ceil(max_y / round) * round
 
 
@@ -356,6 +348,8 @@ def cli() -> argparse.ArgumentParser:
     ycsb.add_argument("-z", "--zipf-theta", type=float)
     ycsb.add_argument("-r", "--rw-ratio", type=int)
 
+    parser.add_argument("-f", "--format", default="pdf")
+    parser.add_argument("-d", "--dpi", type=int)
     parser.add_argument("-e", "--experiment", default=Experiment.DEFAULT)
     parser.add_argument("res_dir")
     return parser
