@@ -349,12 +349,9 @@ typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/scc
 mkdir -p $RESULT_DIR
 
 # TPCC
-run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL
 run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT NonTemporal NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL
 
-
 # YCSB read-intensive + 0.7 skewness
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT WriteThrough NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT NonTemporal NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL
 
 ########### Software Cache-Coherence END ###########
