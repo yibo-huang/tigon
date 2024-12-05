@@ -264,6 +264,8 @@ def color(system: str) -> str:
         return "#FFC003"
     elif "TwoPL" in system:
         return "#4372C4"
+    elif "Motor" in system:
+        return "red"
     elif "Tigon" or "MB" in system:
         return "black"
 
