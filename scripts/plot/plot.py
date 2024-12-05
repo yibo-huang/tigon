@@ -166,7 +166,7 @@ def read_cxl(args, df):
 def hwcc(args, df):
     figure, axis = subplots(args, nrows=1, ncols=1)
 
-    for system, row in df.T[::-1].iterrows():
+    for system, row in df.T.iterrows():
         axis.plot(
             df.index,
             row,
@@ -321,6 +321,10 @@ def color(system: str) -> str:
 
 
 def marker(system: str) -> str:
+    if "AlwaysSearchCXL" in system:
+        return "o"
+    elif "ReadCXL" in system:
+        return "o"
     if "NET" in system:
         return "o"
     elif "CXL-improved" in system:
@@ -330,15 +334,15 @@ def marker(system: str) -> str:
     elif "Phantom" in system:
         return "o"
     elif "200MB" in system:
-        return "o"
+        return "^"
     elif "150MB" in system:
-        return "h"
+        return "s"
     elif "100MB" in system:
         return "p"
     elif "50MB" in system:
-        return "s"
+        return "h"
     elif "10MB" in system:
-        return "^"
+        return "o"
     else:
         return "^"
 
