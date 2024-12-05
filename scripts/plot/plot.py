@@ -47,6 +47,8 @@ class Experiment(StrEnum):
     HWCC = auto()
     # Track modified tuples
     READ_CXL = "read-cxl"
+    # Cache hwcc-pointer
+    SEARCH_CXL = "search-cxl"
 
 
 def main():
@@ -81,6 +83,16 @@ def main():
         args.rw_ratio = 100
         run(args)
 
+        # SearchCXL optimization
+        args.benchmark = common.Benchmark.TPCC
+        args.experiment = Experiment.SEARCH_CXL
+        run(args)
+
+        args.benchmark = common.Benchmark.YCSB
+        args.experiment = Experiment.SEARCH_CXL
+        args.rw_ratio = 95
+        run(args)
+
     else:
         run(args)
 
@@ -106,6 +118,8 @@ def run(args):
             hwcc(args, df)
         case Experiment.READ_CXL, _:
             read_cxl(args, df)
+        case Experiment.SEARCH_CXL, _:
+            search_cxl(args, df)
         case unknown:
             print(f"Unimplemented combination: {unknown}", file=sys.stderr)
             sys.exit(1)
@@ -113,6 +127,23 @@ def run(args):
     output = input.with_suffix(f".{args.format}")
     print(f"Saving {args} to {output}...", file=sys.stderr)
     plt.savefig(output, dpi=args.dpi, **DEFAULT_SAVE)
+
+
+def search_cxl(args, df):
+    figure, axis = subplots(args, nrows=1, ncols=1)
+
+    for system, row in df.T.iterrows():
+        axis.plot(
+            df.index,
+            row,
+            color=color(system),
+            marker=marker(system),
+            label=system.replace("Tigon", REDACT),
+            **DEFAULT_PLOT,
+        )
+
+    set_ylim(axis, df)
+    figure.legend(**DEFAULT_LEGEND, loc="upper right", borderaxespad=2)
 
 
 def read_cxl(args, df):
@@ -317,9 +348,8 @@ def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
     figure.set(**DEFAULT_FIGURE)
     figure.set_size_inches(w=w, h=h)
     figure.supxlabel(
-        "Multi-partition Transaction Percentage" + " (NewOrder/Payment)"
-        if args.benchmark == common.Benchmark.TPCC
-        else ""
+        "Multi-partition Transaction Percentage"
+        + (" (NewOrder/Payment)" if args.benchmark == common.Benchmark.TPCC else "")
     )
     figure.supylabel(SUPYLABEL)
 
@@ -378,6 +408,13 @@ def path(args) -> PurePath:
         case Experiment.READ_CXL, common.Benchmark.YCSB:
             csv = PurePath(
                 "micro", f"ycsb-with-read-cxl-{args.rw_ratio}-{args.zipf_theta}.csv"
+            )
+
+        case Experiment.SEARCH_CXL, common.Benchmark.TPCC:
+            csv = PurePath("shortcut", "tpcc-shortcut.csv")
+        case Experiment.SEARCH_CXL, common.Benchmark.YCSB:
+            csv = PurePath(
+                "shortcut", f"ycsb-shortcut-{args.rw_ratio}-{args.zipf_theta}.csv"
             )
         case unknown:
             print(f"Unimplemented configuration: {unknown}", file=sys.stderr)
