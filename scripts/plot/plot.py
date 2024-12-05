@@ -64,40 +64,40 @@ def main():
         for benchmark in both:
             args.benchmark = benchmark
             args.experiment = Experiment.DEFAULT
-            run(args)
+            plot(args)
 
         # FIXME: different `res_dir` directory
         # Baseline TPC-C
         # args.benchmark = common.Benchmark.TPCC
         # args.experiment = Experiment.BASELINE
-        # run(args)
+        # plot(args)
 
         # HWCC TPC-C
         args.benchmark = common.Benchmark.TPCC
         args.experiment = Experiment.HWCC
-        run(args)
+        plot(args)
 
         # ReadCXL optimization
         args.benchmark = common.Benchmark.YCSB
         args.experiment = Experiment.READ_CXL
         args.rw_ratio = 100
-        run(args)
+        plot(args)
 
         # SearchCXL optimization
         args.benchmark = common.Benchmark.TPCC
         args.experiment = Experiment.SEARCH_CXL
-        run(args)
+        plot(args)
 
         args.benchmark = common.Benchmark.YCSB
         args.experiment = Experiment.SEARCH_CXL
         args.rw_ratio = 95
-        run(args)
+        plot(args)
 
     else:
-        run(args)
+        plot(args)
 
 
-def run(args):
+def plot(args):
     # Requires special handling because we combine multiple input files
     # into a single output figure.
     if (
@@ -105,33 +105,37 @@ def run(args):
         and args.benchmark == common.Benchmark.YCSB
     ):
         return default_ycsb(args)
+    elif args.experiment == Experiment.READ_CXL:
+        pass
 
+    figure, axis = subplots(args, nrows=1, ncols=1)
+
+    output = plot_one(args, figure, axis)
+    print(f"Saving {args} to {output}...", file=sys.stderr)
+    plt.savefig(output, dpi=args.dpi, **DEFAULT_SAVE)
+
+
+def plot_one(args, figure, axis) -> str:
     input = path(args)
     df = pd.read_csv(input, index_col=0)
+    legend = dict()
 
     match args.experiment, args.benchmark:
         case Experiment.BASELINE, _:
             baseline(args, df)
         case Experiment.DEFAULT, common.Benchmark.TPCC:
-            default_tpcc(args, df)
+            legend = dict(loc="outside upper center", ncols=len(df))
         case Experiment.HWCC, _:
-            hwcc(args, df)
+            df.columns = df.columns.map(lambda system: system.replace("Tigon-", ""))
+            legend = dict(loc="outside upper center", ncols=len(df))
         case Experiment.READ_CXL, _:
-            read_cxl(args, df)
+            legend = dict(borderaxespad=2)
         case Experiment.SEARCH_CXL, _:
-            search_cxl(args, df)
+            legend = dict(borderaxespad=2)
         case unknown:
             print(f"Unimplemented combination: {unknown}", file=sys.stderr)
             sys.exit(1)
 
-    output = input.with_suffix(f".{args.format}")
-    print(f"Saving {args} to {output}...", file=sys.stderr)
-    plt.savefig(output, dpi=args.dpi, **DEFAULT_SAVE)
-
-
-def search_cxl(args, df):
-    figure, axis = subplots(args, nrows=1, ncols=1)
-
     for system, row in df.T.iterrows():
         axis.plot(
             df.index,
@@ -143,64 +147,8 @@ def search_cxl(args, df):
         )
 
     set_ylim(axis, df)
-    figure.legend(**DEFAULT_LEGEND, loc="upper right", borderaxespad=2)
-
-
-def read_cxl(args, df):
-    figure, axis = subplots(args, nrows=1, ncols=1)
-
-    for system, row in df.T.loc[["Tigon", "Tigon-ReadCXL"]].iterrows():
-        axis.plot(
-            df.index,
-            row,
-            color=color(system),
-            marker=marker(system),
-            label=system.replace("Tigon", REDACT),
-            **DEFAULT_PLOT,
-        )
-
-    set_ylim(axis, df)
-    figure.legend(**DEFAULT_LEGEND, loc="upper right", borderaxespad=2)
-
-
-def hwcc(args, df):
-    figure, axis = subplots(args, nrows=1, ncols=1)
-
-    for system, row in df.T.iterrows():
-        axis.plot(
-            df.index,
-            row,
-            color=color(system),
-            marker=marker(system),
-            label=system.replace("Tigon-", ""),
-            **DEFAULT_PLOT,
-        )
-
-    set_ylim(axis, df)
-    figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=5)
-
-
-def default_tpcc(args, df):
-    figure, axis = subplots(args, nrows=1, ncols=1)
-
-    for system, row in df.T.iterrows():
-        axis.plot(
-            df.index,
-            row,
-            color=color(system),
-            marker=marker(system),
-            label=system.replace("Tigon", REDACT),
-            **DEFAULT_PLOT,
-        )
-
-    # print(
-    #     (df.T.loc["Tigon"] - df.T.loc["Sundial-CXL-improved"])
-    #     / df.T.loc["Sundial-CXL-improved"]
-    #     * 100
-    # )
-
-    set_ylim(axis, df)
-    figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=len(df))
+    figure.legend(**DEFAULT_LEGEND, **legend)
+    return input.with_suffix(f".{args.format}")
 
 
 def default_ycsb(args):
@@ -316,7 +264,7 @@ def color(system: str) -> str:
         return "#FFC003"
     elif "TwoPL" in system:
         return "#4372C4"
-    elif "Tigon" in system:
+    elif "Tigon" or "MB" in system:
         return "black"
 
 
