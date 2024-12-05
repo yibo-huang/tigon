@@ -194,6 +194,44 @@ def parse_tpcc_data_movement(pasha_res_dir, pasha_data_movement_res_dir):
 
 
 
+
+### logging ###
+def construct_input_list_ycsb_logging(pasha_logging_res_dir, rw_ratio, zipf_theta):
+        input_file_list = list()
+        input_file_list.append(("Tigon-no-logging", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "BLACKHOLE-0" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-1ms", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-1000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-10ms", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-10000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-20ms", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-20000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-30ms", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-30000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-40ms", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-50ms", pasha_logging_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-50000" + "-" + "0" + ".txt"))
+        return input_file_list
+
+def parse_ycsb_logging(pasha_logging_res_dir, rw_ratio, zipf_theta):
+        input_file_list = construct_input_list_ycsb_logging(pasha_logging_res_dir, rw_ratio, zipf_theta)
+        output_file_name = pasha_logging_res_dir + "/ycsb-logging-" + rw_ratio + "-" + zipf_theta + ".csv"
+        header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+        parse_results(input_file_list, output_file_name, header_row)
+
+def construct_input_list_tpcc_logging(pasha_logging_res_dir):
+        input_file_list = list()
+        input_file_list.append(("Tigon-no-logging", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "BLACKHOLE-0" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-1ms", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-1000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-10ms", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-10000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-20ms", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-20000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-30ms", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-30000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-40ms", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-40000" + "-" + "0" + ".txt"))
+        input_file_list.append(("Tigon-50ms", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "GROUP_WAL-50000" + "-" + "0" + ".txt"))
+        return input_file_list
+
+def parse_tpcc_logging(pasha_logging_res_dir):
+        input_file_list = construct_input_list_tpcc_logging(pasha_logging_res_dir)
+        output_file_name = pasha_logging_res_dir + "/tpcc-logging.csv"
+        header_row = ["Remote_Ratio", "0/0", "10/15", "20/30", "30/45", "40/60", "50/75", "60/90"]
+        parse_results(input_file_list, output_file_name, header_row)
+
+
+
 if len(sys.argv) != 3:
         print("Usage: " + sys.argv[0] + " pasha_res_dir baseline_res_dir")
         sys.exit(-1)
@@ -225,3 +263,7 @@ parse_tpcc_shortcut(pasha_res_dir + "/macro", pasha_res_dir + "/shortcut")
 parse_tpcc_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-movement")
 parse_ycsb_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-movement", "95", "0.7")
 parse_ycsb_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-movement", "50", "0.7")
+
+### logging ###
+parse_ycsb_logging(pasha_res_dir + "/logging", "50", "0.7")
+parse_tpcc_logging(pasha_res_dir + "/logging")
