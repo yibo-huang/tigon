@@ -35,6 +35,56 @@ def parse_results(input_list, output_file_name, header_row):
                 output_writer = csv.writer(output_file)
                 output_writer.writerows(rows)
 
+def get_latency_p50(input):
+        lat_p50 = list()
+        lat_p50.append(input[0])
+
+        # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
+        for line in fileinput.FileInput(input[1]):
+                tokens = line.strip().split()
+                if len(tokens) > 7 and tokens[3] == "WALLogger.h:536]":
+                        lat_p50.append(float(tokens[7]))
+
+        return lat_p50
+
+def get_latency_p99(input):
+        lat_p50 = list()
+        lat_p50.append(input[0])
+
+        # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
+        for line in fileinput.FileInput(input[1]):
+                tokens = line.strip().split()
+                if len(tokens) > 7 and tokens[3] == "WALLogger.h:536]":
+                        lat_p50.append(float(tokens[16]))
+
+        return lat_p50
+
+def parse_latency(input_list, output_file_name, header_row):
+        lat_p50_row = list()
+        lat_p50_rows = list()
+        lat_p99_row = list()
+        lat_p99_rows = list()
+
+        # write header row first
+        lat_p50_rows.append(header_row)
+        lat_p99_rows.append(header_row)
+
+        # read all the files and construct the row
+        for input in input_list:
+                lat_p50_row = get_latency_p50(input)
+                lat_p50_rows.append(lat_p50_row)
+                lat_p99_row = get_latency_p99(input)
+                lat_p99_rows.append(lat_p99_row)
+
+        # convert rows into columns
+        # lat_p50_rows = zip(*lat_p50_rows)
+        # lat_p99_rows = zip(*lat_p99_rows)
+
+        with open(output_file_name, "w") as output_file:
+                output_writer = csv.writer(output_file)
+                output_writer.writerows(lat_p50_rows)
+                output_writer.writerows(lat_p99_rows)
+
 
 
 
@@ -213,6 +263,10 @@ def parse_ycsb_logging(pasha_logging_res_dir, rw_ratio, zipf_theta):
         header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
         parse_results(input_file_list, output_file_name, header_row)
 
+        output_file_name = pasha_logging_res_dir + "/ycsb-logging-latency-" + rw_ratio + "-" + zipf_theta + ".csv"
+        header_row = ["Remote_Ratio", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+        parse_latency(input_file_list, output_file_name, header_row)
+
 def construct_input_list_tpcc_logging(pasha_logging_res_dir):
         input_file_list = list()
         input_file_list.append(("Tigon-no-logging", pasha_logging_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-" + "Clock" + "-" + "OnDemand" + "-" + "209715200" + "-" + "WriteThrough" + "-" + "NonPart" + "-" + "BLACKHOLE-0" + "-" + "0" + ".txt"))
@@ -229,6 +283,10 @@ def parse_tpcc_logging(pasha_logging_res_dir):
         output_file_name = pasha_logging_res_dir + "/tpcc-logging.csv"
         header_row = ["Remote_Ratio", "0/0", "10/15", "20/30", "30/45", "40/60", "50/75", "60/90"]
         parse_results(input_file_list, output_file_name, header_row)
+
+        output_file_name = pasha_logging_res_dir + "/tpcc-logging-latency.csv"
+        header_row = ["Remote_Ratio", "0/0", "10/15", "20/30", "30/45", "40/60", "50/75", "60/90"]
+        parse_latency(input_file_list, output_file_name, header_row)
 
 
 
