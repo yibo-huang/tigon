@@ -66,7 +66,7 @@ def hwcc(args):
     figure, axis = plt.subplots(nrows=1, ncols=1)
 
     figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=8, h=4)
+    figure.set_size_inches(w=7, h=3)
     figure.supxlabel(supxlabel(args.benchmark))
     figure.supylabel(SUPYLABEL)
 
@@ -76,11 +76,9 @@ def hwcc(args):
             row,
             color=color(system),
             marker=marker(system),
-            label=system.replace("Tigon", REDACT),
+            label=system.replace("Tigon-", ""),
             **DEFAULT_PLOT,
         )
-
-    # print((df.T.iloc[1:] - df.T.iloc[0]) / df.T.iloc[0] * 100)
 
     max_y = ylim(df)
     axis.set_ylim(0, top=max_y)
@@ -88,7 +86,7 @@ def hwcc(args):
     axis.grid(axis="x", which="major")
     axis.yaxis.set_major_formatter(format_yaxis(max_y))
 
-    figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=len(df.T))
+    figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=5)
     plt.savefig(input.with_suffix(f".{args.format}"), dpi=args.dpi, **DEFAULT_SAVE)
 
 
