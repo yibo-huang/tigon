@@ -5,6 +5,7 @@ from enum import auto, StrEnum
 import math
 from pathlib import PurePath
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -54,6 +55,70 @@ def main():
             default_tpcc(args)
         case Experiment.DEFAULT, common.Benchmark.YCSB:
             default_ycsb(args)
+        case Experiment.HWCC, _:
+            hwcc(args)
+
+
+def hwcc(args):
+    input = path(args)
+    df = pd.read_csv(input, index_col=0)
+
+    figure, absolute = plt.subplots(nrows=1, ncols=1)
+
+    figure.set(**DEFAULT_FIGURE)
+    figure.set_size_inches(w=8, h=4)
+    figure.supxlabel(supxlabel(args.benchmark))
+    figure.supylabel(SUPYLABEL)
+
+    base_name = "Tigon-200MB"
+    base = df.T.loc[base_name]
+
+    absolute.plot(
+        df.index,
+        base,
+        color=color(base_name),
+        marker=marker(base_name),
+        label=base_name,
+        **DEFAULT_PLOT,
+    )
+
+    max_y = ylim(df)
+
+    relative = absolute.twinx()
+    rows = df.T.iloc[df.T.index != base_name]
+    width = 1 / (len(rows) + 1)
+
+    for index, (system, row) in enumerate(rows.iterrows()):
+        relative.bar(
+            np.arange(len(row)) + index * width - 1.5 * width,
+            (base - row) / base * 100.0,
+            width,
+            edgecolor=color(system),
+            facecolor="white",
+            hatch=hatch(system),
+            label=system,
+        )
+
+    absolute.set_ylim(bottom=-1e5, top=max_y)
+    absolute.set_yticks(ticks=absolute.get_yticks())
+    absolute.grid(axis="y")
+    absolute.grid(axis="x", which="major")
+    absolute.yaxis.set_major_formatter(format_yaxis(max_y))
+    absolute.set_xticks(ticks=np.arange(len(df)), labels=df.index)
+    absolute.axhline(0, color="black")
+
+    relative.set_ylim(bottom=-10)
+
+    major = (np.arange(len(absolute.get_yticks())) - 1) * 10
+    minor = major[:-1] + 5
+
+    relative.set_yticks(ticks=major, labels=[f"{tick}%" for tick in major])
+    relative.set_yticks(minor=True, ticks=minor)
+    relative.grid(which="minor", axis="y", alpha=0.3)
+    relative.set_ylabel(f"Throughput Drop (vs. {base_name})")
+
+    figure.legend(**DEFAULT_LEGEND, loc="outside upper center", ncols=len(df.T))
+    plt.savefig(input.with_suffix(".pdf"), **DEFAULT_SAVE)
 
 
 def default_tpcc(args):
@@ -222,6 +287,17 @@ def marker(system: str) -> str:
         return "^"
 
 
+def hatch(system: str) -> str:
+    if "150MB" in system:
+        return "////"
+    elif "100MB" in system:
+        return "///"
+    elif "50MB" in system:
+        return "//"
+    elif "10MB" in system:
+        return "/"
+
+
 def supxlabel(benchmark: common.Benchmark) -> str:
     base = "Multi-partition Transaction Percentage"
     if benchmark == common.Benchmark.TPCC:
@@ -237,13 +313,13 @@ def format_yaxis(max_y: float) -> ticker.FuncFormatter:
         return ticker.FuncFormatter(lambda y, pos: "0" if y == 0 else f"{y / 1e6:.2f}M")
     else:
         return ticker.FuncFormatter(
-            lambda y, pos: "0" if y == 0 else f"{int(y / 1e3)}K"
+            lambda y, pos: "0" if y == 0 else "" if y < 0 else f"{int(y / 1e3)}K"
         )
 
 
 def ylim(df: pd.DataFrame) -> float:
     max_y = df.to_numpy().max()
-    round = 5e5 if max_y > 1e6 else 1e5
+    round = 5e5 if max_y > 1e6 else 1e5 if max_y > 5e5 else 5e4
     return math.ceil(max_y / round) * round
 
 
@@ -262,6 +338,10 @@ def path(args) -> PurePath:
             csv = PurePath(parent, f"ycsb-{args.rw_ratio}-{args.zipf_theta}.csv")
         case Experiment.DEFAULT, common.Benchmark.TPCC:
             csv = PurePath("macro", "tpcc.csv")
+
+        case Experiment.HWCC, common.Benchmark.TPCC:
+            csv = PurePath("data-movement", "tpcc-data-movement.csv")
+
     return PurePath(args.res_dir, csv)
 
 
