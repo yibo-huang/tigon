@@ -49,6 +49,23 @@ class Experiment(StrEnum):
     READ_CXL = "read-cxl"
     # Cache hwcc-pointer
     SEARCH_CXL = "search-cxl"
+    # Logging overhead
+    LOGGING = auto()
+    # SCC policies
+    SWCC = auto()
+
+    def name(self) -> str:
+        match self:
+            case Experiment.HWCC:
+                return "HWcc budget"
+            case Experiment.READ_CXL:
+                return "Track modified tuples"
+            case Experiment.SEARCH_CXL:
+                return "Cache HWcc-pointer"
+            case Experiment.LOGGING:
+                return "Logging group commit"
+            case Experiment.SWCC:
+                return "SWcc policy"
 
 
 def main():
@@ -105,20 +122,72 @@ def plot(args):
         and args.benchmark == common.Benchmark.YCSB
     ):
         return default_ycsb(args)
-    elif args.experiment == Experiment.READ_CXL:
-        pass
+    elif args.benchmark == "sensitivity":
+        figure, axes = subplots(args, w=16, h=10, nrows=2, ncols=5)
+
+        for col, experiment in enumerate(
+            [
+                Experiment.HWCC,
+                Experiment.SWCC,
+                Experiment.LOGGING,
+                None,
+                Experiment.SEARCH_CXL,
+            ]
+        ):
+            if experiment is None:
+                figure.delaxes(axes[0, col])
+                continue
+
+            args.benchmark = common.Benchmark.TPCC
+            args.experiment = experiment
+            plot_one(args, figure, axes[0, col], solo=False)
+
+            axes[0, col].set_title(f"{experiment.name()}\n\nTPC-C")
+            axes[0, col].legend(**DEFAULT_LEGEND, loc="lower left")
+
+        for col, (experiment, rw_ratio) in enumerate(
+            [
+                (Experiment.HWCC, 95),
+                (Experiment.SWCC, 95),
+                (Experiment.LOGGING, 50),
+                (Experiment.READ_CXL, 100),
+                (Experiment.SEARCH_CXL, 95),
+            ]
+        ):
+            args.benchmark = common.Benchmark.YCSB
+            args.experiment = experiment
+            args.zipf_theta = 0.7
+            args.rw_ratio = rw_ratio
+            plot_one(args, figure, axes[1, col], solo=False)
+
+            axes[1, col].set_title(f"YCSB {rw_ratio}% R")
+
+            # Hack: no TPC-C data yet
+            if experiment == Experiment.READ_CXL:
+                axes[1, col].set_title(f"{experiment.name()}\n\nYCSB {rw_ratio}% R")
+                axes[1, col].legend(**DEFAULT_LEGEND)
+
+        plt.savefig(PurePath(args.res_dir, "sensitivity.pdf"))
+        return
 
     figure, axis = subplots(args, nrows=1, ncols=1)
 
-    output = plot_one(args, figure, axis)
+    output = plot_one(args, figure, axis, True)
     print(f"Saving {args} to {output}...", file=sys.stderr)
     plt.savefig(output, dpi=args.dpi, **DEFAULT_SAVE)
 
 
-def plot_one(args, figure, axis) -> str:
+def plot_one(args, figure, axis, solo: bool) -> str:
     input = path(args)
     df = pd.read_csv(input, index_col=0)
     legend = dict()
+
+    def rename(system: str):
+        if system == "Tigon-40ms":
+            return "Tigon (40ms)"
+        elif system == "Tigon-200MB":
+            return "Tigon (200MB)"
+        return system.replace("Tigon-", "")
 
     match args.experiment, args.benchmark:
         case Experiment.BASELINE, _:
@@ -126,11 +195,34 @@ def plot_one(args, figure, axis) -> str:
         case Experiment.DEFAULT, common.Benchmark.TPCC:
             legend = dict(loc="outside upper center", ncols=len(df))
         case Experiment.HWCC, _:
-            df.columns = df.columns.map(lambda system: system.replace("Tigon-", ""))
+            df.columns = df.columns.map(rename)
             legend = dict(loc="outside upper center", ncols=len(df))
         case Experiment.READ_CXL, _:
+            df = df.T.loc[["Tigon", "Tigon-ReadCXL"]].T
+            df.columns = df.columns.map(rename)
             legend = dict(borderaxespad=2)
         case Experiment.SEARCH_CXL, _:
+            df.columns = df.columns.map(rename)
+            legend = dict(borderaxespad=2)
+        case Experiment.LOGGING, _:
+            df = df.T.loc[
+                [
+                    "Tigon-50ms",
+                    "Tigon-40ms",
+                    "Tigon-20ms",
+                    "Tigon-10ms",
+                    "Tigon-1ms",
+                    "Tigon-no-logging",
+                ]
+            ].T
+            df.columns = df.columns.map(rename)
+            legend = dict(borderaxespad=2)
+        case Experiment.SWCC, _:
+            df.columns = df.columns.map(
+                lambda system: "Tigon (WriteThrough)"
+                if system == "Tigon"
+                else rename(system)
+            )
             legend = dict(borderaxespad=2)
         case unknown:
             print(f"Unimplemented combination: {unknown}", file=sys.stderr)
@@ -147,7 +239,8 @@ def plot_one(args, figure, axis) -> str:
         )
 
     set_ylim(axis, df)
-    figure.legend(**DEFAULT_LEGEND, **legend)
+    if solo:
+        figure.legend(**DEFAULT_LEGEND, **legend)
     return input.with_suffix(f".{args.format}")
 
 
@@ -293,6 +386,29 @@ def marker(system: str) -> str:
         return "h"
     elif "10MB" in system:
         return "o"
+
+    elif "50ms" in system:
+        return "|"
+    elif "40ms" in system:
+        return "^"
+    elif "20ms" in system:
+        return "s"
+    elif "10ms" in system:
+        return "p"
+    elif "1ms" in system:
+        return "h"
+    elif "no-logging" in system:
+        return "o"
+
+    elif "AlwaysMemcpy" in system:
+        return "s"
+    elif "NoSharedReader" in system:
+        return "p"
+    elif "NonTemporal" in system:
+        return "h"
+    elif "NoSCC" in system:
+        return "o"
+
     else:
         return "^"
 
@@ -311,7 +427,7 @@ def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
         for axis in row if isinstance(row, Iterable) else [row]:
             axis.grid(axis="y")
             axis.grid(axis="x", which="major")
-            axis.label_outer(remove_inner_ticks=True)
+            # axis.label_outer(remove_inner_ticks=True)
 
     return figure, axes
 
@@ -341,40 +457,41 @@ def set_ylim(axis, df: pd.DataFrame) -> float:
 
 
 def path(args) -> PurePath:
-    csv = None
-    match args.experiment, args.benchmark:
-        case Experiment.BASELINE, common.Benchmark.YCSB:
-            csv = PurePath(
-                "micro", f"baseline-ycsb-{args.rw_ratio}-{args.zipf_theta}.csv"
-            )
-        case Experiment.BASELINE, common.Benchmark.TPCC:
-            csv = PurePath("macro", "baseline-tpcc.csv")
+    parent = None
+    prefix = ""
+    suffix = None
 
-        case Experiment.DEFAULT, common.Benchmark.YCSB:
-            parent = "micro" if args.rw_ratio == 0 or args.rw_ratio == 100 else "macro"
-            csv = PurePath(parent, f"ycsb-{args.rw_ratio}-{args.zipf_theta}.csv")
-        case Experiment.DEFAULT, common.Benchmark.TPCC:
-            csv = PurePath("macro", "tpcc.csv")
+    match args.experiment:
+        case Experiment.DEFAULT:
+            pass
+        case Experiment.BASELINE:
+            prefix = "baseline-"
+        case Experiment.CUSTOM:
+            raise ValueError("unimplemented custom experiment")
+        case Experiment.READ_CXL:
+            suffix = "-with-read-cxl"
+        case Experiment.HWCC:
+            parent = "data-movement"
+        case Experiment.SEARCH_CXL:
+            parent = "shortcut"
+        case Experiment.LOGGING:
+            parent = "logging"
+        case Experiment.SWCC:
+            parent = "scc"
 
-        case Experiment.HWCC, common.Benchmark.TPCC:
-            csv = PurePath("data-movement", "tpcc-data-movement.csv")
+    if suffix is None:
+        suffix = "" if parent is None else f"-{parent}"
 
-        case Experiment.READ_CXL, common.Benchmark.YCSB:
-            csv = PurePath(
-                "micro", f"ycsb-with-read-cxl-{args.rw_ratio}-{args.zipf_theta}.csv"
-            )
+    name = None
+    match args.benchmark:
+        case common.Benchmark.TPCC:
+            parent = "macro" if parent is None else parent
+            name = f"{prefix}tpcc{suffix}.csv"
+        case common.Benchmark.YCSB:
+            parent = "micro" if parent is None else parent
+            name = f"{prefix}ycsb{suffix}-{args.rw_ratio}-{args.zipf_theta}.csv"
 
-        case Experiment.SEARCH_CXL, common.Benchmark.TPCC:
-            csv = PurePath("shortcut", "tpcc-shortcut.csv")
-        case Experiment.SEARCH_CXL, common.Benchmark.YCSB:
-            csv = PurePath(
-                "shortcut", f"ycsb-shortcut-{args.rw_ratio}-{args.zipf_theta}.csv"
-            )
-        case unknown:
-            print(f"Unimplemented configuration: {unknown}", file=sys.stderr)
-            sys.exit(1)
-
-    return PurePath(args.res_dir, csv)
+    return PurePath(args.res_dir, parent, name)
 
 
 def cli() -> argparse.ArgumentParser:
@@ -382,6 +499,7 @@ def cli() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="benchmark")
 
     subparsers.add_parser("all")
+    subparsers.add_parser("sensitivity")
 
     subparsers.add_parser(common.Benchmark.TPCC)
 
