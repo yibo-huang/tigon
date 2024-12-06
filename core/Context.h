@@ -104,6 +104,7 @@ class Context {
         uint64_t cxl_trans_entry_num = 4096;
 
         // Pasha migration policy
+        bool enable_migration_optimization = true;
         std::string migration_policy;
         std::string when_to_move_out;
         uint64_t hw_cc_budget = 1024 * 1024 * 200;     // 200 MB

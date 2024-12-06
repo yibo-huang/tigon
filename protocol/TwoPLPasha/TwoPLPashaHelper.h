@@ -1268,7 +1268,7 @@ out_unlock_lmeta:
                         DCHECK(is_write_locked(lmeta->tid) == smeta->is_write_locked());
 
                         // copy data
-                        if (lmeta->is_data_modified_since_moved_out == true) {
+                        if (lmeta->is_data_modified_since_moved_out == true || context.enable_migration_optimization == false) {
                                 scc_manager->do_write(nullptr, coordinator_id, scc_data->data, local_data, table->value_size());
                         }
                         lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in
@@ -1392,7 +1392,7 @@ out_unlock_lmeta:
                                 DCHECK(is_write_locked(cur_lmeta->tid) == cur_smeta->is_write_locked());
 
                                 // copy data
-                                if (cur_lmeta->is_data_modified_since_moved_out == true) {
+                                if (cur_lmeta->is_data_modified_since_moved_out == true || context.enable_migration_optimization == false) {
                                         scc_manager->do_write(nullptr, coordinator_id, cur_scc_data->data, cur_data, table->value_size());
                                 }
                                 cur_lmeta->is_data_modified_since_moved_out = false;    // optimization to reduce memcpy when moving data in

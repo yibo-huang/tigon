@@ -76,6 +76,7 @@ DEFINE_bool(use_output_thread, false, "do you want an output thread?");
 DEFINE_uint64(cxl_trans_entry_struct_size, 8192, "size of enrty in a MPSC ringbuffer");
 DEFINE_uint64(cxl_trans_entry_num, 4096, "number of entries per MPSC ringbuffer");
 
+DEFINE_bool(enable_migration_optimization, true, "enable data migration optimization");
 DEFINE_string(migration_policy, "Eagerly", "Pasha data migration policy");
 DEFINE_string(when_to_move_out, "Reactive", "When to move data out");
 DEFINE_uint64(hw_cc_budget, 1024 * 1024 * 200, "budget for the hardware cache-coherent region");
@@ -147,6 +148,7 @@ DEFINE_string(pre_migrate, "None", "what tuples to pre-migrate?");
         context.use_output_thread = FLAGS_use_output_thread;                                    \
         context.cxl_trans_entry_struct_size = FLAGS_cxl_trans_entry_struct_size;                \
         context.cxl_trans_entry_num = FLAGS_cxl_trans_entry_num;                                \
+        context.enable_migration_optimization = FLAGS_enable_migration_optimization;            \
         context.migration_policy = FLAGS_migration_policy;                                      \
         context.when_to_move_out = FLAGS_when_to_move_out;                                      \
         context.hw_cc_budget = FLAGS_hw_cc_budget;                                              \
