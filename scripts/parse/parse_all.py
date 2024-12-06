@@ -363,6 +363,6 @@ parse_ycsb_data_movement(pasha_res_dir + "/macro", pasha_res_dir + "/data-moveme
 parse_ycsb_logging(pasha_res_dir + "/logging", "50", "0.7")
 parse_tpcc_logging(pasha_res_dir + "/logging")
 
-# ### scc ###
-# parse_ycsb_scc(pasha_res_dir + "/macro", pasha_res_dir + "/scc", "95", "0.7")
-# parse_tpcc_scc(pasha_res_dir + "/macro", pasha_res_dir + "/scc")
+### scc ###
+parse_ycsb_scc(pasha_res_dir + "/macro", pasha_res_dir + "/scc", "95", "0.7")
+parse_tpcc_scc(pasha_res_dir + "/macro", pasha_res_dir + "/scc")
