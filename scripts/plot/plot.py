@@ -125,10 +125,14 @@ def plot(args):
     elif args.benchmark == "sensitivity":
         figure, axes = subplots(args, w=16, h=10, nrows=2, ncols=5)
 
+        for col in range(1, 5):
+            axes[0, col].sharey(axes[0, 0])
+            # axes[0, col].label_outer(remove_inner_ticks=True)
+
         for col, experiment in enumerate(
             [
-                Experiment.HWCC,
                 Experiment.SWCC,
+                Experiment.HWCC,
                 Experiment.LOGGING,
                 None,
                 Experiment.SEARCH_CXL,
@@ -147,8 +151,8 @@ def plot(args):
 
         for col, (experiment, rw_ratio) in enumerate(
             [
-                (Experiment.HWCC, 95),
                 (Experiment.SWCC, 95),
+                (Experiment.HWCC, 95),
                 (Experiment.LOGGING, 50),
                 (Experiment.READ_CXL, 100),
                 (Experiment.SEARCH_CXL, 95),
@@ -166,6 +170,9 @@ def plot(args):
             if experiment == Experiment.READ_CXL:
                 axes[1, col].set_title(f"{experiment.name()}\n\nYCSB {rw_ratio}% R")
                 axes[1, col].legend(**DEFAULT_LEGEND)
+
+            elif experiment == Experiment.SWCC:
+                axes[1, col].set_xlabel("HWcc budget (MB)")
 
         plt.savefig(PurePath(args.res_dir, "sensitivity.pdf"))
         return
@@ -223,6 +230,7 @@ def plot_one(args, figure, axis, solo: bool) -> str:
                 if system == "Tigon"
                 else rename(system)
             )
+            df.index = df.index[::-1].map(lambda x: int(x.rstrip("MB")))
             legend = dict(borderaxespad=2)
         case unknown:
             print(f"Unimplemented combination: {unknown}", file=sys.stderr)
