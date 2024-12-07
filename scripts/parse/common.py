@@ -33,6 +33,8 @@ class Protocol(StrEnum):
     SUNDIAL_PASHA = "SundialPasha"
     SUNDIAL = "Sundial"
     TWO_PL_PASHA = "TwoPLPasha"
+    TWO_PL_PASHA_READ_CXL = "TwoPLPashaReadCXL"
+    TWO_PL_PASHA_PHANTOM = "TwoPLPashaPhantom"
     TWO_PL = "TwoPL"
 
 
@@ -71,6 +73,7 @@ class SccMechanism(StrEnum):
     NON_TEMPORAL = "NonTemporal"
     NO_OP = "NoOP"
     WRITE_THROUGH = "WriteThrough"
+    WRITE_THROUGH_NO_SHARED_READ = "WriteThroughNoSharedRead"
 
 
 class PreMigrate(StrEnum):
@@ -96,12 +99,14 @@ class Input:
         use_output_thread: bool,
         migration_policy: MigrationPolicy,
         when_to_move_out: WhenToMoveOut,
-        max_migrated_rows_size: int,
+        enable_scc: bool,
         scc_mechanism: SccMechanism,
         pre_migrate: PreMigrate,
         logging_type: LoggingType,
         wal_group_commit_time: int,
         model_cxl_search_overhead: bool,
+        enable_migration_optimization: bool = True,
+        max_migrated_rows_size: int = -1,
     ):
         self.benchmark = benchmark
         self.protocol = protocol
@@ -109,9 +114,11 @@ class Input:
         self.worker_num = worker_num
         self.use_cxl_trans = use_cxl_trans
         self.use_output_thread = use_output_thread
+        self.enable_migration_optimization = enable_migration_optimization
         self.migration_policy = migration_policy
         self.when_to_move_out = when_to_move_out
         self.max_migrated_rows_size = max_migrated_rows_size
+        self.enable_scc = enable_scc
         self.scc_mechanism = scc_mechanism
         self.logging_type = logging_type
         self.wal_group_commit_time = wal_group_commit_time
@@ -119,12 +126,10 @@ class Input:
 
     def parse(path: str):
         name = os.path.basename(path)
-        if name.startswith("tpcc"):
+        if "tpcc" in name:
             return TpccInput.parse(name)
-        elif name.startswith("ycsb"):
+        elif "ycsb" in name:
             return YcsbInput.parse(name)
-        elif name.startswith("smallbank"):
-            return SmallbankInput.parse(name)
         else:
             raise ValueError(f"Unknown benchmark name {name.split('-')[0]}")
 
@@ -167,7 +172,6 @@ class TpccInput(Input):
         self.payment_dist = payment_dist
 
     def parse(path: str):
-        args = os.path.basename(path).rstrip(".txt").split("-")
         params = [
             ("benchmark", Benchmark),
             ("protocol", Protocol),
@@ -175,15 +179,24 @@ class TpccInput(Input):
             ("worker_num", int),
             ("use_cxl_trans", lambda value: value == "1"),
             ("use_output_thread", lambda value: value == "1"),
+            *(
+                [("enable_migration_optimization", lambda value: value == "1")]
+                if "scc" in path
+                else []
+            ),
             ("migration_policy", MigrationPolicy),
             ("when_to_move_out", WhenToMoveOut),
-            ("max_migrated_rows_size", int),
+            *([("max_migrated_rows_size", int)] if "scc" not in path else []),
+            ("enable_scc", lambda value: value == "1"),
             ("scc_mechanism", SccMechanism),
             ("pre_migrate", PreMigrate),
             ("logging_type", LoggingType),
             ("wal_group_commit_time", int),
             ("model_cxl_search_overhead", lambda value: value == "1"),
         ]
+
+        args = os.path.basename(path).rstrip(".txt").rsplit("-", len(params) - 1)
+        args[0] = "tpcc"
         return TpccInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
 
@@ -204,7 +217,6 @@ class YcsbInput(Input):
         self.zipf_theta = zipf_theta
 
     def parse(path: str):
-        args = os.path.basename(path).rstrip(".txt").split("-")
         params = [
             ("benchmark", Benchmark),
             ("protocol", Protocol),
@@ -215,49 +227,27 @@ class YcsbInput(Input):
             ("zipf_theta", float),
             ("use_cxl_trans", lambda value: value == "1"),
             ("use_output_thread", lambda value: value == "1"),
+            *(
+                [("enable_migration_optimization", lambda value: value == "1")]
+                if "scc" in path
+                else []
+            ),
             ("migration_policy", MigrationPolicy),
             ("when_to_move_out", WhenToMoveOut),
-            ("max_migrated_rows_size", int),
+            *([("max_migrated_rows_size", int)] if "scc" not in path else []),
+            ("enable_scc", lambda value: value == "1"),
             ("scc_mechanism", SccMechanism),
             ("pre_migrate", PreMigrate),
             ("logging_type", LoggingType),
             ("wal_group_commit_time", int),
             ("model_cxl_search_overhead", lambda value: value == "1"),
         ]
-        return YcsbInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
 
-
-class SmallbankInput(Input):
-    def __init__(
-        self,
-        *args,
-        keys: int,
-        cross_ratio: int = 0,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.keys = keys
-        self.cross_ratio = cross_ratio
-
-    def parse(path: str):
-        args = os.path.basename(path).rstrip(".txt").split("-")
-        params = [
-            ("benchmark", Benchmark),
-            ("protocol", Protocol),
-            ("host_num", int),
-            ("worker_num", int),
-            ("keys", int),
-            ("use_cxl_trans", lambda value: value == "1"),
-            ("use_output_thread", lambda value: value == "1"),
-            ("migration_policy", MigrationPolicy),
-            ("when_to_move_out", WhenToMoveOut),
-            ("max_migrated_rows_size", int),
-            ("scc_mechanism", SccMechanism),
-            ("pre_migrate", PreMigrate),
-            ("logging_type", LoggingType),
-            ("model_cxl_search_overhead", lambda value: value == "1"),
-        ]
-        return SmallbankInput(**{k: parse(v) for v, (k, parse) in zip(args, params)})
+        args = os.path.basename(path).rstrip(".txt").rsplit("-", len(params) - 1)
+        args[0] = "ycsb"
+        return YcsbInput(
+            **{k: parse(v) for v, (k, parse) in zip(args, params)},
+        )
 
 
 def capture(
