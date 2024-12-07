@@ -1,11 +1,11 @@
 from typing import Optional, TypeAlias
 from types import SimpleNamespace
 import argparse
-import csv
 from enum import auto, StrEnum
 import re
 import os
 import sys
+import polars as pl
 
 ORDER = [
     "Tigon",
@@ -313,7 +313,7 @@ CAPTURES = {
                 capture("local_cxl_access")
                 + capture(
                     "",
-                    rename="local_cxl_acccess_pct",
+                    rename="local_cxl_access_pct",
                     sep="",
                     prefix=" \\(",
                     suffix="%\\)",
@@ -595,41 +595,19 @@ def parse_output(data: str, path: str = None) -> Output:
     for name, regex in CAPTURES.items():
         matches = regex.search(data)
         if matches is None:
-            print(f"Failed to match {name} regex in {path}", file=sys.stderr)
+            if name != "SCCManager":
+                raise ValueError(f"Failed to match {name} regex in {path}, {data}")
+            # print(f"Failed to match {name} regex in {path}, {data}", file=sys.stderr)
             union |= {name: float("NaN") for name in regex.groupindex}
             continue
         union |= matches.groupdict()
     return Output(**{k: float(v) for k, v in union.items()})
 
 
-class Experiment:
-    def __init__(
-        self,
-        input: Input,
-        output: Output,
-    ):
-        self.input = input
-        self.output = output
-
-    def keys(self):
-        return list(vars(self.input).keys()) + list(vars(self.output).keys())
-
-    def values(self):
-        return list(vars(self.input).values()) + list(vars(self.output).values())
-
-
-def dump_experiments(groups: dict[str, list[Experiment]]):
-    out = csv.writer(sys.stdout)
-    first = True
-
-    # read all the files and construct the row
-    for name, group in groups.items():
-        for experiment in group:
-            if first:
-                first = False
-                out.writerow(["system"] + experiment.keys())
-
-            out.writerow([name] + experiment.values())
+def frame(input: Input, output: Output) -> pl.DataFrame:
+    return pl.concat(
+        [pl.DataFrame(vars(input)), pl.DataFrame(vars(output))], how="horizontal"
+    )
 
 
 def cli() -> argparse.ArgumentParser:
@@ -645,9 +623,15 @@ def cli() -> argparse.ArgumentParser:
         help="Select benchmark to parse",
         default=[],
     )
+    parser.add_argument("--axis", help="Axis to split by")
     return parser
 
 
 if __name__ == "__main__":
-    log = sys.argv[1]
-    print(log)
+    root = sys.argv[1]
+    for root, dirs, files in os.walk(root):
+        for file in files:
+            if not file.endswith(".txt"):
+                continue
+            path = os.path.join(root, file)
+            log = Input.parse(path)
