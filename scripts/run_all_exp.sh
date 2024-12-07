@@ -444,5 +444,16 @@ run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIV
 
 
 # ########## Migration Policy BEGIN ##########
+typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/migration_policy
+mkdir -p $RESULT_DIR
+
+# TPCC
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 LRU OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME
+
+# YCSB read-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 LRU OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
+
+# YCSB write-intensive + 0.7 skewness
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $WRITE_INTENSIVE_RW_RATIO 0.7 1 0 LRU OnDemand $DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME
 
 # ########## Migration Policy END ##########

@@ -121,6 +121,11 @@ class CXLMemory {
                         size_index_usage.fetch_add(size);
                         break;
                 case METADATA_ALLOCATION:
+                        if (context.migration_policy == "LRU") {
+                                size_total_hw_cc_usage.fetch_add(size + 24);
+                        } else {
+                                size_total_hw_cc_usage.fetch_add(size);
+                        }
                         size_total_hw_cc_usage.fetch_add(size);
                         size_metadata_usage.fetch_add(size);
                         break;
@@ -153,6 +158,11 @@ class CXLMemory {
                         size_index_usage.fetch_sub(size);
                         break;
                 case METADATA_FREE:
+                        if (context.migration_policy == "LRU") {
+                                size_total_hw_cc_usage.fetch_sub(size + 24);
+                        } else {
+                                size_total_hw_cc_usage.fetch_sub(size);
+                        }
                         size_total_hw_cc_usage.fetch_sub(size);
                         size_metadata_usage.fetch_sub(size);
                         break;
