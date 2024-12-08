@@ -110,8 +110,8 @@ def main():
         plot(args)
 
     else:
-        # args.benchmark = common.Benchmark.TPCC
-        # args.experiment = Experiment.BASELINE
+        args.benchmark = common.Benchmark.TPCC
+        args.experiment = Experiment.BASELINE
         plot(args)
 
 
