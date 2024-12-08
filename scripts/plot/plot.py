@@ -190,19 +190,32 @@ def plot_one(args, figure, axis, solo: bool) -> str:
     legend = dict()
 
     def rename(system: str):
+        # Logging
         if system == "Tigon-40ms":
             return "Tigon (40ms)"
+
+        # HWcc
         elif system == "Tigon-200MB":
             return "Tigon (200MB)"
+
+        # SWcc
+        elif system == "Tigon-NoSharedReader":
+            return "OneHost"
+        elif system == "Tigon-NoSCC":
+            return "NoSWcc"
+
         return system.replace("Tigon-", "")
 
+    # Need to override these for TPC-C
     use_markers = True
+    use_default = DEFAULT_PLOT
 
     match args.experiment, args.benchmark:
         case Experiment.BASELINE, _:
             baseline(args, df)
         case Experiment.DEFAULT, common.Benchmark.TPCC:
             use_markers = False
+            use_default = {}
             legend = dict(
                 framealpha=1, bbox_to_anchor=(0.98, 0.96), loc="upper right", ncols=1
             )
@@ -231,10 +244,12 @@ def plot_one(args, figure, axis, solo: bool) -> str:
             legend = dict(borderaxespad=2)
         case Experiment.SWCC, _:
             df.columns = df.columns.map(
-                lambda system: "Tigon (WriteThrough)"
-                if system == "Tigon"
-                else rename(system)
+                lambda system: (
+                    "Tigon (WriteThrough)" if system == "Tigon" else rename(system)
+                )
             )
+            # There has to be a better way to do this...
+            df = df.T.drop("AlwaysMemcpy").T
             df.index = df.index[::-1].map(lambda x: int(x.rstrip("MB")))
             legend = dict(borderaxespad=2)
         case unknown:
@@ -248,6 +263,7 @@ def plot_one(args, figure, axis, solo: bool) -> str:
             color=color(system),
             marker=marker(system) if use_markers else ".",
             label=system.replace("Tigon", REDACT),
+            **use_default,
         )
 
     set_ylim(axis, df)
