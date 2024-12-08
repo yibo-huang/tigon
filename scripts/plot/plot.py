@@ -351,9 +351,12 @@ def baseline(args, df):
         )
 
     # print(
-    #     (df.T.loc["Sundial-CXL-improved"] - df.T.loc["Sundial-NET"])
-    #     / df.T.loc["Sundial-NET"]
-    #     * 100
+    #     "Sundial-CXL over Sundial-NET",
+    #     relative_increase(df.T.loc["Sundial-NET"], df.T.loc["Sundial-CXL"]),
+    # )
+    # print(
+    #     "Sundial-CXL-improved over Sundial-NET",
+    #     relative_increase(df.T.loc["Sundial-NET"], df.T.loc["Sundial-CXL-improved"]),
     # )
 
     # Plot TwoPL on right
@@ -370,15 +373,33 @@ def baseline(args, df):
         )
 
     # print(
-    #     (df.T.loc["Sundial-CXL-improved"] - df.T.loc["TwoPL-CXL-improved"])
-    #     / df.T.loc["Sundial-CXL-improved"]
-    #     * 100
+    #     "Sundial-CXL-improved over TwoPL-CXL-improved",
+    #     relative_increase(
+    #         df.T.loc["TwoPL-CXL-improved"],
+    #         df.T.loc["Sundial-CXL-improved"],
+    #     ),
+    # )
+    # print(
+    #     "TwoPL-CXL over TwoPL-NET",
+    #     relative_increase(df.T.loc["TwoPL-NET"], df.T.loc["TwoPL-CXL"]),
+    # )
+    # print(
+    #     "TwoPL-CXL-improved over TwoPL-NET",
+    #     relative_increase(df.T.loc["TwoPL-NET"], df.T.loc["TwoPL-CXL-improved"]),
     # )
 
     for axis in axes:
         set_ylim(axis, df)
         axis.tick_params(axis="x", labelsize=8.0)
         axis.legend(framealpha=1, **DEFAULT_LEGEND)
+
+
+def relative_increase(low, high):
+    return (high - low) / low * 100
+
+
+def relative_decrease(low, high):
+    return (low - high) / high * 100
 
 
 def color(system: str) -> str:
