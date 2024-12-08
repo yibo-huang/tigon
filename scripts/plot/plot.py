@@ -18,12 +18,11 @@ import common
 # Default settings
 DEFAULT_PLOT = {
     "markersize": 10.0,
-    "markeredgewidth": 1.6,
+    "markeredgewidth": 1.2,
     "markerfacecolor": "none",
     "linewidth": 1.0,
 }
 DEFAULT_LEGEND = {
-    "framealpha": 1,
 }
 DEFAULT_FIGURE = {
     "layout_engine": "constrained",
@@ -111,6 +110,8 @@ def main():
         plot(args)
 
     else:
+        # args.benchmark = common.Benchmark.TPCC
+        # args.experiment = Experiment.BASELINE
         plot(args)
 
 
@@ -200,7 +201,7 @@ def plot_one(args, figure, axis, solo: bool) -> str:
         case Experiment.BASELINE, _:
             baseline(args, df)
         case Experiment.DEFAULT, common.Benchmark.TPCC:
-            legend = dict(loc="outside upper center", ncols=len(df))
+            legend = dict(framealpha=0, loc="outside upper center", ncols=len(df))
         case Experiment.HWCC, _:
             df.columns = df.columns.map(rename)
             legend = dict(loc="outside upper center", ncols=len(df))
@@ -296,7 +297,7 @@ def default_ycsb(args):
     figure.legend(
         **DEFAULT_LEGEND,
         # https://github.com/matplotlib/matplotlib/pull/19743
-        loc="outside upper center",
+        loc="outside upper right",
         ncol=len(df.T),
     )
 
@@ -357,21 +358,29 @@ def baseline(args, df):
     for axis in axes:
         set_ylim(axis, df)
         axis.tick_params(axis="x", labelsize=8.0)
-        axis.legend(**DEFAULT_LEGEND)
+        axis.legend(framealpha=1, **DEFAULT_LEGEND)
 
 
 def color(system: str) -> str:
     if "Sundial" in system:
-        return "#FFC003"
+        return "#62615d"
     elif "TwoPL" in system:
-        return "#4372C4"
+        return "#ffc003"
     elif "Motor" in system:
-        return "red"
+        return "#ed7d31"
     elif "Tigon" or "MB" in system:
-        return "black"
+        return "#4372c4"
 
 
 def marker(system: str) -> str:
+    # override
+    if "TwoPL-CXL-improved" in system:
+        return "^"
+    elif "Sundial-CXL-improved" in system:
+        return ">"
+    elif "Motor" in system:
+        return "o"
+
     if "AlwaysSearchCXL" in system:
         return "o"
     elif "ReadCXL" in system:
@@ -418,16 +427,20 @@ def marker(system: str) -> str:
         return "o"
 
     else:
-        return "^"
+        return "s"
 
 
 def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
     figure, axes = plt.subplots(**kwargs)
     figure.set(**DEFAULT_FIGURE)
-    figure.set_size_inches(w=w, h=h)
+    if args.benchmark == common.Benchmark.TPCC and args.experiment == Experiment.DEFAULT:
+        figure.set_size_inches(w=6, h=4)
+    else:
+        figure.set_size_inches(w=w, h=h)
     figure.supxlabel(
         "Multi-partition Transaction Percentage"
-        + (" (NewOrder/Payment)" if args.benchmark == common.Benchmark.TPCC else "")
+        + (" (NewOrder/Payment)" if args.benchmark == common.Benchmark.TPCC else ""),
+        x=0.55  # make it centered
     )
     figure.supylabel(SUPYLABEL)
 
