@@ -294,6 +294,16 @@ def default_ycsb(args):
         df = pd.read_csv(path(args), index_col=0)
         df = df.reindex(range(0, 101, 20))
 
+        # print(
+        #     f"Tigon vs Sundial at {rw_ratio}% R, 100% Cross Ratio: ",
+        #     relative_increase(df["Sundial-CXL-improved"][100], df["Tigon"][100]),
+        # )
+        #
+        # print(
+        #     f"Tigon vs Motor at {rw_ratio}% R, 100% Cross Ratio: ",
+        #     relative_increase(df["Motor"][100], df["Tigon"][100]),
+        # )
+
         for system, row in df.T.iterrows():
             axis.plot(
                 df.index,
