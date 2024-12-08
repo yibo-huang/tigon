@@ -201,7 +201,7 @@ def plot_one(args, figure, axis, solo: bool) -> str:
         case Experiment.BASELINE, _:
             baseline(args, df)
         case Experiment.DEFAULT, common.Benchmark.TPCC:
-            legend = dict(framealpha=0, loc="outside upper center", ncols=len(df))
+            legend = dict(framealpha=1, bbox_to_anchor=(0.98, 0.96), loc="upper right", ncols=1)
         case Experiment.HWCC, _:
             df.columns = df.columns.map(rename)
             legend = dict(loc="outside upper center", ncols=len(df))
@@ -295,6 +295,7 @@ def default_ycsb(args):
         axis.set_ylim(top=max(a, b))
 
     figure.legend(
+        framealpha=0,
         **DEFAULT_LEGEND,
         # https://github.com/matplotlib/matplotlib/pull/19743
         loc="outside upper right",
@@ -447,7 +448,7 @@ def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
     for row in axes if isinstance(axes, Iterable) else [axes]:
         for axis in row if isinstance(row, Iterable) else [row]:
             axis.grid(axis="y")
-            axis.grid(axis="x", which="major")
+            # axis.grid(axis="x", which="major")
             # axis.label_outer(remove_inner_ticks=True)
 
     return figure, axes
