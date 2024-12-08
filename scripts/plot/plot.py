@@ -22,8 +22,7 @@ DEFAULT_PLOT = {
     "markerfacecolor": "none",
     "linewidth": 1.0,
 }
-DEFAULT_LEGEND = {
-}
+DEFAULT_LEGEND = {}
 DEFAULT_FIGURE = {
     "layout_engine": "constrained",
 }
@@ -124,9 +123,9 @@ def plot(args):
     ):
         return default_ycsb(args)
     elif args.benchmark == "sensitivity":
-        figure, axes = subplots(args, w=16, h=10, nrows=2, ncols=5)
+        figure, axes = subplots(args, w=16, h=8, nrows=2, ncols=4)
 
-        for col in range(1, 5):
+        for col in range(1, 4):
             axes[0, col].sharey(axes[0, 0])
             # axes[0, col].label_outer(remove_inner_ticks=True)
 
@@ -134,7 +133,7 @@ def plot(args):
             [
                 Experiment.SWCC,
                 Experiment.HWCC,
-                Experiment.LOGGING,
+                # Experiment.LOGGING,
                 None,
                 Experiment.SEARCH_CXL,
             ]
@@ -154,7 +153,7 @@ def plot(args):
             [
                 (Experiment.SWCC, 95),
                 (Experiment.HWCC, 95),
-                (Experiment.LOGGING, 50),
+                # (Experiment.LOGGING, 50),
                 (Experiment.READ_CXL, 100),
                 (Experiment.SEARCH_CXL, 95),
             ]
@@ -201,7 +200,9 @@ def plot_one(args, figure, axis, solo: bool) -> str:
         case Experiment.BASELINE, _:
             baseline(args, df)
         case Experiment.DEFAULT, common.Benchmark.TPCC:
-            legend = dict(framealpha=1, bbox_to_anchor=(0.98, 0.96), loc="upper right", ncols=1)
+            legend = dict(
+                framealpha=1, bbox_to_anchor=(0.98, 0.96), loc="upper right", ncols=1
+            )
         case Experiment.HWCC, _:
             df.columns = df.columns.map(rename)
             legend = dict(loc="outside upper center", ncols=len(df))
@@ -418,6 +419,8 @@ def marker(system: str) -> str:
     elif "no-logging" in system:
         return "o"
 
+    elif "WriteThrough" in system:
+        return "^"
     elif "AlwaysMemcpy" in system:
         return "s"
     elif "NoSharedReader" in system:
@@ -427,6 +430,9 @@ def marker(system: str) -> str:
     elif "NoSCC" in system:
         return "o"
 
+    elif "Tigon" in system:
+        return "^"
+
     else:
         return "s"
 
@@ -434,14 +440,17 @@ def marker(system: str) -> str:
 def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
     figure, axes = plt.subplots(**kwargs)
     figure.set(**DEFAULT_FIGURE)
-    if args.benchmark == common.Benchmark.TPCC and args.experiment == Experiment.DEFAULT:
+    if (
+        args.benchmark == common.Benchmark.TPCC
+        and args.experiment == Experiment.DEFAULT
+    ):
         figure.set_size_inches(w=6, h=4)
     else:
         figure.set_size_inches(w=w, h=h)
     figure.supxlabel(
         "Multi-partition Transaction Percentage"
         + (" (NewOrder/Payment)" if args.benchmark == common.Benchmark.TPCC else ""),
-        x=0.55  # make it centered
+        x=0.55,  # make it centered
     )
     figure.supylabel(SUPYLABEL)
 
