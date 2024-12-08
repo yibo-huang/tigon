@@ -196,10 +196,13 @@ def plot_one(args, figure, axis, solo: bool) -> str:
             return "Tigon (200MB)"
         return system.replace("Tigon-", "")
 
+    use_markers = True
+
     match args.experiment, args.benchmark:
         case Experiment.BASELINE, _:
             baseline(args, df)
         case Experiment.DEFAULT, common.Benchmark.TPCC:
+            use_markers = False
             legend = dict(
                 framealpha=1, bbox_to_anchor=(0.98, 0.96), loc="upper right", ncols=1
             )
@@ -243,9 +246,8 @@ def plot_one(args, figure, axis, solo: bool) -> str:
             df.index,
             row,
             color=color(system),
-            marker=marker(system),
+            marker=marker(system) if use_markers else ".",
             label=system.replace("Tigon", REDACT),
-            **DEFAULT_PLOT,
         )
 
     set_ylim(axis, df)
@@ -265,9 +267,6 @@ def default_ycsb(args):
         0: (1, 1),
     }
 
-    for row in range(2):
-        axes[row, 0].sharey(axes[row, 1])
-
     for rw_ratio, (i, j) in layout.items():
         axis = axes[i, j]
         axis.set_title(
@@ -284,9 +283,8 @@ def default_ycsb(args):
                 df.index,
                 row,
                 color=color(system),
-                marker=marker(system),
+                marker=".",
                 label=system.replace("Tigon", REDACT) if i == 0 and j == 0 else None,
-                **DEFAULT_PLOT,
             )
 
         # Overwrite with larger ylim of the two rows
@@ -294,6 +292,10 @@ def default_ycsb(args):
         set_ylim(axis, df)
         b = axes[i, j].get_ylim()[1]
         axis.set_ylim(top=max(a, b))
+
+    for row in range(2):
+        axes[row, 0].sharey(axes[row, 1])
+        axes[row, 1].label_outer(remove_inner_ticks=True)
 
     figure.legend(
         framealpha=0,
@@ -375,26 +377,20 @@ def color(system: str) -> str:
 
 
 def marker(system: str) -> str:
-    # override
-    if "TwoPL-CXL-improved" in system:
-        return "^"
-    elif "Sundial-CXL-improved" in system:
-        return ">"
-    elif "Motor" in system:
-        return "o"
-
     if "AlwaysSearchCXL" in system:
         return "o"
     elif "ReadCXL" in system:
         return "o"
-    if "NET" in system:
-        return "o"
+
+    # Baseline
     elif "CXL-improved" in system:
-        return "^"
-    elif "CXL" in system:
         return "s"
-    elif "Phantom" in system:
+    elif "CXL" in system:
+        return "p"
+    elif "NET" in system:
         return "o"
+
+    # HWcc
     elif "200MB" in system:
         return "^"
     elif "150MB" in system:
@@ -406,6 +402,7 @@ def marker(system: str) -> str:
     elif "10MB" in system:
         return "o"
 
+    # Logging throughput
     elif "50ms" in system:
         return "|"
     elif "40ms" in system:
@@ -419,6 +416,7 @@ def marker(system: str) -> str:
     elif "no-logging" in system:
         return "o"
 
+    # SWcc
     elif "WriteThrough" in system:
         return "^"
     elif "AlwaysMemcpy" in system:
@@ -430,11 +428,8 @@ def marker(system: str) -> str:
     elif "NoSCC" in system:
         return "o"
 
-    elif "Tigon" in system:
-        return "^"
-
     else:
-        return "s"
+        return "^"
 
 
 def subplots(args, w: int = 7, h: int = 3, **kwargs) -> (plt.Figure, plt.Axes):
