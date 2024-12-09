@@ -12,14 +12,15 @@ if len(sys.argv) != 2:
 
 res_dir = sys.argv[1]
 
-marker_size = 12.0
-marker_edge_width=1.6
-linewidth = 1.6
+DEFAULT_PLOT = {
+    "markersize": 10.0,
+    "markeredgewidth": 1.6,
+    "markerfacecolor": "none",
+    "markevery": 1,
+    "linewidth": 1.6,
+}
 
-###  Common configurations for TPCC and YCSB ###
-basic_font = {'size' : 14}
-plt.xticks(**basic_font)
-plt.yticks(**basic_font)
+plt.rcParams["font.size"] = 10
 
 # Configure grid
 plt.grid(axis='y')
@@ -38,8 +39,8 @@ sundial_cxl_improved_y = res_df["Sundial-CXL-improved"]
 twopl_cxl_improved_y = res_df["TwoPL-CXL-improved"]
 motor_y = res_df["Motor"]
 
-plt.xlabel("Multi-partition Transaction Percentage", **basic_font)
-plt.ylabel("Throughput (txns/sec)", **basic_font)
+plt.xlabel("Multi-partition Transaction Percentage")
+plt.ylabel("Throughput (txns/sec)")
 
 # Configure axis range
 tmp_list = list()
@@ -57,12 +58,12 @@ ax = plt.subplot(111)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 # Create the line plot
-plt.plot(x, tigon_y, color="#000000", marker="s", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Tigon")
-plt.plot(x, sundial_cxl_improved_y, color="#4372c4", marker="^", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Sundial+")
-plt.plot(x, twopl_cxl_improved_y, color="#ffc003", marker=">", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="TwoPL+")
-plt.plot(x, motor_y, color="#ed7d31", marker="o", markersize=marker_size, linewidth=linewidth, markeredgewidth=marker_edge_width, mfc='none', label="Motor")
+plt.plot(x, tigon_y, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
+plt.plot(x, sundial_cxl_improved_y, color="#4372c4", marker="^", **DEFAULT_PLOT, label="Sundial+")
+plt.plot(x, twopl_cxl_improved_y, color="#ffc003", marker=">", **DEFAULT_PLOT, label="TwoPL+")
+plt.plot(x, motor_y, color="#ed7d31", marker="o", **DEFAULT_PLOT, label="Motor")
 
 # Configure legend
-ax.legend(loc='upper right', bbox_to_anchor=(1.0, 1.02), frameon=False, fancybox=False, framealpha=1, ncol=2, prop={**basic_font})
+ax.legend(loc='upper right', frameon=False, fancybox=False, framealpha=1, ncol=2)
 
 plt.savefig(res_dir + "/tpcc.pdf", format="pdf", bbox_inches="tight")
