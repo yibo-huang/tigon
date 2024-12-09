@@ -20,7 +20,7 @@ DEFAULT_PLOT = {
     "linewidth": 1.6,
 }
 
-plt.rcParams["font.size"] = 10
+plt.rcParams["font.size"] = 11
 
 # Configure grid
 plt.grid(axis='y')
@@ -64,6 +64,6 @@ plt.plot(x, twopl_cxl_improved_y, color="#ffc003", marker=">", **DEFAULT_PLOT, l
 plt.plot(x, motor_y, color="#ed7d31", marker="o", **DEFAULT_PLOT, label="Motor")
 
 # Configure legend
-ax.legend(loc='upper right', frameon=False, fancybox=False, framealpha=1, ncol=2)
+ax.legend(loc='upper right', frameon=True, fancybox=True, framealpha=1, ncol=1)
 
 plt.savefig(res_dir + "/tpcc.pdf", format="pdf", bbox_inches="tight")

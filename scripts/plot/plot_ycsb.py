@@ -17,7 +17,7 @@ DEFAULT_PLOT = {
     "linewidth": 1.0,
 }
 
-plt.rcParams["font.size"] = 10
+plt.rcParams["font.size"] = 11
 
 ### common config END ###
 
@@ -114,6 +114,7 @@ ax[0, 1].plot(x, twopl_cxl_improved_y_2, color="#ffc003", marker=">", **DEFAULT_
 ax[0, 1].plot(x, motor_y_2, color="#ed7d31", marker="o", **DEFAULT_PLOT)
 
 ax[0, 1].set_xticklabels([])
+ax[0, 1].set_yticklabels([])
 
 ax[0, 1].text(0.5, 0.95, '95% R, 5%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
@@ -139,7 +140,7 @@ ax[1, 1].plot(x, motor_y_4, color="#ed7d31", marker="o", **DEFAULT_PLOT)
 
 ax[1, 1].text(0.5, 0.95, '0% R, 100%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
-# ax[1, 1].set_yticklabels([])
+ax[1, 1].set_yticklabels([])
 
 ### global configuration ###
 for ax in ax.flat:
