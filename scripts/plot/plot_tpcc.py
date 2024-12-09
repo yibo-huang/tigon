@@ -60,7 +60,7 @@ ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.forma
 # Create the line plot
 plt.plot(x, tigon_y, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
 plt.plot(x, sundial_cxl_improved_y, color="#4372c4", marker="^", **DEFAULT_PLOT, label="Sundial+")
-plt.plot(x, twopl_cxl_improved_y, color="#ffc003", marker=">", **DEFAULT_PLOT, label="TwoPL+")
+plt.plot(x, twopl_cxl_improved_y, color="#ffc003", marker=">", **DEFAULT_PLOT, label="DS2PL+")
 plt.plot(x, motor_y, color="#ed7d31", marker="o", **DEFAULT_PLOT, label="Motor")
 
 # Configure legend

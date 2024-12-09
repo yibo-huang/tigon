@@ -97,7 +97,7 @@ ax[0, 0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'
 
 ax[0, 0].plot(x, tigon_y_1, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
 ax[0, 0].plot(x, sundial_cxl_improved_y_1, color="#4372c4", marker="^", **DEFAULT_PLOT, label="Sundial+")
-ax[0, 0].plot(x, twopl_cxl_improved_y_1, color="#ffc003", marker=">", **DEFAULT_PLOT, label="TwoPL+")
+ax[0, 0].plot(x, twopl_cxl_improved_y_1, color="#ffc003", marker=">", **DEFAULT_PLOT, label="DS2PL+")
 ax[0, 0].plot(x, motor_y_1, color="#ed7d31", marker="o", **DEFAULT_PLOT, label="Motor")
 
 ax[0, 0].set_xticklabels([])
