@@ -14,10 +14,10 @@ DEFAULT_PLOT = {
     "markeredgewidth": 1.2,
     "markerfacecolor": "none",
     "markevery": 1,
-    "linewidth": 0.8,
+    "linewidth": 1.0,
 }
 
-plt.rcParams["font.size"] = 12
+plt.rcParams["font.size"] = 11
 
 ### common config END ###
 
@@ -70,9 +70,11 @@ ax[0].plot(x_tpcc, tigon_100_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT
 ax[0].plot(x_tpcc, tigon_50_y_tpcc, color="#000000", marker="p", **DEFAULT_PLOT, label="50MB")
 ax[0].plot(x_tpcc, tigon_10_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, label="10MB")
 
-ax[0].text(0.5, 0.95, 'TPC-C', horizontalalignment='center', verticalalignment='top', transform=ax[0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+# ax[0].text(0.5, 0.95, 'TPC-C', horizontalalignment='center', verticalalignment='top', transform=ax[0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
-ax[0].set_xlabel("Multi-partition Transaction Percentage (NewOrder/Payment)")
+ax[0].set_xlabel("Multi-partition Transaction Percentage (NewOrder/Payment)"
+                 "\n"
+                 "(a) TPC-C")
 
 ### subplot 2 ###
 tmp_list = list()
@@ -94,9 +96,11 @@ ax[1].plot(x_ycsb, tigon_100_y_ycsb, color="#000000", marker=">", **DEFAULT_PLOT
 ax[1].plot(x_ycsb, tigon_50_y_ycsb, color="#000000", marker="p", **DEFAULT_PLOT)
 ax[1].plot(x_ycsb, tigon_10_y_ycsb, color="#000000", marker="o", **DEFAULT_PLOT)
 
-ax[1].text(0.5, 0.95, 'YCSB (95%R, 5%W)', horizontalalignment='center', verticalalignment='top', transform=ax[1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+# ax[1].text(0.5, 0.95, 'YCSB (95%R, 5%W)', horizontalalignment='center', verticalalignment='top', transform=ax[1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
-ax[1].set_xlabel("Multi-partition Transaction Percentage")
+ax[1].set_xlabel("Multi-partition Transaction Percentage"
+                 "\n"
+                 "(a) YCSB (95%R, 5%W)")
 
 ### global configuration ###
 for ax in ax.flat:
