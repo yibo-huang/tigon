@@ -86,7 +86,7 @@ fig = plt.gcf()
 fig.tight_layout()
 # fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.04), frameon=False, fancybox=False, framealpha=1, ncol=4)
 
-fig.text(0.5, 0, 'Multi-partition Transaction Percentage', ha='center')
+fig.text(0.5, 0, 'Multi-partition Transaction Percentage (NewOrder/Payment)', ha='center')
 fig.text(0, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(res_dir + "/baseline-tpcc.pdf", format="pdf", bbox_inches="tight")

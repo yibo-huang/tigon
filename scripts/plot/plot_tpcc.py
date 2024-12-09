@@ -39,7 +39,7 @@ sundial_cxl_improved_y = res_df["Sundial-CXL-improved"]
 twopl_cxl_improved_y = res_df["TwoPL-CXL-improved"]
 motor_y = res_df["Motor"]
 
-plt.xlabel("Multi-partition Transaction Percentage")
+plt.xlabel("Multi-partition Transaction Percentage (NewOrder/Payment)")
 plt.ylabel("Throughput (txns/sec)")
 
 # Configure axis range
