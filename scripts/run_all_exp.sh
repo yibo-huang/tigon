@@ -423,19 +423,15 @@ typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/scc
 mkdir -p $RESULT_DIR
 
 # TPCC
-run_scc_exp_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 1 Clock OnDemand 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL
-run_scc_exp_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 0 Clock OnDemand 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + WriteThrough + data movement optimization disabled
-run_scc_exp_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 1 Clock OnDemand 1 WriteThroughNoSharedRead None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + WriteThrough + no shared reader
-run_scc_exp_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 1 Clock OnDemand 1 NonTemporal None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + NonTemporal
-run_scc_exp_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 1 Clock OnDemand 0 NoOP None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + SCC disabled
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThroughNoSharedRead None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + WriteThrough + no shared reader
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 NonTemporal None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + NonTemporal
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 0 NoOP None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME   # Tigon-TwoPL + SCC disabled
 
 
 # YCSB read-intensive + 0.7 skewness
-run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 1 Clock OnDemand 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL
-run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 0 Clock OnDemand 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL + WriteThrough + data movement optimization disabled
-run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 1 Clock OnDemand 1 WriteThroughNoSharedRead None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL + WriteThrough + no shared reader
-run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 1 Clock OnDemand 1 NonTemporal None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL + NonTemporal
-run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 1 Clock OnDemand 0 NoOP None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 15 5 # Tigon-TwoPL + SCC disabled
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThroughNoSharedRead None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL + WriteThrough + no shared reader
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 NonTemporal None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon-TwoPL + NonTemporal
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 0 NoOP None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 15 5 # Tigon-TwoPL + SCC disabled
 
 ########### Software Cache-Coherence END ###########
 
@@ -443,7 +439,7 @@ run_scc_exp_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIV
 
 
 
-# ########## Migration Policy BEGIN ##########
+########## Migration Policy BEGIN ##########
 typeset RESULT_DIR=$SCRIPT_DIR/../results/pasha/$current_date_time/migration_policy
 mkdir -p $RESULT_DIR
 
