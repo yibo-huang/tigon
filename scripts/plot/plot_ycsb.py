@@ -11,9 +11,9 @@ import matplotlib.ticker as ticker
 
 DEFAULT_PLOT = {
     "markersize": 6.0,
-    "markeredgewidth": 1.2,
+    "markeredgewidth": 1.6,
     "markevery": 1,
-    "linewidth": 1.0,
+    "linewidth": 1.6,
 }
 
 plt.rcParams["font.size"] = 11
@@ -92,7 +92,7 @@ max_y_rounded_up_3_4 = math.ceil(max_y_3_4 / 200000.0) * 200000.0
 
 ### subplot 1 ###
 ax[0, 0].set_ylim(0, max_y_rounded_up_1_2)
-ax[0, 0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
+ax[0, 0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.1f}'.format(x/1000000) + 'M' if x != 0 else 0))
 
 ax[0, 0].plot(x, tigon_y_1, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
 ax[0, 0].plot(x, sundial_cxl_improved_y_1, color="#4372c4", marker="^", **DEFAULT_PLOT, markerfacecolor = "none", label="Sundial+")
@@ -106,7 +106,7 @@ ax[0, 0].set_xticklabels([])
 
 ### subplot 2 ###
 ax[0, 1].set_ylim(0, max_y_rounded_up_1_2)
-ax[0, 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
+ax[0, 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.1f}'.format(x/1000000) + 'M' if x != 0 else 0))
 
 ax[0, 1].plot(x, tigon_y_2, color="#000000", marker="s", **DEFAULT_PLOT)
 ax[0, 1].plot(x, sundial_cxl_improved_y_2, color="#4372c4", marker="^", **DEFAULT_PLOT, markerfacecolor = "none",)
@@ -152,9 +152,9 @@ for ax in ax.flat:
 
 fig = plt.gcf()
 fig.tight_layout()
-fig.legend(loc='upper center', bbox_to_anchor=(0.54, 1.04), frameon=False, fancybox=False, framealpha=1, ncol=4)
+fig.legend(loc='upper center', bbox_to_anchor=(0.54, 1.03), frameon=False, fancybox=False, framealpha=1, ncol=4)
 
 fig.text(0.54, 0, 'Multi-partition Transaction Percentage', ha='center')
-fig.text(0, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
+fig.text(-0.01, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(output_dir + "/ycsb.pdf", format="pdf", bbox_inches="tight")

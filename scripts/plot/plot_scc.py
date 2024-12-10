@@ -10,13 +10,13 @@ import matplotlib.ticker as ticker
 ### common config START ###
 
 DEFAULT_PLOT = {
-    "markersize": 10.0,
-    "markeredgewidth": 1.6,
+    "markersize": 8.0,
+    "markeredgewidth": 2.0,
     "markevery": 1,
-    "linewidth": 1.6,
+    "linewidth": 2.0,
 }
 
-plt.rcParams["font.size"] = 14
+plt.rcParams["font.size"] = 15
 
 ### common config END ###
 
@@ -80,8 +80,8 @@ tmp_list.extend(tigon_no_swcc_y_ycsb)
 max_y = max(tmp_list)
 max_y_rounded_up_ycsb = math.ceil(max_y / 200000.0) * 200000.0
 
-ax[1].set_ylim(0, max_y_rounded_up_ycsb)
-ax[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
+ax[1].set_ylim(0, 2000000)
+ax[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.1f}'.format(x/1000000) + 'M' if x != 0 else 0))
 
 ax[1].plot(x_ycsb, tigon_y_ycsb, color="#000000", marker="s", **DEFAULT_PLOT)
 ax[1].plot(x_ycsb, tigon_no_shared_reader_y_ycsb, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none")
@@ -96,11 +96,11 @@ for ax in ax.flat:
 
 fig = plt.gcf()
 # fig.tight_layout()
-fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.21), frameon=False, fancybox=False, framealpha=1, ncol=2)
+fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.23), frameon=False, fancybox=False, framealpha=1, ncol=2, columnspacing=1)
 
-fig.text(0.5, -0.05, 'Multi-partition Transaction Percentage', ha='center')
-fig.text(0.27, -0.14, '(a) TPC-C', ha='center')
-fig.text(0.80, -0.14, '(b) YCSB (95%R/5%W)', ha='center')
-fig.text(-0.02, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
+fig.text(0.5, -0.06, 'Multi-partition Transaction Percentage', ha='center')
+fig.text(0.27, -0.15, '(a) TPC-C', ha='center')
+fig.text(0.79, -0.15, '(b) YCSB (95%R/5%W)', ha='center')
+fig.text(-0.03, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(res_dir + "/swcc.pdf", format="pdf", bbox_inches="tight")
