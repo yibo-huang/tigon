@@ -61,9 +61,9 @@ ax[0].set_ylim(0, max_y_rounded_up_tpcc)
 ax[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[0].plot(x_tpcc, tigon_y_tpcc, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
-ax[0].plot(x_tpcc, tigon_no_shared_reader_y_tpcc, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSharedReader")
-ax[0].plot(x_tpcc, tigon_non_temporal_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NonTemporal")
-ax[0].plot(x_tpcc, tigon_no_swcc_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSWcc")
+ax[0].plot(x_tpcc, tigon_no_shared_reader_y_tpcc, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none", label="NoSharedReader")
+ax[0].plot(x_tpcc, tigon_non_temporal_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="NonTemporal")
+ax[0].plot(x_tpcc, tigon_no_swcc_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="NoSWcc")
 
 xticks = ax[0].xaxis.get_major_ticks()
 xticks[1].label1.set_visible(False)
@@ -96,11 +96,11 @@ for ax in ax.flat:
 
 fig = plt.gcf()
 # fig.tight_layout()
-fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.23), frameon=False, fancybox=False, framealpha=1, ncol=2, columnspacing=1)
+fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), frameon=False, fancybox=False, framealpha=1, ncol=4, columnspacing=1)
 
 fig.text(0.5, -0.06, 'Multi-partition Transaction Percentage', ha='center')
 fig.text(0.27, -0.15, '(a) TPC-C', ha='center')
-fig.text(0.79, -0.15, '(b) YCSB (95%R/5%W)', ha='center')
+fig.text(0.79, -0.15, '(b) YCSB (95%R, 5%W)', ha='center')
 fig.text(-0.03, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(res_dir + "/swcc.pdf", format="pdf", bbox_inches="tight")

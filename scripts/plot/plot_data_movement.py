@@ -110,7 +110,7 @@ fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), frameon=False, fancyb
 
 fig.text(0.5, -0.06, 'Multi-partition Transaction Percentage', ha='center')
 fig.text(0.27, -0.15, '(a) TPC-C', ha='center')
-fig.text(0.79, -0.15, '(b) YCSB (95%R/5%W)', ha='center')
+fig.text(0.79, -0.15, '(b) YCSB (95%R, 5%W)', ha='center')
 fig.text(-0.03, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(res_dir + "/hwcc.pdf", format="pdf", bbox_inches="tight")
