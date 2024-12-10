@@ -10,14 +10,14 @@ import matplotlib.ticker as ticker
 ### common config START ###
 
 DEFAULT_PLOT = {
-    "markersize": 12.0,
-    "markeredgewidth": 2.0,
+    "markersize": 10.0,
+    "markeredgewidth": 1.6,
     "markerfacecolor": "none",
     "markevery": 1,
-    "linewidth": 2.0,
+    "linewidth": 1.6,
 }
 
-plt.rcParams["font.size"] = 15
+plt.rcParams["font.size"] = 14
 
 ### common config END ###
 
@@ -48,7 +48,7 @@ tigon_100_y_ycsb = res_df_ycsb["Tigon-100MB"]
 tigon_50_y_ycsb = res_df_ycsb["Tigon-50MB"]
 tigon_10_y_ycsb = res_df_ycsb["Tigon-10MB"]
 
-fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 3), constrained_layout=True)
 
 ### subplot 1 ###
 tmp_list = list()
@@ -106,12 +106,12 @@ for ax in ax.flat:
     ax.grid(axis='y')
 
 fig = plt.gcf()
-fig.tight_layout()
-fig.legend(loc='upper center', bbox_to_anchor=(0.48, 1.06), frameon=False, fancybox=False, framealpha=1, ncol=5)
+# fig.tight_layout()
+fig.legend(loc='upper center', bbox_to_anchor=(0.48, 1.13), frameon=False, fancybox=False, framealpha=1, ncol=5)
 
-fig.text(0.5, 0, 'Multi-partition Transaction Percentage', ha='center')
-fig.text(0.27, -0.08, '(a) TPC-C', ha='center')
-fig.text(0.77, -0.08, '(b) YCSB (95%R/5%W)', ha='center')
-fig.text(0, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
+fig.text(0.5, -0.05, 'Multi-partition Transaction Percentage', ha='center')
+fig.text(0.27, -0.14, '(a) TPC-C', ha='center')
+fig.text(0.80, -0.14, '(b) YCSB (95%R/5%W)', ha='center')
+fig.text(-0.02, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(res_dir + "/hwcc.pdf", format="pdf", bbox_inches="tight")

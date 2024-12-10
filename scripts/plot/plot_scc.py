@@ -11,13 +11,12 @@ import matplotlib.ticker as ticker
 
 DEFAULT_PLOT = {
     "markersize": 10.0,
-    "markeredgewidth": 1.2,
-    "markerfacecolor": "none",
+    "markeredgewidth": 1.6,
     "markevery": 1,
-    "linewidth": 1.0,
+    "linewidth": 1.6,
 }
 
-plt.rcParams["font.size"] = 11
+plt.rcParams["font.size"] = 14
 
 ### common config END ###
 
@@ -46,7 +45,7 @@ tigon_no_shared_reader_y_ycsb = res_df_ycsb["Tigon (NoSharedReader)"]
 tigon_non_temporal_y_ycsb = res_df_ycsb["Tigon (NonTemporal)"]
 tigon_no_swcc_y_ycsb = res_df_ycsb["Tigon (NoSWcc)"]
 
-fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 3), constrained_layout=True)
 
 ### subplot 1 ###
 tmp_list = list()
@@ -62,15 +61,14 @@ ax[0].set_ylim(0, max_y_rounded_up_tpcc)
 ax[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[0].plot(x_tpcc, tigon_y_tpcc, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
-ax[0].plot(x_tpcc, tigon_no_shared_reader_y_tpcc, color="#000000", marker="^", **DEFAULT_PLOT, label="Tigon (NoSharedReader)")
-ax[0].plot(x_tpcc, tigon_no_swcc_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT, label="Tigon (NoSWcc)")
-ax[0].plot(x_tpcc, tigon_non_temporal_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, label="Tigon (NonTemporal)")
+ax[0].plot(x_tpcc, tigon_no_shared_reader_y_tpcc, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSharedReader")
+ax[0].plot(x_tpcc, tigon_no_swcc_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSWcc")
+ax[0].plot(x_tpcc, tigon_non_temporal_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NonTemporal")
 
-# ax[0].text(0.5, 0.95, 'TPC-C', horizontalalignment='center', verticalalignment='top', transform=ax[0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
-
-ax[0].set_xlabel("Multi-partition Transaction Percentage (NewOrder/Payment)"
-                 "\n"
-                 "(a) TPC-C")
+xticks = ax[0].xaxis.get_major_ticks()
+xticks[1].label1.set_visible(False)
+xticks[3].label1.set_visible(False)
+xticks[5].label1.set_visible(False)
 
 ### subplot 2 ###
 tmp_list = list()
@@ -86,25 +84,23 @@ ax[1].set_ylim(0, max_y_rounded_up_ycsb)
 ax[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[1].plot(x_ycsb, tigon_y_ycsb, color="#000000", marker="s", **DEFAULT_PLOT)
-ax[1].plot(x_ycsb, tigon_no_shared_reader_y_ycsb, color="#000000", marker="^", **DEFAULT_PLOT)
-ax[1].plot(x_ycsb, tigon_no_swcc_y_ycsb, color="#000000", marker=">", **DEFAULT_PLOT)
-ax[1].plot(x_ycsb, tigon_non_temporal_y_ycsb, color="#000000", marker="o", **DEFAULT_PLOT)
+ax[1].plot(x_ycsb, tigon_no_shared_reader_y_ycsb, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none")
+ax[1].plot(x_ycsb, tigon_no_swcc_y_ycsb, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none")
+ax[1].plot(x_ycsb, tigon_non_temporal_y_ycsb, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none")
 
-# ax[1].text(0.5, 0.95, 'YCSB (95%R, 5%W)', horizontalalignment='center', verticalalignment='top', transform=ax[1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
-
-ax[1].set_xlabel("Multi-partition Transaction Percentage"
-                 "\n"
-                 "(b) YCSB (95%R, 5%W)")
+ax[1].set_xticks(np.arange(min(x_ycsb), max(x_ycsb)+1, 20.0))
 
 ### global configuration ###
 for ax in ax.flat:
     ax.grid(axis='y')
 
 fig = plt.gcf()
-fig.tight_layout()
-fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), frameon=False, fancybox=False, framealpha=1, ncol=5)
+# fig.tight_layout()
+fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.21), frameon=False, fancybox=False, framealpha=1, ncol=2)
 
-# fig.text(0.5, 0, 'Multi-partition Transaction Percentage', ha='center')
-fig.text(-0.01, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
+fig.text(0.5, -0.05, 'Multi-partition Transaction Percentage', ha='center')
+fig.text(0.27, -0.14, '(a) TPC-C', ha='center')
+fig.text(0.80, -0.14, '(b) YCSB (95%R/5%W)', ha='center')
+fig.text(-0.02, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(res_dir + "/swcc.pdf", format="pdf", bbox_inches="tight")
