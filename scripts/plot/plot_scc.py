@@ -62,8 +62,8 @@ ax[0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.fo
 
 ax[0].plot(x_tpcc, tigon_y_tpcc, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
 ax[0].plot(x_tpcc, tigon_no_shared_reader_y_tpcc, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSharedReader")
-ax[0].plot(x_tpcc, tigon_no_swcc_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSWcc")
-ax[0].plot(x_tpcc, tigon_non_temporal_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NonTemporal")
+ax[0].plot(x_tpcc, tigon_non_temporal_y_tpcc, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NonTemporal")
+ax[0].plot(x_tpcc, tigon_no_swcc_y_tpcc, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Tigon-NoSWcc")
 
 xticks = ax[0].xaxis.get_major_ticks()
 xticks[1].label1.set_visible(False)
@@ -85,8 +85,8 @@ ax[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.1f}'.fo
 
 ax[1].plot(x_ycsb, tigon_y_ycsb, color="#000000", marker="s", **DEFAULT_PLOT)
 ax[1].plot(x_ycsb, tigon_no_shared_reader_y_ycsb, color="#000000", marker="^", **DEFAULT_PLOT, markerfacecolor = "none")
-ax[1].plot(x_ycsb, tigon_no_swcc_y_ycsb, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none")
-ax[1].plot(x_ycsb, tigon_non_temporal_y_ycsb, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none")
+ax[1].plot(x_ycsb, tigon_non_temporal_y_ycsb, color="#000000", marker=">", **DEFAULT_PLOT, markerfacecolor = "none")
+ax[1].plot(x_ycsb, tigon_no_swcc_y_ycsb, color="#000000", marker="o", **DEFAULT_PLOT, markerfacecolor = "none")
 
 ax[1].set_xticks(np.arange(min(x_ycsb), max(x_ycsb)+1, 20.0))
 
