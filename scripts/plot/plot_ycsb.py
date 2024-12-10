@@ -12,7 +12,6 @@ import matplotlib.ticker as ticker
 DEFAULT_PLOT = {
     "markersize": 6.0,
     "markeredgewidth": 1.2,
-    "markerfacecolor": "none",
     "markevery": 1,
     "linewidth": 1.0,
 }
@@ -96,50 +95,55 @@ ax[0, 0].set_ylim(0, max_y_rounded_up_1_2)
 ax[0, 0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[0, 0].plot(x, tigon_y_1, color="#000000", marker="s", **DEFAULT_PLOT, label="Tigon")
-ax[0, 0].plot(x, sundial_cxl_improved_y_1, color="#4372c4", marker="^", **DEFAULT_PLOT, label="Sundial+")
-ax[0, 0].plot(x, twopl_cxl_improved_y_1, color="#ffc003", marker=">", **DEFAULT_PLOT, label="DS2PL+")
-ax[0, 0].plot(x, motor_y_1, color="#ed7d31", marker="o", **DEFAULT_PLOT, label="Motor")
-
-ax[0, 0].set_xticklabels([])
+ax[0, 0].plot(x, sundial_cxl_improved_y_1, color="#4372c4", marker="^", **DEFAULT_PLOT, markerfacecolor = "none", label="Sundial+")
+ax[0, 0].plot(x, twopl_cxl_improved_y_1, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="DS2PL+")
+ax[0, 0].plot(x, motor_y_1, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Motor")
 
 ax[0, 0].text(0.5, 0.95, '100% R, 0%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+
+ax[0, 0].set_xticks(np.arange(min(x), max(x)+1, 20.0))
+ax[0, 0].set_xticklabels([])
 
 ### subplot 2 ###
 ax[0, 1].set_ylim(0, max_y_rounded_up_1_2)
 ax[0, 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[0, 1].plot(x, tigon_y_2, color="#000000", marker="s", **DEFAULT_PLOT)
-ax[0, 1].plot(x, sundial_cxl_improved_y_2, color="#4372c4", marker="^", **DEFAULT_PLOT)
-ax[0, 1].plot(x, twopl_cxl_improved_y_2, color="#ffc003", marker=">", **DEFAULT_PLOT)
-ax[0, 1].plot(x, motor_y_2, color="#ed7d31", marker="o", **DEFAULT_PLOT)
-
-ax[0, 1].set_xticklabels([])
-ax[0, 1].set_yticklabels([])
+ax[0, 1].plot(x, sundial_cxl_improved_y_2, color="#4372c4", marker="^", **DEFAULT_PLOT, markerfacecolor = "none",)
+ax[0, 1].plot(x, twopl_cxl_improved_y_2, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
+ax[0, 1].plot(x, motor_y_2, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
 ax[0, 1].text(0.5, 0.95, '95% R, 5%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+
+ax[0, 1].set_xticks(np.arange(min(x), max(x)+1, 20.0))
+ax[0, 1].set_xticklabels([])
+ax[0, 1].set_yticklabels([])
 
 ### subplot 3 ###
 ax[1, 0].set_ylim(0, max_y_rounded_up_3_4)
 ax[1, 0].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[1, 0].plot(x, tigon_y_3, color="#000000", marker="s", **DEFAULT_PLOT)
-ax[1, 0].plot(x, sundial_cxl_improved_y_3, color="#4372c4", marker="^", **DEFAULT_PLOT)
-ax[1, 0].plot(x, twopl_cxl_improved_y_3, color="#ffc003", marker=">", **DEFAULT_PLOT)
-ax[1, 0].plot(x, motor_y_3, color="#ed7d31", marker="o", **DEFAULT_PLOT)
+ax[1, 0].plot(x, sundial_cxl_improved_y_3, color="#4372c4", marker="^", **DEFAULT_PLOT, markerfacecolor = "none",)
+ax[1, 0].plot(x, twopl_cxl_improved_y_3, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
+ax[1, 0].plot(x, motor_y_3, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
 ax[1, 0].text(0.5, 0.95, '50% R, 50%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+
+ax[1, 0].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 
 ### subplot 4 ###
 ax[1, 1].set_ylim(0, max_y_rounded_up_3_4)
 ax[1, 1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 ax[1, 1].plot(x, tigon_y_4, color="#000000", marker="s", **DEFAULT_PLOT)
-ax[1, 1].plot(x, sundial_cxl_improved_y_4, color="#4372c4", marker="^", **DEFAULT_PLOT)
-ax[1, 1].plot(x, twopl_cxl_improved_y_4, color="#ffc003", marker=">", **DEFAULT_PLOT)
-ax[1, 1].plot(x, motor_y_4, color="#ed7d31", marker="o", **DEFAULT_PLOT)
+ax[1, 1].plot(x, sundial_cxl_improved_y_4, color="#4372c4", marker="^", **DEFAULT_PLOT, markerfacecolor = "none",)
+ax[1, 1].plot(x, twopl_cxl_improved_y_4, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
+ax[1, 1].plot(x, motor_y_4, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
 ax[1, 1].text(0.5, 0.95, '0% R, 100%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
+ax[1, 1].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[1, 1].set_yticklabels([])
 
 ### global configuration ###
@@ -148,9 +152,9 @@ for ax in ax.flat:
 
 fig = plt.gcf()
 fig.tight_layout()
-fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.04), frameon=False, fancybox=False, framealpha=1, ncol=4)
+fig.legend(loc='upper center', bbox_to_anchor=(0.54, 1.04), frameon=False, fancybox=False, framealpha=1, ncol=4)
 
-fig.text(0.5, 0, 'Multi-partition Transaction Percentage', ha='center')
+fig.text(0.54, 0, 'Multi-partition Transaction Percentage', ha='center')
 fig.text(0, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
 plt.savefig(output_dir + "/ycsb.pdf", format="pdf", bbox_inches="tight")
