@@ -97,7 +97,7 @@ elif [ $TASK_TYPE = "launch_vms" ]; then
         if [ $HOST_TYPE = "chameleon" ]; then
                 ./start_vm.sh --using-old-img --sriov 0 5 $HOST_NUM 1 1
         elif [ $HOST_TYPE = "uiuc" ]; then
-                ./start_vm.sh --using-old-img --sriov 0 5 $HOST_NUM 0 2
+                ./start_vm_uiuc.sh --using-old-img --sriov 0 5 $HOST_NUM 0 2
         fi
 
         echo "Finished!"
