@@ -14,9 +14,9 @@ res_dir = sys.argv[1]
 
 DEFAULT_PLOT = {
     "markersize": 12.0,
-    "markeredgewidth": 2.0,
+    "markeredgewidth": 2.6,
     "markevery": 1,
-    "linewidth": 2.0,
+    "linewidth": 2.6,
 }
 
 plt.rcParams["font.size"] = 14
