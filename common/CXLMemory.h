@@ -43,6 +43,7 @@ class CXLMemory {
         static constexpr uint64_t cxl_data_migration_root_index = 1;
         static constexpr uint64_t cxl_lru_trackers_root_index = 2;
         static constexpr uint64_t cxl_global_epoch_root_index = 3;
+        static constexpr uint64_t cxl_global_ebr_meta_root_index = 4;
 
         void init(Context context)
         {

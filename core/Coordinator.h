@@ -10,6 +10,7 @@
 #include "common/CXLMemory.h"
 #include "common/MPSCRingBuffer.h"
 #include "common/CXLTransport.h"
+#include "common/CXL_EBR.h"
 #include "core/ControlMessage.h"
 #include "core/Dispatcher.h"
 #include "core/Executor.h"
@@ -46,6 +47,9 @@ class Coordinator {
 
                 // init CXL transport
                 initCXLTransport();
+
+                // init CXL EBR
+                initCXLEBR();
 
                 // init logger
                 if (context.log_path != "" && context.wal_group_commit_time != 0) {
@@ -425,6 +429,23 @@ class Coordinator {
                         LOG(INFO) << "Coordinator " << id << " retrives CXL transport metadata ("
                                 << coordinator_num << " ringbuffers each with " << cxl_ringbuffers[0].get_entry_num() << " entries (each "
                                 << cxl_ringbuffers[0].get_entry_size() << " Bytes)";
+                }
+        }
+
+        void initCXLEBR()
+        {
+                int i = 0;
+                void *tmp = NULL;
+
+                if (id == 0) {
+                        global_ebr_meta = reinterpret_cast<CXL_EBR *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(CXL_EBR), CXLMemory::MISC_ALLOCATION));
+                        new(global_ebr_meta) CXL_EBR(context.coordinator_num, context.worker_num);
+                        CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_global_ebr_meta_root_index, global_ebr_meta);
+                        LOG(INFO) << "created global CXL EBR metadata";
+                } else {
+                        CXLMemory::wait_and_retrieve_cxl_shared_data(CXLMemory::cxl_global_ebr_meta_root_index, &tmp);
+                        global_ebr_meta = reinterpret_cast<CXL_EBR *>(tmp);
+                        LOG(INFO) << "retrieved global CXL EBR metadata";
                 }
         }
 

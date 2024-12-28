@@ -7,6 +7,7 @@
 #include "common/Percentile.h"
 #include "common/WALLogger.h"
 #include "common/BufferedFileWriter.h"
+#include "common/CXL_EBR.h"
 #include "core/ControlMessage.h"
 #include "core/Defs.h"
 #include "core/Delay.h"
@@ -79,6 +80,11 @@ template <class Workload, class Protocol> class Executor : public Worker {
 
                 cxl_memory.init_cxlalloc_for_given_thread(context.worker_num + 1, id + 1, context.coordinator_num, context.coordinator_id);
 
+                // init per-thread EBR metadata
+                if (global_ebr_meta != nullptr) {
+                        global_ebr_meta->thread_init_ebr_meta(context.coordinator_id, id);
+                }
+
 		uint64_t last_seed = 0;
 
 		ExecutorStatus status;
@@ -122,6 +128,7 @@ template <class Workload, class Protocol> class Executor : public Worker {
 					setupHandlers(*transaction);
 				}
 
+                                global_ebr_meta->enter_critical_section();
 				auto result = transaction->execute(id);
 				if (result == TransactionResult::READY_TO_COMMIT) {
 					bool commit;
