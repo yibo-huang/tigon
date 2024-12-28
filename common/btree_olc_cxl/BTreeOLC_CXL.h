@@ -23,6 +23,7 @@
 #include "common/btree_olc_cxl/EBR_CXL.h"
 
 #include "common/CXLMemory.h"
+#include "common/CXL_EBR.h"
 
 #include "common/atomic_offset_ptr.hpp"
 #include <boost/interprocess/offset_ptr.hpp>
@@ -686,7 +687,8 @@ class BPlusTree {
                         if (this->next_.get())
                                 sibling->next_->pre_ = this;
 			assert(((uint64_t)sibling) != 0xffffffffffffffffull);
-			EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(sibling);
+			// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(sibling);
+                        star::global_ebr_meta->add_retired_object(sibling);
 		}
 
 		bool needMerge()
@@ -1000,7 +1002,8 @@ class BPlusTree {
 			 * the pointer to EBR, it will delete the pointer safely.
 			 */
 			assert(((uint64_t)ptr) != 0xffffffffffffffffull);
-			EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(ptr);
+			// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(ptr);
+                        star::global_ebr_meta->add_retired_object(ptr);
 
 			// always merge nodes to the left node, so remove the `pos + 1` child
 			// memmove(&childAt(pos + 1), &childAt(pos + 2), sizeof(boost::interprocess::offset_ptr<NodeBase>) * (this->getCount() - pos - 1));
@@ -1017,7 +1020,8 @@ class BPlusTree {
 			this->setCount(this->getCount() + sibling->getCount());
 
 			assert(((uint64_t)sibling) != 0xffffffffffffffffull);
-			EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(sibling);
+			// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(sibling);
+                        star::global_ebr_meta->add_retired_object(sibling);
 		}
 		/**
 		 * @note Used when KeyType is trivial, e.g. `OLTPBtreeFixedLenKey`.
@@ -1653,7 +1657,8 @@ class BPlusTree {
 		p->keyAt(pos) = key.deepCopy();
 
 		assert(((uint64_t)ptr) != 0xffffffffffffffffull);
-		EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(ptr);
+		// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(ptr);
+                star::global_ebr_meta->add_retired_object(ptr);
 	}
 
 	/**
@@ -2556,7 +2561,8 @@ restart:
 				// if (changeRoot && parentNode == root_.load()) {
 				if (changeRoot && parentNode == root_.load()) {
 					assert(((uint64_t)parentNode) != 0xffffffffffffffffull);
-					EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+					// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+                                        star::global_ebr_meta->add_retired_object(parentNode);
 					root_.store(child);
 					// if (parentNode == root_.load()) root_.store(child);
 				}
@@ -2569,7 +2575,8 @@ restart:
 				if (changeRoot && parentNode == root_.load()) {
 					// if (changeRoot) {
 					assert(((uint64_t)parentNode) != 0xffffffffffffffffull);
-					EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+					// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+                                        star::global_ebr_meta->add_retired_object(parentNode);
 					root_.store(sibling);
 				}
 			} else if (opt == MergeOperation::BorrowFromRight) {
@@ -2589,7 +2596,8 @@ restart:
 				if (changeRoot && parentNode == root_.load()) {
 					// if (changeRoot) {
 					assert(((uint64_t)parentNode) != 0xffffffffffffffffull);
-					EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+					// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+                                        star::global_ebr_meta->add_retired_object(parentNode);
 					root_.store(child);
 				}
 			} else if (opt == MergeOperation::RightToLeft) {
@@ -2600,7 +2608,8 @@ restart:
 				if (changeRoot && parentNode == root_.load()) {
 					// if (changeRoot) {
 					assert(((uint64_t)parentNode) != 0xffffffffffffffffull);
-					EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+					// EBR<UpdateThreshold, Deallocator>::getLocalThreadData().addRetiredNode(parentNode);
+                                        star::global_ebr_meta->add_retired_object(parentNode);
 					root_.store(sibling);
 				}
 			} else if (opt == MergeOperation::BorrowFromRight) {
