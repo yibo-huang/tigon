@@ -571,6 +571,117 @@ class Database {
                         CHECK(W_YTD == D_YTD_SUM);
                 }
 
+                // Consistency Condition 2
+                // Entries in the DISTRICT, ORDER, and NEW-ORDER tables must satisfy the relationship:
+                // D_NEXT_O_ID - 1 = max(O_ID) = max(NO_O_ID)
+                for (auto partitionID = 0u; partitionID < context.partition_num; partitionID++) {
+                        if (partitioner->is_partition_replicated_on_me(partitionID) == false) {
+				continue;
+			}
+
+                        // scan the district table and get D_NEXT_O_ID
+                        ITable *district_table = tbl_district_vec[partitionID].get();
+                        district::key district_min_key = district::key(0, 0);
+                        district::key district_max_key = district::key(INT32_MAX, INT32_MAX);
+                        std::vector<ITable::row_entity> district_scan_results;
+
+                        auto district_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
+                                if (district_table->compare_key(key, &district_max_key) > 0)
+                                        return true;
+
+                                // testing is single-threaded, so it is fine to make this assertion
+                                CHECK(district_table->compare_key(key, &district_min_key) >= 0);
+
+                                ITable::row_entity cur_row(key, district_table->key_size(), meta_ptr, data_ptr, district_table->value_size());
+                                district_scan_results.push_back(cur_row);
+
+                                return false;
+                        };
+
+                        district_table->scan(&district_min_key, district_scan_processor);
+
+                        // scan the order table and get O_ID
+                        ITable *order_table = tbl_order_vec[partitionID].get();
+                        order::key order_min_key = order::key(0, 0, 0);
+                        order::key order_max_key = order::key(INT32_MAX, INT32_MAX, INT32_MAX);
+                        std::vector<ITable::row_entity> order_scan_results;
+
+                        auto order_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
+                                if (order_table->compare_key(key, &order_max_key) > 0)
+                                        return true;
+
+                                // testing is single-threaded, so it is fine to make this assertion
+                                CHECK(order_table->compare_key(key, &order_min_key) >= 0);
+
+                                ITable::row_entity cur_row(key, order_table->key_size(), meta_ptr, data_ptr, order_table->value_size());
+                                order_scan_results.push_back(cur_row);
+
+                                return false;
+                        };
+
+                        order_table->scan(&order_min_key, order_scan_processor);
+
+                        // scan the new_order table and get NO_O_ID
+                        ITable *new_order_table = tbl_order_vec[partitionID].get();
+                        new_order::key new_order_min_key = new_order::key(0, 0, 0);
+                        new_order::key new_order_max_key = new_order::key(INT32_MAX, INT32_MAX, INT32_MAX);
+                        std::vector<ITable::row_entity> new_order_scan_results;
+
+                        auto new_order_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
+                                if (new_order_table->compare_key(key, &new_order_max_key) > 0)
+                                        return true;
+
+                                // testing is single-threaded, so it is fine to make this assertion
+                                CHECK(new_order_table->compare_key(key, &new_order_min_key) >= 0);
+
+                                ITable::row_entity cur_row(key, new_order_table->key_size(), meta_ptr, data_ptr, new_order_table->value_size());
+                                new_order_scan_results.push_back(cur_row);
+
+                                return false;
+                        };
+
+                        new_order_table->scan(&new_order_min_key, new_order_scan_processor);
+
+                        // check consistency
+                        uint64_t D_NEXT_O_ID_vec[DISTRICT_PER_WAREHOUSE] = { 0 };
+                        uint64_t max_O_ID_vec[DISTRICT_PER_WAREHOUSE] = { 0 };
+                        uint64_t max_NO_O_ID_vec[DISTRICT_PER_WAREHOUSE] = { 0 };
+
+                        for (int i = 0; i < district_scan_results.size(); i++) {
+                                const auto district_row = *reinterpret_cast<district::value *>(district_scan_results[i].data);
+                                D_NEXT_O_ID_vec[i] = district_row.D_NEXT_O_ID;
+                        }
+
+                        for (int i = 0; i < order_scan_results.size(); i++) {
+                                const auto order_key = *reinterpret_cast<order::key *>(order_scan_results[i].key);
+                                if (order_key.O_D_ID == 0 || order_key.O_D_ID == INT32_MAX) {
+                                        continue;
+                                }
+                                CHECK(order_key.O_D_ID >= 1 && order_key.O_D_ID <= 10);
+                                const uint64_t cur_district_index = order_key.O_D_ID - 1;
+                                if (order_key.O_ID > max_O_ID_vec[cur_district_index]) {
+                                        max_O_ID_vec[cur_district_index] = order_key.O_ID;
+                                }
+                        }
+
+                        for (int i = 0; i < new_order_scan_results.size(); i++) {
+                                const auto new_order_key = *reinterpret_cast<new_order::key *>(new_order_scan_results[i].key);
+                                if (new_order_key.NO_D_ID == 0 || new_order_key.NO_D_ID == INT32_MAX) {
+                                        continue;
+                                }
+                                CHECK(new_order_key.NO_D_ID >= 1 && new_order_key.NO_D_ID <= 10);
+                                const uint64_t cur_district_index = new_order_key.NO_D_ID - 1;
+                                if (new_order_key.NO_O_ID > max_NO_O_ID_vec[cur_district_index]) {
+                                        max_NO_O_ID_vec[cur_district_index] = new_order_key.NO_O_ID;
+                                }
+                        }
+
+                        for (int i = 0; i < DISTRICT_PER_WAREHOUSE; i++) {
+                                CHECK(D_NEXT_O_ID_vec[i] == max_O_ID_vec[i] + 1);
+                                CHECK(D_NEXT_O_ID_vec[i] == max_NO_O_ID_vec[i] + 1);
+                        }
+                }
+
                 LOG(INFO) << "TPC-C consistency check passed!";
         }
 
