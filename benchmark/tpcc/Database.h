@@ -172,18 +172,18 @@ class Database {
 			auto warehouseTableID = warehouse::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncSundial> >(warehouseTableID, partitionID));
+					std::make_unique<TableBTreeOLC<warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncSundial> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncSundialPasha> >(warehouseTableID, partitionID));
+					std::make_unique<TableBTreeOLC<warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncSundialPasha> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "TwoPL") {
                                 tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncTwoPL> >(warehouseTableID, partitionID));
+					std::make_unique<TableBTreeOLC<warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncTwoPL> >(warehouseTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
                                 tbl_warehouse_vec.push_back(
-					std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncTwoPLPasha> >(warehouseTableID, partitionID));
+					std::make_unique<TableBTreeOLC<warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator, MetaInitFuncTwoPLPasha> >(warehouseTableID, partitionID));
 			} else if (context.protocol != "HStore") {
-				tbl_warehouse_vec.push_back(std::make_unique<TableHashMap<997, warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator> >(warehouseTableID, partitionID));
+				tbl_warehouse_vec.push_back(std::make_unique<TableBTreeOLC<warehouse::key, warehouse::value, warehouse::KeyComparator, warehouse::ValueComparator> >(warehouseTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
@@ -199,18 +199,18 @@ class Database {
 			auto districtTableID = district::tableID;
 			if (context.protocol == "Sundial") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncSundial> >(districtTableID, partitionID));
+					std::make_unique<TableBTreeOLC<district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncSundial> >(districtTableID, partitionID));
                         } else if (context.protocol == "SundialPasha") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncSundialPasha> >(districtTableID, partitionID));
+					std::make_unique<TableBTreeOLC<district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncSundialPasha> >(districtTableID, partitionID));
 			} else if (context.protocol == "TwoPL") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncTwoPL> >(districtTableID, partitionID));
+					std::make_unique<TableBTreeOLC<district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncTwoPL> >(districtTableID, partitionID));
                         } else if (context.protocol == "TwoPLPasha") {
 				tbl_district_vec.push_back(
-					std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncTwoPLPasha> >(districtTableID, partitionID));
+					std::make_unique<TableBTreeOLC<district::key, district::value, district::KeyComparator, district::ValueComparator, MetaInitFuncTwoPLPasha> >(districtTableID, partitionID));
                         } else if (context.protocol != "HStore") {
-				tbl_district_vec.push_back(std::make_unique<TableHashMap<997, district::key, district::value, district::KeyComparator, district::ValueComparator> >(districtTableID, partitionID));
+				tbl_district_vec.push_back(std::make_unique<TableBTreeOLC<district::key, district::value, district::KeyComparator, district::ValueComparator> >(districtTableID, partitionID));
 			} else {
 				if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON ||
 				    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
@@ -435,15 +435,15 @@ class Database {
 
 		auto itemTableID = item::tableID;
 		if (context.protocol == "Sundial") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncSundial> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableBTreeOLC<item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncSundial> >(itemTableID, 0));
                 } else if (context.protocol == "SundialPasha") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncSundialPasha> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableBTreeOLC<item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncSundialPasha> >(itemTableID, 0));
                 } else if (context.protocol == "TwoPL") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncTwoPL> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableBTreeOLC<item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncTwoPL> >(itemTableID, 0));
                 } else if (context.protocol == "TwoPLPasha") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncTwoPLPasha> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableBTreeOLC<item::key, item::value, item::KeyComparator, item::ValueComparator, MetaInitFuncTwoPLPasha> >(itemTableID, 0));
 		} else if (context.protocol != "HStore") {
-			tbl_item_vec.push_back(std::make_unique<TableHashMap<997, item::key, item::value, item::KeyComparator, item::ValueComparator> >(itemTableID, 0));
+			tbl_item_vec.push_back(std::make_unique<TableBTreeOLC<item::key, item::value, item::KeyComparator, item::ValueComparator> >(itemTableID, 0));
 		} else {
 			if (context.lotus_checkpoint == COW_ON_CHECKPOINT_OFF_LOGGING_ON || context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_OFF ||
 			    context.lotus_checkpoint == COW_ON_CHECKPOINT_ON_LOGGING_ON) {
