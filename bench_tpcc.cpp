@@ -53,9 +53,14 @@ int main(int argc, char *argv[])
 	star::tpcc::Database db;
 	db.initialize(context);
 
+        db.check_consistency(context);
+
 	do_tid_check = false;
 	star::Coordinator c(FLAGS_id, db, context);
 	c.connectToPeers();
 	c.start();
+
+        db.check_consistency(context);
+
 	return 0;
 }

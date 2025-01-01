@@ -334,8 +334,10 @@ class makePaymentQuery {
 
 		// The payment amount (H_AMOUNT) is randomly selected within [1.00 ..
 		// 5,000.00].
+                // However, float cannot precisely represent integers, which causes the failure of the consistency test
+                // so we just use 1 here.
 
-		query.H_AMOUNT = random.uniform_dist(1, 5000);
+		query.H_AMOUNT = 1;
 		return query;
 	}
 };

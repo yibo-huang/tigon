@@ -504,6 +504,76 @@ class Database {
 			"stock", [this](std::size_t partitionID) { stockInit(partitionID); }, partitionNum, threadsNum, partitioner.get());
 	}
 
+        void check_consistency(const Context &context)
+        {
+                auto partitioner = PartitionerFactory::create_partitioner(context.partitioner, context.coordinator_id, context.coordinator_num);
+
+                // Consistency Condition 1
+                // Entries in the WAREHOUSE and DISTRICT tables must satisfy the relationship:
+                // W_YTD = sum(D_YTD)
+                for (auto partitionID = 0u; partitionID < context.partition_num; partitionID++) {
+                        if (partitioner->is_partition_replicated_on_me(partitionID) == false) {
+				continue;
+			}
+
+                        // scan the warehouse table and get W_YTD
+                        ITable *warehouse_table = tbl_warehouse_vec[partitionID].get();
+                        warehouse::key wh_min_key = warehouse::key(0);
+                        warehouse::key wh_max_key = warehouse::key(INT32_MAX);
+                        std::vector<ITable::row_entity> warehouse_scan_results;
+
+                        auto warehouse_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
+                                if (warehouse_table->compare_key(key, &wh_max_key) > 0)
+                                        return true;
+
+                                // testing is single-threaded, so it is fine to make this assertion
+                                CHECK(warehouse_table->compare_key(key, &wh_min_key) >= 0);
+
+                                ITable::row_entity cur_row(key, warehouse_table->key_size(), meta_ptr, data_ptr, warehouse_table->value_size());
+                                warehouse_scan_results.push_back(cur_row);
+
+                                return false;
+                        };
+
+                        warehouse_table->scan(&wh_min_key, warehouse_scan_processor);
+
+                        // scan the district table and get sum(D_YTD)
+                        ITable *district_table = tbl_district_vec[partitionID].get();
+                        district::key district_min_key = district::key(0, 0);
+                        district::key district_max_key = district::key(INT32_MAX, INT32_MAX);
+                        std::vector<ITable::row_entity> district_scan_results;
+
+                        auto district_scan_processor = [&](const void *key, std::atomic<uint64_t> *meta_ptr, void *data_ptr, bool is_last_tuple) -> bool {
+                                if (district_table->compare_key(key, &district_max_key) > 0)
+                                        return true;
+
+                                // testing is single-threaded, so it is fine to make this assertion
+                                CHECK(district_table->compare_key(key, &district_min_key) >= 0);
+
+                                ITable::row_entity cur_row(key, district_table->key_size(), meta_ptr, data_ptr, district_table->value_size());
+                                district_scan_results.push_back(cur_row);
+
+                                return false;
+                        };
+
+                        district_table->scan(&district_min_key, district_scan_processor);
+
+                        // check consistency
+                        const auto warehouse_row = *reinterpret_cast<warehouse::value *>(warehouse_scan_results[0].data);
+                        float W_YTD = warehouse_row.W_YTD;
+
+                        float D_YTD_SUM = 0;
+                        for (auto i = 0u; i < district_scan_results.size(); i++) {
+                                const auto district_row = *reinterpret_cast<district::value *>(district_scan_results[i].data);
+                                D_YTD_SUM += district_row.D_YTD;
+                        }
+
+                        CHECK(W_YTD == D_YTD_SUM);
+                }
+
+                LOG(INFO) << "TPC-C consistency check passed!";
+        }
+
 	void apply_operation(const Operation &operation)
 	{
 		Decoder dec(operation.data);
