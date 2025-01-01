@@ -951,7 +951,7 @@ class Database {
 			value.D_STATE.assign(random.a_string(2, 2));
 			value.D_ZIP.assign(random.rand_zip());
 			value.D_TAX = static_cast<float>(random.uniform_dist(0, 2000)) / 10000;
-			value.D_YTD = 30000;
+			value.D_YTD = 3000;
 			value.D_NEXT_O_ID = 3001;
 
 			bool success = table->insert(&key, &value);
