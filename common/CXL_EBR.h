@@ -22,14 +22,28 @@ class CXL_EBR {
         static constexpr uint64_t max_thread_num = 5;
 
         // try to advance global epoch when we have more than this number of garbage
-        static constexpr uint64_t epoch_advance_threshold = 1024;
+        static constexpr uint64_t epoch_advance_threshold = 10;
+
+        struct retired_object {
+                retired_object(void *ptr, uint64_t size, uint64_t category)
+                        : ptr(ptr)
+                        , size(size)
+                {}
+
+                void *ptr;
+                uint64_t size;
+                uint64_t category;
+        };
 
         // per-thread EBR metadata in local DRAM
         struct EBRMetaLocal {
                 uint64_t coordinator_id;
                 uint64_t thread_id;
 
-                std::vector<void *> retired_objects[max_epoch];
+                std::vector<retired_object> retired_objects[max_epoch];
+
+                // statistics
+                Percentile<uint64_t> garbage_size;
         };
 
         // per-thread EBR metadata in CXL
@@ -59,7 +73,7 @@ class CXL_EBR {
                 LOG(INFO) << "init local EBR metadata, coordinator_id = " << local_ebr_meta.coordinator_id << " thread_id = " << local_ebr_meta.thread_id;
         }
 
-        void add_retired_object(void *retired_object)
+        void add_retired_object(void *ptr, uint64_t size, uint64_t category)
         {
                 EBRMetaLocal &local_ebr_meta = get_local_ebr_meta();
                 uint64_t coordinator_id = local_ebr_meta.coordinator_id;
@@ -69,8 +83,9 @@ class CXL_EBR {
                 uint64_t cur_local_epoch = cxl_ebr_meta.local_epoch.load(std::memory_order_acquire);
 
                 // add the object to the list of the current local epoch
-                std::vector<void *> &cur_retired_object_list = local_ebr_meta.retired_objects[cur_local_epoch % max_epoch];
-                cur_retired_object_list.push_back(retired_object);
+                std::vector<retired_object> &cur_retired_object_list = local_ebr_meta.retired_objects[cur_local_epoch % max_epoch];
+                retired_object object(ptr, size, category);
+                cur_retired_object_list.push_back(object);
         }
 
         void enter_critical_section()
@@ -82,14 +97,11 @@ class CXL_EBR {
                 EBRMetaCXL &cxl_ebr_meta = cxl_ebr_meta_vec[coordinator_id][thread_id];
                 uint64_t cur_local_epoch = cxl_ebr_meta.local_epoch.load(std::memory_order_acquire);
 
-                if (coordinator_id == 0 && thread_id == 0) {
-                        uint64_t cur_global_epoch = global_epoch.load(std::memory_order_acquire);
-                        // LOG(INFO) << "reach here 1, global epoch = " << cur_global_epoch;
+                // load global epoch
+                uint64_t cur_global_epoch = global_epoch.load(std::memory_order_acquire);
 
-                        std::vector<void *> &cur_retired_object_list = local_ebr_meta.retired_objects[cur_local_epoch % max_epoch];
-
-                        // local epoch == global epoch
-                        CHECK(cur_local_epoch == cur_global_epoch);
+                if (cur_global_epoch == cur_local_epoch) {
+                        std::vector<retired_object> &cur_retired_object_list = local_ebr_meta.retired_objects[cur_local_epoch % max_epoch];
 
                         // try to advance the global epoch
                         if (cur_retired_object_list.size() >= epoch_advance_threshold) {
@@ -109,13 +121,16 @@ class CXL_EBR {
 
                                 // advance the global epoch
                                 if (advance_global_ebr == true) {
-                                        global_epoch.store(cur_global_epoch + 1, std::memory_order_release);
+                                        uint64_t new_global_epoch = cur_global_epoch + 1;
+                                        global_epoch.compare_exchange_strong(cur_global_epoch, std::memory_order_acq_rel);
                                 }
                         }
+                } else {
+                        CHECK(cur_global_epoch > cur_local_epoch);
                 }
 
-                // load global epoch
-                uint64_t cur_global_epoch = global_epoch.load(std::memory_order_acquire);
+                // reload global epoch
+                cur_global_epoch = global_epoch.load(std::memory_order_acquire);
 
                 // update local epoch if necessary
                 if (cur_local_epoch < cur_global_epoch) {
@@ -125,15 +140,18 @@ class CXL_EBR {
                 // now it is time to reclaim garbage in local_epoch - 2
                 if (cur_global_epoch >= 3) {
                         uint64_t epoch_to_reclaim = cur_global_epoch - 2;
-                        std::vector<void *> &retired_object_list_to_reclaim = local_ebr_meta.retired_objects[epoch_to_reclaim % max_epoch];
+                        uint64_t gc_size = 0;
+                        std::vector<retired_object> &retired_object_list_to_reclaim = local_ebr_meta.retired_objects[epoch_to_reclaim % max_epoch];
                         for (uint64_t i = 0; i < retired_object_list_to_reclaim.size(); i++) {
-                                cxlalloc_free(retired_object_list_to_reclaim[i]);
+                                cxl_memory.cxlalloc_free_wrapper(
+                                        retired_object_list_to_reclaim[i].ptr,
+                                        retired_object_list_to_reclaim[i].size,
+                                        retired_object_list_to_reclaim[i].category);
+
+                                gc_size += retired_object_list_to_reclaim[i].size;
                         }
-                        // if (retired_object_list_to_reclaim.size() > 0) {
-                        //         LOG(INFO) << "freed retired list with length = " << retired_object_list_to_reclaim.size()
-                        //                 << " coordinator_id = " << coordinator_id
-                        //                 << " thread_id = " << thread_id;
-                        // }
+
+                        local_ebr_meta.garbage_size.add(gc_size);
                         retired_object_list_to_reclaim.clear();
                 }
         }

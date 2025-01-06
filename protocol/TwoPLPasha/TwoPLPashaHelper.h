@@ -1591,9 +1591,10 @@ out_unlock_lmeta:
                         // free the CXL row
                         if (context.enable_scc == false) {
                                 cxl_memory.cxlalloc_free_wrapper(smeta->get_scc_data(), sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_FREE);
+                                global_ebr_meta->add_retired_object(smeta->get_scc_data(), sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_FREE);
                         }
                         cxl_memory.cxlalloc_free_wrapper(smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
-                        global_ebr_meta->add_retired_object(smeta);
+                        global_ebr_meta->add_retired_object(smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                         // release the CXL latch
                         smeta->unlock();
@@ -1691,9 +1692,10 @@ out_unlock_lmeta:
                                 // free the CXL row
                                 if (context.enable_scc == false) {
                                         cxl_memory.cxlalloc_free_wrapper(cur_smeta->get_scc_data(), sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_FREE);
+                                        global_ebr_meta->add_retired_object(cur_smeta->get_scc_data(), sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_FREE);
                                 }
                                 cxl_memory.cxlalloc_free_wrapper(cur_smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
-                                global_ebr_meta->add_retired_object(cur_smeta);
+                                global_ebr_meta->add_retired_object(cur_smeta, sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_FREE);
 
                                 // release the CXL latch
                                 cur_smeta->unlock();
