@@ -22,7 +22,7 @@ class CXL_EBR {
         static constexpr uint64_t max_thread_num = 5;
 
         // try to advance global epoch when we have more than this number of garbage
-        static constexpr uint64_t epoch_advance_threshold = 10;
+        static constexpr uint64_t epoch_advance_threshold = 100;
 
         struct retired_object {
                 retired_object(void *ptr, uint64_t size, uint64_t category)
@@ -47,6 +47,7 @@ class CXL_EBR {
 
                 // statistics
                 Percentile<uint64_t> garbage_size;
+                uint64_t max_garbage_size;
         };
 
         // per-thread EBR metadata in CXL
@@ -74,6 +75,9 @@ class CXL_EBR {
                 for (uint64_t i = 0; i < max_epoch; i++) {
                         local_ebr_meta.retired_objects[i].clear();
                 }
+
+                local_ebr_meta.garbage_size.clear();
+                local_ebr_meta.max_garbage_size = 0;
 
                 LOG(INFO) << "init local EBR metadata, coordinator_id = " << local_ebr_meta.coordinator_id << " thread_id = " << local_ebr_meta.thread_id;
         }
@@ -160,6 +164,9 @@ class CXL_EBR {
                                 }
 
                                 local_ebr_meta.garbage_size.add(gc_size);
+                                if (gc_size > local_ebr_meta.max_garbage_size) {
+                                        local_ebr_meta.max_garbage_size = gc_size;
+                                }
                                 local_ebr_meta.last_freed_epoch = epoch_to_reclaim;
                                 retired_object_list_to_reclaim.clear();
                         }
@@ -179,7 +186,8 @@ class CXL_EBR {
                         << ": GC size 100% = " << local_ebr_meta.garbage_size.nth(100)
                         << " 99% = " << local_ebr_meta.garbage_size.nth(99)
                         << " 50% = " << local_ebr_meta.garbage_size.nth(50)
-                        << " avg = " << local_ebr_meta.garbage_size.avg();
+                        << " avg = " << local_ebr_meta.garbage_size.avg()
+                        << " max = " << local_ebr_meta.max_garbage_size;
         }
 
     private:
