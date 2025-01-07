@@ -221,6 +221,8 @@ template <class Workload, class Protocol> class Executor : public Worker {
 		process_request();
 		n_complete_workers.fetch_add(1);
 
+                global_ebr_meta->print_statistics();
+
 		LOG(INFO) << "Executor " << id << " exits.";
 	}
 

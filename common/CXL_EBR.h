@@ -28,6 +28,7 @@ class CXL_EBR {
                 retired_object(void *ptr, uint64_t size, uint64_t category)
                         : ptr(ptr)
                         , size(size)
+                        , category(category)
                 {}
 
                 void *ptr;
@@ -39,6 +40,8 @@ class CXL_EBR {
         struct EBRMetaLocal {
                 uint64_t coordinator_id;
                 uint64_t thread_id;
+
+                uint64_t last_freed_epoch;
 
                 std::vector<retired_object> retired_objects[max_epoch];
 
@@ -65,6 +68,8 @@ class CXL_EBR {
 
                 local_ebr_meta.coordinator_id = coordinator_id;
                 local_ebr_meta.thread_id = thread_id_candidate++;
+
+                local_ebr_meta.last_freed_epoch = 0;
 
                 for (uint64_t i = 0; i < max_epoch; i++) {
                         local_ebr_meta.retired_objects[i].clear();
@@ -111,8 +116,7 @@ class CXL_EBR {
                                 for (uint64_t i = 0; i < coordinator_num; i++) {
                                         for (uint64_t j = 0; j < thread_num; j++) {
                                                 uint64_t local_epoch = cxl_ebr_meta_vec[i][j].local_epoch.load(std::memory_order_acquire);
-                                                if (local_epoch != cur_global_epoch) {
-                                                        CHECK(local_epoch < cur_global_epoch);
+                                                if (local_epoch < cur_global_epoch) {   // local epoch might be larger than 'cur_global_epoch' because of race conditions
                                                         advance_global_ebr = false;
                                                         break;
                                                 }
@@ -122,7 +126,7 @@ class CXL_EBR {
                                 // advance the global epoch
                                 if (advance_global_ebr == true) {
                                         uint64_t new_global_epoch = cur_global_epoch + 1;
-                                        global_epoch.compare_exchange_strong(cur_global_epoch, std::memory_order_acq_rel);
+                                        global_epoch.compare_exchange_strong(cur_global_epoch, new_global_epoch, std::memory_order_acq_rel);
                                 }
                         }
                 } else {
@@ -134,31 +138,48 @@ class CXL_EBR {
 
                 // update local epoch if necessary
                 if (cur_local_epoch < cur_global_epoch) {
+                        CHECK(cur_local_epoch == cur_global_epoch - 1);
                         cxl_ebr_meta.local_epoch.store(cur_global_epoch, std::memory_order_release);
                 }
 
                 // now it is time to reclaim garbage in local_epoch - 2
-                if (cur_global_epoch >= 3) {
+                if (cur_global_epoch >= 2) {
                         uint64_t epoch_to_reclaim = cur_global_epoch - 2;
-                        uint64_t gc_size = 0;
-                        std::vector<retired_object> &retired_object_list_to_reclaim = local_ebr_meta.retired_objects[epoch_to_reclaim % max_epoch];
-                        for (uint64_t i = 0; i < retired_object_list_to_reclaim.size(); i++) {
-                                cxl_memory.cxlalloc_free_wrapper(
-                                        retired_object_list_to_reclaim[i].ptr,
-                                        retired_object_list_to_reclaim[i].size,
-                                        retired_object_list_to_reclaim[i].category);
+                        if (epoch_to_reclaim > local_ebr_meta.last_freed_epoch) {
+                                CHECK(epoch_to_reclaim == local_ebr_meta.last_freed_epoch + 1);
+                                uint64_t gc_size = 0;
+                                std::vector<retired_object> &retired_object_list_to_reclaim = local_ebr_meta.retired_objects[epoch_to_reclaim % max_epoch];
 
-                                gc_size += retired_object_list_to_reclaim[i].size;
+                                for (uint64_t i = 0; i < retired_object_list_to_reclaim.size(); i++) {
+                                        cxl_memory.cxlalloc_free_wrapper(
+                                                retired_object_list_to_reclaim[i].ptr,
+                                                retired_object_list_to_reclaim[i].size,
+                                                retired_object_list_to_reclaim[i].category);
+
+                                        gc_size += retired_object_list_to_reclaim[i].size;
+                                }
+
+                                local_ebr_meta.garbage_size.add(gc_size);
+                                local_ebr_meta.last_freed_epoch = epoch_to_reclaim;
+                                retired_object_list_to_reclaim.clear();
                         }
-
-                        local_ebr_meta.garbage_size.add(gc_size);
-                        retired_object_list_to_reclaim.clear();
                 }
         }
 
         void leave_critical_section()
         {
                 CHECK(0);       // not used
+        }
+
+        void print_statistics()
+        {
+                EBRMetaLocal &local_ebr_meta = get_local_ebr_meta();
+
+                LOG(INFO) << "EBR Statistics for worker " << local_ebr_meta.thread_id
+                        << ": GC size 100% = " << local_ebr_meta.garbage_size.nth(100)
+                        << " 99% = " << local_ebr_meta.garbage_size.nth(99)
+                        << " 50% = " << local_ebr_meta.garbage_size.nth(50)
+                        << " avg = " << local_ebr_meta.garbage_size.avg();
         }
 
     private:
