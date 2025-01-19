@@ -22,11 +22,11 @@ function print_usage {
 }
 
 function kill_prev_exps {
-        typeset MAX_HOST_NUM=8
+        typeset HOST_NUM=$1
         typeset i=0
 
         echo "killing previous experiments..."
-        for (( i=0; i < $MAX_HOST_NUM; ++i ))
+        for (( i=0; i < $HOST_NUM; ++i ))
         do
                 ssh_command "pkill bench_tpcc" $i
                 ssh_command "pkill bench_ycsb" $i
@@ -128,7 +128,7 @@ function run_exp_tpcc {
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
         delete_log_files
         init_cxl_for_vms $HOST_NUM
 
@@ -268,7 +268,7 @@ function run_exp_tpcc {
                 gather_other_output $HOST_NUM
         fi
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
 }
 
 function run_exp_ycsb {
@@ -308,7 +308,7 @@ function run_exp_ycsb {
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
         delete_log_files
         init_cxl_for_vms $HOST_NUM
 
@@ -448,7 +448,7 @@ function run_exp_ycsb {
                 gather_other_output $HOST_NUM
         fi
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
 }
 
 function run_exp_smallbank {
@@ -486,7 +486,7 @@ function run_exp_smallbank {
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
         delete_log_files
         init_cxl_for_vms $HOST_NUM
 
@@ -626,7 +626,7 @@ function run_exp_smallbank {
                 gather_other_output $HOST_NUM
         fi
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
 }
 
 function run_exp_tatp {
@@ -664,7 +664,7 @@ function run_exp_tatp {
         typeset SERVER_STRING=$(print_server_string $HOST_NUM)
         typeset i=0
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
         delete_log_files
         init_cxl_for_vms $HOST_NUM
 
@@ -804,7 +804,7 @@ function run_exp_tatp {
                 gather_other_output $HOST_NUM
         fi
 
-        kill_prev_exps
+        kill_prev_exps $HOST_NUM
 }
 
 # process arguments
