@@ -21,16 +21,18 @@ git submodule update --init --recursive
 ./scripts/setup.sh cur_host
 
 # rebooting...
+
+# go to the work dir
 cd pasha
 
-# build the image for our VMs after the reboot
+# build VM image
 ./scripts/setup.sh vm_image
 
 # setup dependencies
 ./scripts/setup.sh deps
 
 # launch VMs
-./scripts/setup.sh launch_vms chameleon 4 # we will launch 8 VMs each with 5 cores
+sudo ./scripts/setup.sh launch_vms chameleon 4 # we will launch 4 VMs each with 5 cores
 
 # setup VMs
 ./scripts/setup.sh vms 4
