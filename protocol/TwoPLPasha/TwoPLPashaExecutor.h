@@ -48,7 +48,7 @@ class TwoPLPashaExecutor : public Executor<Workload, TwoPLPasha<typename Workloa
                         DCHECK(twopl_pasha_global_helper != nullptr);
 
                         // init migration manager
-                        uint64_t hw_cc_budget_per_host = context.hw_cc_budget / context.coordinator_num;
+                        uint64_t hw_cc_budget_per_host = (context.hw_cc_budget - CXL_EBR::max_ebr_retiring_memory) / context.coordinator_num;
                         LOG(INFO) << "total hardware budget = " << context.hw_cc_budget << " per host = " << hw_cc_budget_per_host;
                         migration_manager = MigrationManagerFactory::create_migration_manager(context.protocol, context.migration_policy, context.coordinator_id,
                                 context.partition_num, context.when_to_move_out, hw_cc_budget_per_host);

@@ -15,6 +15,8 @@ namespace star
 
 class CXL_EBR {
     public:
+        static constexpr uint64_t max_ebr_retiring_memory = 1 * 1024 * 1024;    // 1MB
+
         // 0 - max_epoch
         static constexpr uint64_t max_epoch = 3;
 
