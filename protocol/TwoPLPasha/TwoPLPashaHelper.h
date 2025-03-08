@@ -25,6 +25,13 @@
 
 namespace star
 {
+
+enum migration_result {
+        SUCCESS,
+        FAIL_ALREADY_IN_CXL,
+        FAIL_OOM
+};
+
 struct TwoPLPashaSharedDataSCC {
         TwoPLPashaSharedDataSCC()
                 : tid(0)
@@ -1220,13 +1227,13 @@ out_unlock_lmeta:
                 return target_cxl_table->remove(key, nullptr);
         }
 
-        bool move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
+        migration_result move_from_hashmap_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 MetaDataType &meta = *std::get<0>(row);
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 void *local_data = std::get<1>(row);
-                bool move_in_success = false;
-                bool ret = false;
+                bool insert_ret = false;
+                migration_result res = migration_result::FAIL_OOM;
 
 		lmeta->lock();
                 if (lmeta->is_migrated == false) {
@@ -1282,8 +1289,8 @@ out_unlock_lmeta:
 
                         // insert into the corresponding CXL table
                         CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                        ret = target_cxl_table->insert(key, smeta);
-                        DCHECK(ret == true);
+                        insert_ret = target_cxl_table->insert(key, smeta);
+                        DCHECK(insert_ret == true);
 
                         // mark the local row as migrated
                         lmeta->migrated_row = reinterpret_cast<char *>(smeta);
@@ -1296,7 +1303,7 @@ out_unlock_lmeta:
 
                         // LOG(INFO) << "moved in a row with key " << key << " from table " << table->tableID();
 
-                        move_in_success = true;
+                        res = migration_result::SUCCESS;
                 } else {
                         if (inc_ref_cnt == true) {
                                 // increase the reference count for the requesting host, even if it is already migrated
@@ -1307,17 +1314,18 @@ out_unlock_lmeta:
                                 scc_data->ref_cnt++;
                                 smeta->unlock();
                         }
-                        move_in_success = false;
+                        res = migration_result::FAIL_ALREADY_IN_CXL;
                 }
 		lmeta->unlock();
 
-		return move_in_success;
+		return res;
 	}
 
-        bool move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
+        migration_result move_from_btree_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
-                bool move_in_success = false;
-                bool ret = false;
+                bool insert_ret = false;
+                bool update_next_key_ret = false;
+                migration_result res = migration_result::FAIL_OOM;
 
                 auto move_in_processor = [&](const void *prev_key, void *prev_meta, void *prev_data, const void *cur_key, void *cur_meta, void *cur_data, const void *next_key, void *next_meta, void *next_data) {
                         auto prev_lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(prev_meta);
@@ -1420,8 +1428,8 @@ out_unlock_lmeta:
 
                                 // insert into the corresponding CXL table
                                 CXLTableBase *target_cxl_table = cxl_tbl_vecs[table->tableID()][table->partitionID()];
-                                ret = target_cxl_table->insert(key, cur_smeta);
-                                DCHECK(ret == true);
+                                insert_ret = target_cxl_table->insert(key, cur_smeta);
+                                DCHECK(insert_ret == true);
 
                                 // mark the local row as migrated
                                 cur_lmeta->migrated_row = reinterpret_cast<char *>(cur_smeta);
@@ -1458,7 +1466,7 @@ out_unlock_lmeta:
                                         next_lmeta->unlock();
                                 }
 
-                                move_in_success = true;
+                                res = migration_result::SUCCESS;
                         } else {
                                 // lazily update the next-key information for the previous key
                                 if (prev_lmeta != nullptr) {
@@ -1495,7 +1503,7 @@ out_unlock_lmeta:
                                         cur_scc_data->ref_cnt++;
                                         cur_smeta->unlock();
                                 }
-                                move_in_success = false;
+                                res = migration_result::FAIL_ALREADY_IN_CXL;
 
                                 // the next-key information should already been updated
                         }
@@ -1503,34 +1511,37 @@ out_unlock_lmeta:
 		};
 
                 // update next-key information
-                ret = table->search_and_update_next_key_info(key, move_in_processor);
+                update_next_key_ret = table->search_and_update_next_key_info(key, move_in_processor);
+                DCHECK(update_next_key_ret == true);
 
-		return ret && move_in_success;
+		return res;
 	}
 
         bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
-                bool move_in_success = false;
+                migration_result res = migration_result::FAIL_OOM;
+                bool ret = false;
 
                 if (this->context.enable_phantom_detection == true) {
                         if (table->tableType() == ITable::HASHMAP) {
-                                move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
+                                res = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                         } else if (table->tableType() == ITable::BTREE) {
-                                move_in_success = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
+                                res = move_from_btree_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                         } else {
                                 DCHECK(0);
                         }
                 } else {
-                        move_in_success = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
+                        res = move_from_hashmap_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
                 }
 
                 // statistics
-                if (move_in_success == true) {
+                if (res == migration_result::SUCCESS) {
                         // LOG(INFO) << "moved in a row with key " << table->get_plain_key(key) << " from table " << table->tableID();
                         num_data_move_in.fetch_add(1);
+                        ret = true;
                 }
 
-		return move_in_success;
+		return ret;
 	}
 
         bool move_from_hashmap_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)
