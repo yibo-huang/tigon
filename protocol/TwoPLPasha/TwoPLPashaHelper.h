@@ -26,12 +26,6 @@
 namespace star
 {
 
-enum migration_result {
-        SUCCESS,
-        FAIL_ALREADY_IN_CXL,
-        FAIL_OOM
-};
-
 struct TwoPLPashaSharedDataSCC {
         TwoPLPashaSharedDataSCC()
                 : tid(0)

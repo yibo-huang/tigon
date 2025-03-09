@@ -10,6 +10,12 @@
 namespace star
 {
 
+enum migration_result {
+        SUCCESS,
+        FAIL_ALREADY_IN_CXL,
+        FAIL_OOM
+};
+
 class MigrationManager {
     public:
         using MetaDataType = std::atomic<uint64_t>;
