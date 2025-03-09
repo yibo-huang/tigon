@@ -72,7 +72,7 @@ class MigrationManager {
         {
         }
 
-        virtual bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) = 0;
+        virtual migration_result move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) = 0;
         virtual bool move_row_out(uint64_t partition_id) = 0;
         virtual bool delete_specific_row_and_move_out(ITable *table, const void *key, bool is_delete_local) = 0;
 

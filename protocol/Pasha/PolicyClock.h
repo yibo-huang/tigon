@@ -154,7 +154,7 @@ class PolicyClock : public MigrationManager {
                 clock_meta->second_chance = 1;
         }
 
-        bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
+        migration_result move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 ClockTracker &clock_tracker = clock_trackers[table->partitionID()];
                 void *migration_policy_meta = nullptr;

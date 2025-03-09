@@ -241,7 +241,7 @@ class Database {
                 return cxl_tbl_vecs;
         }
 
-        void move_all_tables_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
+        void move_all_tables_into_cxl(std::function<migration_result(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
         {
                 for (int i = 0; i < tbl_vecs.size(); i++) {
                         for (int j = 0; j < tbl_vecs[i].size(); j++) {
@@ -250,7 +250,7 @@ class Database {
                 }
         }
 
-        void move_non_part_tables_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
+        void move_non_part_tables_into_cxl(std::function<migration_result(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
         {
                 for (int i = 0; i < tbl_vecs.size(); i++) {
                         for (int j = 0; j < tbl_vecs[i].size(); j++) {

@@ -37,7 +37,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 fifo_meta->row_entity_ptr = new MigrationManager::migrated_row_entity(table, key, row, metadata_size);
         }
 
-        bool move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
+        migration_result move_row_in(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt) override
         {
                 void *migration_policy_meta = nullptr;
                 FIFOMeta *fifo_meta = nullptr;

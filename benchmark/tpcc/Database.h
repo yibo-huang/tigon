@@ -1121,13 +1121,13 @@ class Database {
                 return cxl_tbl_vecs;
         }
 
-        void move_all_tables_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
+        void move_all_tables_into_cxl(std::function<migration_result(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
         {
                 // disabled for now
                 CHECK(0);
         }
 
-        void move_non_part_tables_into_cxl(std::function<bool(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
+        void move_non_part_tables_into_cxl(std::function<migration_result(ITable *, const void *, std::tuple<MetaDataType *, void *> &, bool)> move_in_func)
         {
                 // customer ID
                 for (int i = 0; i < tbl_customer_vec.size(); i++) {
