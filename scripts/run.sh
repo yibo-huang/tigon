@@ -156,7 +156,7 @@ function run_exp_tpcc {
                         --replica_group=1 --lock_manager=0 --batch_flush=1 --lotus_async_repl=true --batch_size=0 --time_to_run=$TIME_TO_RUN --time_to_warmup=$TIME_TO_WARMUP
                         --use_cxl_transport=$USE_CXL_TRANS --use_output_thread=$USE_OUTPUT_THREAD --cxl_trans_entry_struct_size=$CXL_TRANS_ENTRY_STRUCT_SIZE --cxl_trans_entry_num=$CXL_TRANS_ENTRY_NUM
                         --enable_migration_optimization=$ENABLE_MIGRATION_OPTIMIZATION --migration_policy=$MIGRATION_POLICY --when_to_move_out=$WHEN_TO_MOVE_OUT --hw_cc_budget=$HW_CC_BUDGET
-                        --enable_scc=$ENABLE_SCC--scc_mechanism=$SCC_MECH
+                        --enable_scc=$ENABLE_SCC --scc_mechanism=$SCC_MECH
                         --pre_migrate=$PRE_MIGRATE
                         --protocol=SundialPasha --query=$QUERY_TYPE --neworder_dist=$REMOTE_NEWORDER_PERC --payment_dist=$REMOTE_PAYMENT_PERC" 0
 
