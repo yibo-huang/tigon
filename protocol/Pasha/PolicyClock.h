@@ -126,7 +126,7 @@ class PolicyClock : public MigrationManager {
                 pthread_spinlock_t clock_tracker_lock;
         };
 
-        PolicyClock(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
+        PolicyClock(std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                         uint64_t coordinator_id,
@@ -158,11 +158,11 @@ class PolicyClock : public MigrationManager {
         {
                 ClockTracker &clock_tracker = clock_trackers[table->partitionID()];
                 void *migration_policy_meta = nullptr;
-                bool ret = false;
+                migration_result ret = migration_result::FAIL_OOM;
 
                 clock_tracker.lock();
                 ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
-                if (ret == true) {
+                if (ret == migration_result::SUCCESS) {
                         ClockTrackerNode *clock_tracker_node = new ClockTrackerNode(table, key, row);
                         clock_tracker_node->row_entity.migration_manager_meta = migration_policy_meta;
                         clock_tracker.track(clock_tracker_node);

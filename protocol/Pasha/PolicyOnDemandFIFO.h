@@ -20,7 +20,7 @@ class PolicyOnDemandFIFO : public MigrationManager {
                 MigrationManager::migrated_row_entity *row_entity_ptr{ nullptr };       // this will be in local DRAM and is only accessed by the owner host
         };
 
-        PolicyOnDemandFIFO(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
+        PolicyOnDemandFIFO(std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                         const std::string when_to_move_out_str,
@@ -41,11 +41,11 @@ class PolicyOnDemandFIFO : public MigrationManager {
         {
                 void *migration_policy_meta = nullptr;
                 FIFOMeta *fifo_meta = nullptr;
-                bool ret = false;
+                migration_result ret = migration_result::FAIL_OOM;
 
                 queue_mutex.lock();
                 ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
-                if (ret == true) {
+                if (ret == migration_result::SUCCESS) {
                         CHECK(migration_policy_meta != nullptr);
                         auto fifo_meta = reinterpret_cast<FIFOMeta *>(migration_policy_meta);
                         fifo_queue.push_back(*fifo_meta->row_entity_ptr);

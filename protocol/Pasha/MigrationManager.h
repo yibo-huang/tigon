@@ -27,7 +27,7 @@ class MigrationManager {
                 Reactive
         };
 
-        MigrationManager(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
+        MigrationManager(std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                          std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                          std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                          const std::string when_to_move_out_str)
@@ -77,7 +77,7 @@ class MigrationManager {
         virtual bool delete_specific_row_and_move_out(ITable *table, const void *key, bool is_delete_local) = 0;
 
         // user-provided functions
-        std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt, void *&)> move_from_partition_to_shared_region;
+        std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool inc_ref_cnt, void *&)> move_from_partition_to_shared_region;
         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition;
         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info;
 

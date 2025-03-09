@@ -1511,10 +1511,9 @@ out_unlock_lmeta:
 		return res;
 	}
 
-        bool move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
+        migration_result move_from_partition_to_shared_region(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row, bool inc_ref_cnt, void *&migration_policy_meta)
 	{
                 migration_result res = migration_result::FAIL_OOM;
-                bool ret = false;
 
                 if (this->context.enable_phantom_detection == true) {
                         if (table->tableType() == ITable::HASHMAP) {
@@ -1532,10 +1531,9 @@ out_unlock_lmeta:
                 if (res == migration_result::SUCCESS) {
                         // LOG(INFO) << "moved in a row with key " << table->get_plain_key(key) << " from table " << table->tableID();
                         num_data_move_in.fetch_add(1);
-                        ret = true;
                 }
 
-		return ret;
+		return res;
 	}
 
         bool move_from_hashmap_to_partition(ITable *table, const void *key, const std::tuple<MetaDataType *, void *> &row)

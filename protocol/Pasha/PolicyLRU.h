@@ -152,7 +152,7 @@ class PolicyLRU : public MigrationManager {
                 pthread_spinlock_t lru_tracker_lock;
         };
 
-        PolicyLRU(std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
+        PolicyLRU(std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                         uint64_t coordinator_id,
@@ -200,12 +200,12 @@ class PolicyLRU : public MigrationManager {
                 LRUTracker &lru_tracker = lru_trackers[table->partitionID()];
                 void *migration_policy_meta = nullptr;
                 LRUMeta *lru_meta = nullptr;
-                bool ret = false;
+                migration_result ret = migration_result::FAIL_OOM;
 
                 lru_tracker.lock();
 
                 ret = move_from_partition_to_shared_region(table, key, row, inc_ref_cnt, migration_policy_meta);
-                if (ret == true) {
+                if (ret == migration_result::SUCCESS) {
                         CHECK(migration_policy_meta != nullptr);
                         lru_meta = reinterpret_cast<LRUMeta *>(migration_policy_meta);
                         CHECK(lru_meta->next == nullptr);
