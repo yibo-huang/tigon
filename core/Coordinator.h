@@ -65,7 +65,7 @@ class Coordinator {
                                 // init CXL global epoch (std::atomic<uint64_t>)
                                 std::atomic<uint64_t> *cxl_global_epoch = nullptr;
                                 if (context.coordinator_id == 0) {
-                                        cxl_global_epoch = reinterpret_cast<std::atomic<uint64_t> *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(std::atomic<uint64_t>), CXLMemory::DATA_ALLOCATION));
+                                        cxl_global_epoch = reinterpret_cast<std::atomic<uint64_t> *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(std::atomic<uint64_t>), CXLMemory::MISC_ALLOCATION));
                                         CXLMemory::commit_shared_data_initialization(CXLMemory::cxl_global_epoch_root_index, cxl_global_epoch);
                                 } else {
                                         void *tmp = NULL;

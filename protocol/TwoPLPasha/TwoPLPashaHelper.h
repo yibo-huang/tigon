@@ -1232,10 +1232,22 @@ out_unlock_lmeta:
 		lmeta->lock();
                 if (lmeta->is_migrated == false) {
                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
+                        if (smeta == nullptr) {
+                                res = migration_result::FAIL_OOM;
+                                lmeta->unlock();
+                                return res;
+                        }
+
                         TwoPLPashaSharedDataSCC *scc_data = nullptr;
                         if (lmeta->scc_data == nullptr || context.enable_scc == false) {
                                 // there is no cached copy in CXL - allocate SCC data
                                 scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
+                                if (scc_data == nullptr) {
+                                        res = migration_result::FAIL_OOM;
+                                        lmeta->unlock();
+                                        return res;
+                                }
+
                                 lmeta->scc_data = scc_data;
                         } else {
                                 // we have a cached copy in CXL - reuse it
@@ -1357,10 +1369,22 @@ out_unlock_lmeta:
                         if (cur_lmeta->is_migrated == false) {
                                 // allocate the CXL row
                                 TwoPLPashaMetadataShared *cur_smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaMetadataShared), CXLMemory::METADATA_ALLOCATION));
+                                if (cur_smeta == nullptr) {
+                                        res = migration_result::FAIL_OOM;
+                                        cur_lmeta->unlock();
+                                        return;
+                                }
+
                                 TwoPLPashaSharedDataSCC *cur_scc_data = nullptr;
                                 if (cur_lmeta->scc_data == nullptr || context.enable_scc == false) {
                                         // there is no cached copy in CXL - allocate SCC data
                                         cur_scc_data = reinterpret_cast<TwoPLPashaSharedDataSCC *>(cxl_memory.cxlalloc_malloc_wrapper(sizeof(TwoPLPashaSharedDataSCC) + table->value_size(), CXLMemory::DATA_ALLOCATION));
+                                        if (cur_scc_data == nullptr) {
+                                                res = migration_result::FAIL_OOM;
+                                                cur_lmeta->unlock();
+                                                return;
+                                        }
+
                                         cur_lmeta->scc_data = cur_scc_data;
                                 } else {
                                         // we have a cached copy in CXL - reuse it

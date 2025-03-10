@@ -184,7 +184,12 @@ class TwoPLPashaMessageHandler {
 
                 // move the tuple to the shared region if it is not currently there
                 // the return value does not matter
-                migration_manager->move_row_in(&table, key, row, false);
+                migration_result res = migration_manager->move_row_in(&table, key, row, false);
+                if (res == migration_result::FAIL_OOM) {
+                        success = false;
+                } else {
+                        success = true;
+                }
 
 		// prepare response message header
 		auto message_size = MessagePiece::get_header_size() + sizeof(success) + sizeof(key_offset);
@@ -226,7 +231,12 @@ class TwoPLPashaMessageHandler {
 
 		Decoder dec(stringPiece);
 		dec >> success >> key_offset;
-                DCHECK(success == true);
+
+                if (success == false) {
+                        txn->abort_lock = true;
+                        txn->pendingResponses--;
+                        return;
+                }
 
 		TwoPLPashaRWKey &readKey = txn->readSet[key_offset];
                 uint64_t tid = 0;
