@@ -32,11 +32,19 @@ if [ $TASK_TYPE = "deps" ]; then
         fi
         echo "Setting up dependencies..."
 
-        # build cxl_shmem
+        # build driver_futex
         cd $SCRIPT_DIR/../dependencies/cxl_shmem
         task install_deps
         task check_driver
         task build_clang_release
+
+        # build cxl-init
+        cd $SCRIPT_DIR/../dependencies/cxl_shmem/src/cxlalloc/cxl-harness
+        cargo build --release
+
+        # build cxlalloc
+        cd $SCRIPT_DIR/../dependencies/cxlalloc/cxlalloc-static
+        cargo build --features backend-ivshmem --release
 
         echo "Finished!"
         exit 0
@@ -107,7 +115,7 @@ elif [ $TASK_TYPE = "vms" ]; then
 
         # sync cxl_shmem
         echo "Sync cxl_shmem..."
-        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/build_clang_release/cxl-init /root/cxl-init $HOST_NUM
+        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/src/target/release/cxl-init /root/cxl-init $HOST_NUM
         sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/build_clang_release/bin/cxl_recover_meta /root/cxl_recover_meta $HOST_NUM
         sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/driver_futex/jj_abortable_spin/byte/cxl_ivpci.ko /root/cxl_ivpci.ko $HOST_NUM
 

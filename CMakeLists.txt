@@ -46,27 +46,12 @@ else()
     target_link_libraries(misc_cpp ${jemalloc_lib} glog gflags)
 endif()
 
-# Build cxlalloc
-include(FetchContent)
-FetchContent_Declare(
-    Corrosion
-    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-    GIT_TAG v0.5.0 # Optionally specify a commit hash, version tag or branch here
-)
-FetchContent_MakeAvailable(Corrosion)
-corrosion_import_crate(
-    MANIFEST_PATH ${CMAKE_SOURCE_DIR}/dependencies/cxlalloc/cxlalloc-static/Cargo.toml
-    PROFILE release
-    NO_DEFAULT_FEATURES
-    CRATES cxlalloc-static
-    FEATURES cxlalloc-static/arch-gpf cxlalloc-static/backend-ivshmem
-)
 
 add_executable(bench_tpcc bench_tpcc.cpp)
-target_link_libraries(bench_tpcc misc_cpp cxlalloc_static)
+target_link_libraries(bench_tpcc misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxlalloc/target/release/libcxlalloc_static.a)
 
 add_executable(bench_ycsb bench_ycsb.cpp)
-target_link_libraries(bench_ycsb misc_cpp cxlalloc_static)
+target_link_libraries(bench_ycsb misc_cpp ${CMAKE_SOURCE_DIR}/dependencies/cxlalloc/target/release/libcxlalloc_static.a)
 
 # add_executable(bench_smallbank bench_smallbank.cpp)
 # target_link_libraries(bench_smallbank misc_cpp cxlalloc_static)
