@@ -35,6 +35,8 @@ int main(int argc, char *argv[])
 
 	if (FLAGS_query == "mixed") {
 		context.workloadType = star::tpcc::TPCCWorkloadType::MIXED;
+        } else if (FLAGS_query == "first_two") {
+		context.workloadType = star::tpcc::TPCCWorkloadType::FIRST_TWO;
 	} else if (FLAGS_query == "neworder") {
 		context.workloadType = star::tpcc::TPCCWorkloadType::NEW_ORDER_ONLY;
 	} else if (FLAGS_query == "payment") {

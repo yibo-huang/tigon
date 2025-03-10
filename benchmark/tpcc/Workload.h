@@ -74,6 +74,14 @@ template <class Transaction> class Workload {
 				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 				transactionType = "TPCC NewOrder";
 			}
+                } else if (context.workloadType == TPCCWorkloadType::FIRST_TWO) {
+                        if (x <= 50) {
+                                p = std::make_unique<Payment<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+				transactionType = "TPCC Payment";
+			} else {
+				p = std::make_unique<NewOrder<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
+				transactionType = "TPCC NewOrder";
+			}
                 } else if (context.workloadType == TPCCWorkloadType::TEST) {
 			p = std::make_unique<Test<Transaction> >(coordinator_id, partition_id, db, context, random, partitioner);
 			transactionType = "TPCC Test";
