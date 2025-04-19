@@ -30,23 +30,13 @@ if [ $TASK_TYPE = "deps" ]; then
                 print_usage
                 exit -1
         fi
-        echo "Setting up dependencies..."
 
-        # build driver_futex
-        cd $SCRIPT_DIR/../dependencies/cxl_shmem
-        task install_deps
-        task check_driver
-        task build_clang_release
+        # tool chains
+        sudo apt-get install -y cmake gcc-12 g++-12 clang-15 clang++-15 lld-15
 
-        # build cxl-init
-        cd $SCRIPT_DIR/../dependencies/cxl_shmem/src/cxlalloc/cxl-harness
-        cargo build --release
+        # libraries
+        sudo apt-get install -y libboost-all-dev libjemalloc-dev libgoogle-glog-dev libgtest-dev
 
-        # build cxlalloc
-        cd $SCRIPT_DIR/../dependencies/cxlalloc/cxlalloc-static
-        cargo build --features backend-ivshmem --release
-
-        echo "Finished!"
         exit 0
 elif [ $TASK_TYPE = "cur_host" ]; then
         if [ $# != 1 ]; then
