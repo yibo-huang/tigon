@@ -7,7 +7,7 @@ typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null &
 typeset current_date_time="`date +%Y%m%d%H%M`"
 
 function print_usage {
-        echo "[usage] ./setup.sh [deps/cur_host/vm_image/kill_vms/launch_vms/vms] EXP-SPECIFIC"
+        echo "[usage] ./setup.sh [deps/host/vm_image/kill_vms/launch_vms/vms] EXP-SPECIFIC"
         echo "deps: None"
         echo "cur_host: None"
         echo "vm_image: None"
@@ -37,17 +37,29 @@ if [ $TASK_TYPE = "deps" ]; then
         # libraries
         sudo apt-get install -y libboost-all-dev libjemalloc-dev libgoogle-glog-dev libgtest-dev
 
+        # required by VM-based emulation
+        sudo apt-get install -y python3 python3-pip
+        /usr/bin/python3 -m pip install git+https://github.com/photoszzt/mkosi.git@27ed556#egg=mkosi
+
         exit 0
-elif [ $TASK_TYPE = "cur_host" ]; then
+elif [ $TASK_TYPE = "host" ]; then
         if [ $# != 1 ]; then
                 print_usage
                 exit -1
         fi
-        echo "Setting up current machine... Will reboot the machine later"
+        echo "Setting up current machine... Will reboot the machine"
 
-        # setup current host
-        cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/
-        ./setup_current_host.sh
+        # setup ssh key
+        [ -f $HOME/.ssh/id_rsa ] || ssh-keygen -t rsa -N "" -f $HOME/.ssh/id_rsa
+        cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+
+        # kernel 5.19.0-50-generic
+        sudo apt-get install -y linux-image-5.19.0-50-generic linux-headers-5.19.0-50-generic \
+                linux-hwe-5.19-headers-5.19.0-50 linux-modules-5.19.0-50-generic \
+                linux-modules-extra-5.19.0-50-generic
+
+        # reboot to switch to the new kernel
+        sudo reboot
 
         echo "should never reach here!"
         exit -1

@@ -1,0 +1,76 @@
+[Distribution]
+Distribution=ubuntu
+Repositories=jammy,main,restricted,universe
+Release=jammy
+
+[Partitions]
+RootSize=32G
+ESPSize=512M
+
+[Output]
+Format=gpt_ext4
+Bootable=yes
+Output=root.img
+KernelCommandLine="console=ttyS0"
+BootProtocols=bios
+WithUnifiedKernelImages=no
+
+[Content]
+WithNetwork=yes
+
+PostInstallationScript=mkosi_postinst.sh
+Packages=
+  acl
+  apt-transport-https
+  bzip2
+  ca-certificates
+  curl
+  dmsetup
+  gettext-base
+  git
+  git-lfs
+  gnupg-agent
+  hwloc
+  iperf3
+  iproute2
+  ipvsadm
+  jq
+  libopenmpi3
+  libpmem2
+  libseccomp2
+  libseccomp-dev
+  lsof
+  lshw
+  net-tools
+  nftables
+  openmpi-bin
+  libopenmpi3
+  openssh-client
+  openssh-server
+  pciutils
+  pkg-config
+  python3
+  rsync
+  socat
+  software-properties-common
+  strace
+  sysstat
+  tar
+  ubuntu-minimal
+  unzip
+  util-linux
+  vim
+  wget
+  gdb
+  numactl
+  python3-sh
+  python3-pip
+  tcpdump
+  chrony
+  libgoogle-glog-dev
+  libgflags-dev
+  libzmq3-dev
+  trace-cmd
+
+[Validation]
+Password=root
