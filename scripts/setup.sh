@@ -38,7 +38,7 @@ if [ $TASK_TYPE = "deps" ]; then
         sudo apt-get install -y libboost-all-dev libjemalloc-dev libgoogle-glog-dev libgtest-dev
 
         # required by VM-based emulation
-        sudo apt-get install -y python3 python3-pip mkosi ovmf
+        sudo apt-get install -y python3 python3-pip mkosi ovmf numactl
         sudo pip3 install pyroute2
 
         # install Rust
