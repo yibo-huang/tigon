@@ -1,0 +1,18 @@
+[package]
+name = "ivshmem-user"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.3", features = ["derive"] }
+ivshmem = { path = "../ivshmem-host" }
+libc = "0.2"
+
+[[bin]]
+name = "ivshmem-bench-vm"
+path = "src/bench_vm.rs"
+
+[[bin]]
+name = "ivshmem-bench-host"
+path = "src/bench_host.rs"

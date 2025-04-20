@@ -1,0 +1,22 @@
+[package]
+name = "ivshmem"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.2", features = ["derive"] }
+libc = "0.2"
+log = "0.4"
+mio = { version = "0.8", features = ["os-poll", "os-ext", "net"] }
+pretty_env_logger = "0.5"
+
+[[bin]]
+name = "ivshmem-client"
+path = "src/client.rs"
+
+[[bin]]
+name = "ivshmem-server"
+path = "src/server.rs"
