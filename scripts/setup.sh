@@ -32,14 +32,14 @@ if [ $TASK_TYPE = "deps" ]; then
         fi
 
         # tool chains
-        sudo apt-get install -y cmake gcc-12 g++-12 clang-15 clang++-15 lld-15
+        sudo apt-get install -y cmake gcc-12 g++-12 clang-15 clang++-15 lld-15 cargo
 
         # libraries
         sudo apt-get install -y libboost-all-dev libjemalloc-dev libgoogle-glog-dev libgtest-dev
 
         # required by VM-based emulation
-        sudo apt-get install -y python3 python3-pip mkosi
-        pip install pyroute2
+        sudo apt-get install -y python3 python3-pip mkosi ovmf
+        sudo pip3 install pyroute2
 
         # install Rust
         if ! which rustc; then
