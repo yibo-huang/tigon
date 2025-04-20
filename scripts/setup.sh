@@ -38,8 +38,15 @@ if [ $TASK_TYPE = "deps" ]; then
         sudo apt-get install -y libboost-all-dev libjemalloc-dev libgoogle-glog-dev libgtest-dev
 
         # required by VM-based emulation
-        sudo apt-get install -y python3 python3-pip
-        /usr/bin/python3 -m pip install git+https://github.com/photoszzt/mkosi.git@27ed556#egg=mkosi
+        sudo apt-get install -y python3 python3-pip mkosi
+        pip install pyroute2
+
+        # install Rust
+        if ! which rustc; then
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y;
+        source ~/.cargo/env
+        fi
+        source $HOME/.cargo/env
 
         exit 0
 elif [ $TASK_TYPE = "host" ]; then
