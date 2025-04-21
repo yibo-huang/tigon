@@ -19,7 +19,7 @@ from cpupin import parse_lscpu_node
 from cpu import get_cpu_model, CPUKind
 from network import get_rand_macaddr, setup_mlnx_network
 from ivshmem import setup_cxl_host, start_ivshmem, cleanup_ivshmem_setup
-from const import DEFAULT_DRIVE_PATH, DEFAULT_DRIVE_OVMF_PATH, DEFAULT_VM_DIR, LINUX_VM_BUILD_DIR
+from const import DEFAULT_DRIVE_PATH, DEFAULT_DRIVE_OVMF_PATH, DEFAULT_VM_DIR, LINUX_VM_BUILD_DIR, CONFIG_DIR
 from mtrr import remove_ivshmem_bar2_mtrr
 
 @dataclass
@@ -244,7 +244,7 @@ def construct_vnode(qemu_cmd: List[str], numcpus: int, vnodeid: int,
 
 
 def create_static_ip_addr_network_config(per_vmdir: str, ip_addr: str, network_card_id: int):
-    network_template_path = os.path.join(LINUX_VM_BUILD_DIR, "20-wired-template.network")
+    network_template_path = os.path.join(CONFIG_DIR, "20-wired-template.network")
     with open(network_template_path, "r") as f:
         network_template = f.read()
     wired_20 = network_template.replace("@ADDR@", ip_addr)
@@ -256,7 +256,7 @@ def create_static_ip_addr_network_config(per_vmdir: str, ip_addr: str, network_c
 
 
 def create_dhcp_network_config_for_userssh(per_vmdir: str, network_cards: int):
-    network_template_path = os.path.join(LINUX_VM_BUILD_DIR, "30-wired-template.network")
+    network_template_path = os.path.join(CONFIG_DIR, "30-wired-template.network")
     with open(network_template_path, "r") as f:
         network_template = f.read()
     wired_30 = network_template.replace("@COUNT@", str(4+network_cards))
@@ -267,7 +267,7 @@ def create_dhcp_network_config_for_userssh(per_vmdir: str, network_cards: int):
 
 
 def create_static_ip_addr_ib_config(per_vmdir: str, ip_addr: str):
-    network_template_path = os.path.join(LINUX_VM_BUILD_DIR, "40-wired-template.network")
+    network_template_path = os.path.join(CONFIG_DIR, "40-wired-template.network")
     with open(network_template_path, "r") as f:
         network_template = f.read()
     wired_40 = network_template.replace("@ADDR@", ip_addr)
@@ -278,7 +278,7 @@ def create_static_ip_addr_ib_config(per_vmdir: str, ip_addr: str):
 
 
 def create_etc_hosts(per_vmdir: str, ip_addr: str):
-    etchosts_template_path = os.path.join(LINUX_VM_BUILD_DIR, "etc_hosts_template")
+    etchosts_template_path = os.path.join(CONFIG_DIR, "etc_hosts_template")
     with open(etchosts_template_path, "r") as f:
         etchosts_template = f.read()
     etchosts = etchosts_template.replace("@ADDR@", ip_addr)
@@ -337,7 +337,7 @@ def prepare_vmdir(top_vmdir: str, drive: str, vm_id: int, drive_file_name: str,
         network_files.append(dhcp_file)
     etchosts_file = create_etc_hosts(per_vmdir, ip_addr)
 
-    etcgai_path = os.path.join(LINUX_VM_BUILD_DIR, "gai.conf")
+    etcgai_path = os.path.join(CONFIG_DIR, "gai.conf")
 
     run_local_command(["sudo", "guestmount", "-a",
         vmdrive_file, "-i", mount_dir])

@@ -89,10 +89,6 @@ elif [ $TASK_TYPE = "kill_vms" ]; then
         fi
         echo "Killing VMs..."
 
-        # setup current host
-        cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
-        ./kill_experiments.sh
-
         echo "Finished!"
         exit 0
 elif [ $TASK_TYPE = "launch_vms" ]; then
