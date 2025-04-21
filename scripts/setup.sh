@@ -7,7 +7,7 @@ typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null &
 typeset current_date_time="`date +%Y%m%d%H%M`"
 
 function print_usage {
-        echo "[usage] ./setup.sh [deps/host/vm_image/kill_vms/launch_vms/vms] EXP-SPECIFIC"
+        echo "[usage] ./setup.sh [deps/host/vms] EXP-SPECIFIC"
         echo "deps: None"
         echo "cur_host: None"
         echo "vm_image: None"

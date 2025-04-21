@@ -17,24 +17,24 @@ typeset num_vms=$5
 typeset configure_uncore_freq=$6
 typeset shmem_dir_numa=$7
 
-# # configure UNCORE frequency and HyperThreading
-# source $SCRIPT_DIR/cxl-global.sh
-# if [ $configure_uncore_freq -eq 1 ]; then
-#     enable_ht
-#     sudo modprobe msr
-#     sudo python3 $SCRIPT_DIR/uncore_freq.py set --freq 2400 --socket 0
-#     sudo python3 $SCRIPT_DIR/uncore_freq.py set --freq 0 --socket 1
-#     sudo python3 $SCRIPT_DIR/uncore_freq.py print
-#     cd $SCRIPT_DIR
-# fi
-# check_comm_conf_no_tune_freq
+# configure UNCORE frequency and HyperThreading
+source $SCRIPT_DIR/host_setup/cxl_global.sh
+if [ $configure_uncore_freq -eq 1 ]; then
+    enable_ht
+    sudo modprobe msr
+    sudo python3 $SCRIPT_DIR/host_setup/uncore_freq.py set --freq 2400 --socket 0
+    sudo python3 $SCRIPT_DIR/host_setup/uncore_freq.py set --freq 0 --socket 1
+    sudo python3 $SCRIPT_DIR/host_setup/uncore_freq.py print
+    cd $SCRIPT_DIR
+fi
+check_comm_conf_no_tune_freq
 
-# if [ $1 = "--using-new-img" ]; then
-#     echo "starting vm using new img..."
-#     test -e $SCRIPT_DIR/vms && rm -r $SCRIPT_DIR/vms
-# else
-#     echo "starting vm using existing img..."
-# fi
+if [ $1 = "--using-new-img" ]; then
+    echo "starting vm using new img..."
+    test -e $SCRIPT_DIR/vms && rm -r $SCRIPT_DIR/vms
+else
+    echo "starting vm using existing img..."
+fi
 
 mkdir -p $SCRIPT_DIR/vms
 
