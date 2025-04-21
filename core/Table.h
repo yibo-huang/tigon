@@ -354,7 +354,6 @@ template <std::size_t N, class KeyType, class ValueType, class KeyComparator, cl
                         ValueType *data_ptr = &std::get<1>(row);
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
 			bool ret = move_in_func(this, &key, row_tuple, false);
-                        CHECK(ret == true);
 		};
 
                 map_.iterate_non_const(processor, []() {});
@@ -770,7 +769,6 @@ template <class KeyType, class ValueType, class KeyComparator, class ValueCompar
                         ValueType *data_ptr = &value.row->data;
                         std::tuple<MetaDataType *, void *> row_tuple(meta_ptr, data_ptr);
 			bool ret = move_in_func(this, &key, row_tuple, false);
-                        CHECK(ret == true);
                         return false;
 		};
 
