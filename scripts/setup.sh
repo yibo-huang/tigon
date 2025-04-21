@@ -124,9 +124,9 @@ elif [ $TASK_TYPE = "vms" ]; then
 
         # sync cxl_shmem
         echo "Sync cxl_shmem..."
-        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/src/cxlalloc/target/release/cxl-init /root/cxl-init $HOST_NUM
-        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/build_clang_release/bin/cxl_recover_meta /root/cxl_recover_meta $HOST_NUM
-        sync_files $SCRIPT_DIR/../dependencies/cxl_shmem/driver_futex/jj_abortable_spin/byte/cxl_ivpci.ko /root/cxl_ivpci.ko $HOST_NUM
+        sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl-init /root/cxl-init $HOST_NUM
+        sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl_recover_meta /root/cxl_recover_meta $HOST_NUM
+        sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl_ivpci.ko /root/cxl_ivpci.ko $HOST_NUM
 
         # sync dependencies
         echo "Sync dependencies..."
