@@ -7,13 +7,10 @@ typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null &
 typeset current_date_time="`date +%Y%m%d%H%M`"
 
 function print_usage {
-        echo "[usage] ./setup.sh [deps/host/vms] EXP-SPECIFIC"
-        echo "deps: None"
-        echo "cur_host: None"
-        echo "vm_image: None"
-        echo "kill_vms: None"
-        echo "launch_vms: HOST_TYPE HOST_NUM"
-        echo "vms: HOST_NUM"
+        echo "[usage] ./setup.sh [DEPS/HOST/VMS] EXP-SPECIFIC"
+        echo "DEPS: None"
+        echo "HOST: None"
+        echo "VMS: HOST_NUM"
 }
 
 if [ $# -lt 1 ]; then
@@ -25,7 +22,7 @@ typeset TASK_TYPE=$1
 
 source $SCRIPT_DIR/utilities.sh
 
-if [ $TASK_TYPE = "deps" ]; then
+if [ $TASK_TYPE = "DEPS" ]; then
         if [ $# != 1 ]; then
                 print_usage
                 exit -1
@@ -49,12 +46,12 @@ if [ $TASK_TYPE = "deps" ]; then
         source $HOME/.cargo/env
 
         exit 0
-elif [ $TASK_TYPE = "host" ]; then
+elif [ $TASK_TYPE = "HOST" ]; then
         if [ $# != 1 ]; then
                 print_usage
                 exit -1
         fi
-        echo "Setting up current machine... Will reboot the machine"
+        echo "Setting up current machine..."
 
         # setup ssh key
         [ -f $HOME/.ssh/id_rsa ] || ssh-keygen -t rsa -N "" -f $HOME/.ssh/id_rsa
@@ -65,52 +62,9 @@ elif [ $TASK_TYPE = "host" ]; then
                 linux-hwe-5.19-headers-5.19.0-50 linux-modules-5.19.0-50-generic \
                 linux-modules-extra-5.19.0-50-generic
 
-        # reboot to switch to the new kernel
-        sudo reboot
-
-        echo "should never reach here!"
+        echo "Please reboot to switch to the new kernel!"
         exit -1
-elif [ $TASK_TYPE = "vm_image" ]; then
-        if [ $# != 1 ]; then
-                print_usage
-                exit -1
-        fi
-        echo "Building VM image..."
-
-        cd $SCRIPT_DIR/../dependencies/vhive_setup/linux_qemu/setup_vm/
-        ./make_vmimg.sh
-
-        echo "Finished!"
-        exit 0
-elif [ $TASK_TYPE = "kill_vms" ]; then
-        if [ $# != 1 ]; then
-                print_usage
-                exit -1
-        fi
-        echo "Killing VMs..."
-
-        echo "Finished!"
-        exit 0
-elif [ $TASK_TYPE = "launch_vms" ]; then
-        if [ $# != 3 ]; then
-                print_usage
-                exit -1
-        fi
-        typeset HOST_TYPE=$2
-        typeset HOST_NUM=$3
-        echo "Launching VMs..."
-
-        cd $SCRIPT_DIR/../dependencies/vhive_setup/pasha/
-
-        if [ $HOST_TYPE = "chameleon" ]; then
-                ./start_vm.sh --using-old-img --nosriov 0 5 $HOST_NUM 1 1
-        elif [ $HOST_TYPE = "uiuc" ]; then
-                ./start_vm_uiuc.sh --using-old-img --nosriov 0 5 $HOST_NUM 0 2
-        fi
-
-        echo "Finished!"
-        exit 0
-elif [ $TASK_TYPE = "vms" ]; then
+elif [ $TASK_TYPE = "VMS" ]; then
         if [ $# != 2 ]; then
                 print_usage
                 exit -1
@@ -118,9 +72,9 @@ elif [ $TASK_TYPE = "vms" ]; then
         typeset HOST_NUM=$2
         echo "Setting up VMs..."
 
-        # sync cxl_shmem
-        echo "Sync cxl_shmem..."
-        sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl-init /root/cxl-init $HOST_NUM
+        # sync kernel module
+        echo "Sync kernel module..."
+        sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl_init /root/cxl_init $HOST_NUM
         sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl_recover_meta /root/cxl_recover_meta $HOST_NUM
         sync_files $SCRIPT_DIR/../dependencies/kernel_module/cxl_ivpci.ko /root/cxl_ivpci.ko $HOST_NUM
 
@@ -135,8 +89,8 @@ elif [ $TASK_TYPE = "vms" ]; then
         echo "Loading kernel module..."
         for (( i=0; i < $HOST_NUM; ++i ))
         do
-                ssh_command "rmmod cxl_ivpci" $i
-                ssh_command "insmod ./cxl_ivpci.ko" $i
+                ssh_command "rmmod cxl_ivpci 2>/dev/null" $i
+                ssh_command "insmod ./cxl_ivpci.ko 2>/dev/null" $i
         done
 
         echo "Finished"

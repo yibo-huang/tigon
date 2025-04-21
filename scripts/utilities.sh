@@ -43,7 +43,7 @@ function setup_hostnames {
 
 function init_cxl_for_vms {
         typeset vm_num=$1
-        typeset cxl_init=./cxl-init
+        typeset cxl_init=./cxl_init
         typeset i=0
 
         echo initializing cxl memory...
