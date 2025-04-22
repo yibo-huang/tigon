@@ -594,8 +594,11 @@ class Coordinator {
 			ControlMessageFactory::new_statistics_message(*message, id, commit, size_index_usage, size_metadata_usage, size_data_usage, size_transport_usage, size_misc_usage, size_hwcc_usage);
                         if (context.use_output_thread == true) {
 			        out_queue.push(message.release());
+                                // message is reclaimed by the output thread
                         } else {
-                                cxl_transport->send(message.release());
+                                cxl_transport->send(message.get());
+                                // must reclaim the message here - otherwise memory leakage would occur
+                                // we do it by not releasing it
                         }
 		}
 		if (context.partitioner == "hpb") {

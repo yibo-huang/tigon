@@ -280,12 +280,13 @@ template <class Workload, class Protocol> class Executor : public Worker {
 				continue;
 			}
 
-			auto message = messages[i].release();
-
 			if (context.use_output_thread == true) {
-			        out_queue.push(message);
+			        out_queue.push(messages[i].release());
+                                // message is reclaimed by the output thread
                         } else {
-                                cxl_transport->send(message);
+                                cxl_transport->send(messages[i].get());
+                                // must reclaim the message here - otherwise memory leakage would occur
+                                // we do it by not releasing it
                         }
 
 			messages[i] = std::make_unique<Message>();
