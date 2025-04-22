@@ -11,7 +11,7 @@ def get_row(input):
         # tput, CXL_usage_index, CXL_usage_data, CXL_usage_transport
         for line in fileinput.FileInput(input[1]):
                 tokens = line.strip().split()
-                if len(tokens) > 7 and tokens[3] == "Coordinator.h:583]":
+                if len(tokens) > 7 and tokens[3] == "Coordinator.h:607]":
                         tputs.append(float(tokens[7]))
 
         return tputs
@@ -37,12 +37,12 @@ def parse_results(input_list, output_file_name, header_row):
 
 def construct_input_list_ycsb(res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("Sundial-CXL-improved", res_dir + "/ycsb-Sundial-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("TwoPL-CXL-improved", res_dir + "/ycsb-TwoPL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("Sundial-CXL", res_dir + "/ycsb-Sundial-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("TwoPL-CXL", res_dir + "/ycsb-TwoPL-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("Sundial-NET", res_dir + "/ycsb-Sundial-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("TwoPL-NET", res_dir + "/ycsb-TwoPL-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
+        input_file_list.append(("Sundial-CXL-improved", res_dir + "/ycsb-Sundial-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("TwoPL-CXL-improved", res_dir + "/ycsb-TwoPL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("Sundial-CXL", res_dir + "/ycsb-Sundial-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("TwoPL-CXL", res_dir + "/ycsb-TwoPL-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("Sundial-NET", res_dir + "/ycsb-Sundial-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("TwoPL-NET", res_dir + "/ycsb-TwoPL-rmw-8-2-" + rw_ratio + "-" + zipf_theta + "-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
         return input_file_list
 
 def parse_ycsb(res_dir, rw_ratio, zipf_theta):
@@ -53,12 +53,12 @@ def parse_ycsb(res_dir, rw_ratio, zipf_theta):
 
 def construct_input_list_tpcc(res_dir):
         input_file_list = list()
-        input_file_list.append(("Sundial-CXL-improved", res_dir + "/tpcc-Sundial-8-3-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("TwoPL-CXL-improved", res_dir + "/tpcc-TwoPL-8-3-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("Sundial-CXL", res_dir + "/tpcc-Sundial-8-2-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("TwoPL-CXL", res_dir + "/tpcc-TwoPL-8-2-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("Sundial-NET", res_dir + "/tpcc-Sundial-8-2-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
-        input_file_list.append(("TwoPL-NET", res_dir + "/tpcc-TwoPL-8-2-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL" + ".txt"))
+        input_file_list.append(("Sundial-CXL-improved", res_dir + "/tpcc-Sundial-8-3-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("TwoPL-CXL-improved", res_dir + "/tpcc-TwoPL-8-3-1-0-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("Sundial-CXL", res_dir + "/tpcc-Sundial-8-2-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("TwoPL-CXL", res_dir + "/tpcc-TwoPL-8-2-1-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("Sundial-NET", res_dir + "/tpcc-Sundial-8-2-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
+        input_file_list.append(("TwoPL-NET", res_dir + "/tpcc-TwoPL-8-2-0-1-" + "NoMoveOut" + "-" + "OnDemand" + "-" + "0-0" + "-" + "NoOP" + "-" + "None" + "-" + "GROUP_WAL-20000-0" + ".txt"))
         return input_file_list
 
 def parse_tpcc(res_dir):
