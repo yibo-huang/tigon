@@ -36,7 +36,12 @@ if [ $TASK_TYPE = "DEPS" ]; then
 
         # required by VM-based emulation
         sudo apt-get install -y python3 python3-pip mkosi ovmf numactl
-        sudo pip3 install pyroute2
+        sudo pip3 install pyroute2      # use sudo because root user needs it
+
+        # required by parsing and plotting
+        pip3 install pandas matplotlib
+        sudo apt-get install -y msttcorefonts -qq
+        rm ~/.cache/matplotlib -rf           # remove cache
 
         # install Rust
         if ! which rustc; then
