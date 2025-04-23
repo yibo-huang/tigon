@@ -6,7 +6,7 @@ import fileinput
 import pandas as pd
 import os
 
-from common import get_row, parse_results, append_motor_numbers
+from common import get_row, parse_results
 
 def construct_input_list_ycsb_hwcc_budget(tigon_res_dir, tigon_hwcc_budget_res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
