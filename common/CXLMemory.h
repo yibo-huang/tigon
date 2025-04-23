@@ -164,7 +164,6 @@ class CXLMemory {
                         } else {
                                 size_total_hw_cc_usage.fetch_sub(size);
                         }
-                        size_total_hw_cc_usage.fetch_sub(size);
                         size_metadata_usage.fetch_sub(size);
                         break;
                 case DATA_FREE:

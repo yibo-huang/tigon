@@ -157,11 +157,7 @@ class CXL_EBR {
                                 std::vector<retired_object> &retired_object_list_to_reclaim = local_ebr_meta.retired_objects[epoch_to_reclaim % max_epoch];
 
                                 for (uint64_t i = 0; i < retired_object_list_to_reclaim.size(); i++) {
-                                        cxl_memory.cxlalloc_free_wrapper(
-                                                retired_object_list_to_reclaim[i].ptr,
-                                                retired_object_list_to_reclaim[i].size,
-                                                retired_object_list_to_reclaim[i].category);
-
+                                        cxlalloc_free(retired_object_list_to_reclaim[i].ptr);
                                         gc_size += retired_object_list_to_reclaim[i].size;
                                 }
 
