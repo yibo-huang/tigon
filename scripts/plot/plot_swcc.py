@@ -28,8 +28,8 @@ if len(sys.argv) != 2:
 res_dir = sys.argv[1]
 
 # Read the CSV file into a Pandas DataFrame
-res_df_tpcc = pd.read_csv(res_dir + "/tpcc-scc.csv")
-res_df_ycsb = pd.read_csv(res_dir + "/ycsb-scc-95-0.7.csv")
+res_df_tpcc = pd.read_csv(res_dir + "/tpcc-swcc.csv")
+res_df_ycsb = pd.read_csv(res_dir + "/ycsb-swcc-95-0.7.csv")
 
 # Extract the data
 x_tpcc = res_df_tpcc["Remote_Ratio"]
