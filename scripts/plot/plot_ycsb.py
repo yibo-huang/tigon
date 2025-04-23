@@ -99,7 +99,7 @@ ax[0, 0].plot(x, sundial_cxl_improved_y_1, color="#4372c4", marker="^", **DEFAUL
 ax[0, 0].plot(x, twopl_cxl_improved_y_1, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="DS2PL+")
 ax[0, 0].plot(x, motor_y_1, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Motor")
 
-ax[0, 0].text(0.5, 0.95, '100% R, 0%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[0, 0].text(0.5, 0.95, '100% R, 0% W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
 ax[0, 0].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[0, 0].set_xticklabels([])
@@ -113,7 +113,7 @@ ax[0, 1].plot(x, sundial_cxl_improved_y_2, color="#4372c4", marker="^", **DEFAUL
 ax[0, 1].plot(x, twopl_cxl_improved_y_2, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
 ax[0, 1].plot(x, motor_y_2, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
-ax[0, 1].text(0.5, 0.95, '95% R, 5%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[0, 1].text(0.5, 0.95, '95% R, 5% W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
 ax[0, 1].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[0, 1].set_xticklabels([])
@@ -128,7 +128,7 @@ ax[1, 0].plot(x, sundial_cxl_improved_y_3, color="#4372c4", marker="^", **DEFAUL
 ax[1, 0].plot(x, twopl_cxl_improved_y_3, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
 ax[1, 0].plot(x, motor_y_3, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
-ax[1, 0].text(0.5, 0.95, '50% R, 50%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[1, 0].text(0.5, 0.95, '50% R, 50% W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
 ax[1, 0].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 
@@ -141,7 +141,7 @@ ax[1, 1].plot(x, sundial_cxl_improved_y_4, color="#4372c4", marker="^", **DEFAUL
 ax[1, 1].plot(x, twopl_cxl_improved_y_4, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
 ax[1, 1].plot(x, motor_y_4, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
-ax[1, 1].text(0.5, 0.95, '0% R, 100%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[1, 1].text(0.5, 0.95, '0% R, 100% W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
 
 ax[1, 1].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[1, 1].set_yticklabels([])
