@@ -127,7 +127,6 @@ class CXLMemory {
                         } else {
                                 size_total_hw_cc_usage.fetch_add(size);
                         }
-                        size_total_hw_cc_usage.fetch_add(size);
                         size_metadata_usage.fetch_add(size);
                         break;
                 case DATA_ALLOCATION:
