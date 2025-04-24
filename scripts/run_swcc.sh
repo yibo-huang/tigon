@@ -37,12 +37,12 @@ typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4=$(( 1024*1024*50 ))          # 50 MB
 typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5=$(( 1024*1024*10 ))          # 10 MB
 
 # common parameters for TPCC
-typeset TPCC_RUN_TIME=30
-typeset TPCC_WARMUP_TIME=10
+typeset TPCC_RUN_TIME=60
+typeset TPCC_WARMUP_TIME=30
 
 # common parameters for YCSB
-typeset YCSB_RUN_TIME=30
-typeset YCSB_WARMUP_TIME=10
+typeset YCSB_RUN_TIME=60
+typeset YCSB_WARMUP_TIME=30
 
 typeset READ_INTENSIVE_RW_RATIO=95
 typeset WRITE_INTENSIVE_RW_RATIO=50
@@ -65,6 +65,6 @@ run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Cl
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThrough None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME   # Tigon
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThroughNoSharedRead None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon + WriteThrough + no shared reader
 run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 NonTemporal None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME  # Tigon + NonTemporal
-run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 0 NoOP None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 15 5 # Tigon + SCC disabled
+run_remote_txn_overhead_ycsb $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM rmw $READ_INTENSIVE_RW_RATIO 0.7 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 0 NoOP None GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $YCSB_RUN_TIME $YCSB_WARMUP_TIME # Tigon + SCC disabled
 
 ########### Software Cache-Coherence END ###########

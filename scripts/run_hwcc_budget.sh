@@ -37,12 +37,12 @@ typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_4=$(( 1024*1024*50 ))          # 50 MB
 typeset DATA_MOVEMENT_EXP_HCC_SIZE_LIMIT_5=$(( 1024*1024*10 ))          # 10 MB
 
 # common parameters for TPCC
-typeset TPCC_RUN_TIME=30
-typeset TPCC_WARMUP_TIME=10
+typeset TPCC_RUN_TIME=60
+typeset TPCC_WARMUP_TIME=30
 
 # common parameters for YCSB
-typeset YCSB_RUN_TIME=30
-typeset YCSB_WARMUP_TIME=10
+typeset YCSB_RUN_TIME=60
+typeset YCSB_WARMUP_TIME=30
 
 typeset READ_INTENSIVE_RW_RATIO=95
 typeset WRITE_INTENSIVE_RW_RATIO=50
