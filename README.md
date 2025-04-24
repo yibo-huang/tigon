@@ -40,3 +40,16 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # we will launch 8
 # run YCSB experiments (check run.sh for detailed usage)
 ./scripts/run.sh YCSB TwoPLPasha 8 3 rmw 100000 50 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough NonPart 30 0 BLACKHOLE 20000 0 0
 ```
+
+# Reproduce Figure 5
+
+```sh
+# run experiments
+./scripts/run_tpcc.sh res_dir
+
+# parse results
+./scripts/parse/parse_tpcc.sh res_dir
+
+# generate plot
+./scripts/plot/plot_tpcc.py res_dir
+```
