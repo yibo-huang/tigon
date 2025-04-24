@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 if len(sys.argv) != 2:
-        print("Usage: " + sys.argv[0] + " res_dir")
+        print("Usage: " + sys.argv[0] + " RESULT_ROOT_DIR")
         sys.exit(-1)
 
-res_dir = sys.argv[1]
+res_root_dir = sys.argv[1]
 
 DEFAULT_PLOT = {
     "markersize": 12.0,
@@ -25,7 +25,7 @@ plt.rcParams["font.size"] = 14
 plt.grid(axis='y')
 
 ### plot TPCC ###
-res_csv = res_dir + "/baseline-tpcc.csv"
+res_csv = res_root_dir + "/tpcc/baseline-tpcc.csv"
 
 # Read the CSV file into a Pandas DataFrame
 res_df = pd.read_csv(res_csv)
@@ -68,5 +68,4 @@ plt.plot(x, twopl_net_y, color="#ffc003", marker=">", **DEFAULT_PLOT, markerface
 # Configure legend
 ax.legend(loc='upper right', frameon=True, fancybox=True, framealpha=1, ncol=1)
 
-plt.savefig(res_dir + "/tpcc-twopl.pdf", format="pdf", bbox_inches="tight")
-
+plt.savefig(res_root_dir + "/tpcc/tpcc-twopl.pdf", format="pdf", bbox_inches="tight")

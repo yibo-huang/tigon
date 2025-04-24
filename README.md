@@ -45,11 +45,17 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # we will launch 8
 
 ```sh
 # run experiments
-./scripts/run_tpcc.sh res_dir
+./scripts/run_tpcc.sh ./results/test1
 
 # parse results
-./scripts/parse/parse_tpcc.sh res_dir
+./scripts/parse/parse_tpcc.sh ./results/test1
 
-# generate plot
-./scripts/plot/plot_tpcc.py res_dir
+# generate Figure 5 (a)
+./scripts/plot/plot_tpcc_sundial.py ./results/test1
+
+# generate Figure 5 (b)
+./scripts/plot/plot_tpcc_twopl.py ./results/test1
+
+# generate Figure 5 (c)
+./scripts/plot/plot_tpcc.py ./results/test1
 ```
