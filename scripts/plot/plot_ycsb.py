@@ -21,21 +21,22 @@ plt.rcParams["font.size"] = 11
 ### common config END ###
 
 
-if len(sys.argv) != 6:
-        print("Usage: " + sys.argv[0] + " cvs_1 csv_2 csv_3 csv_4 output_dir")
+if len(sys.argv) != 2:
+        print("Usage: " + sys.argv[0] + " RESULT_ROOT_DIR")
         sys.exit(-1)
 
-cvs_1 = sys.argv[1]
-cvs_2 = sys.argv[2]
-cvs_3 = sys.argv[3]
-cvs_4 = sys.argv[4]
-output_dir = sys.argv[5]
+res_root_dir = sys.argv[1]
+ycsb_res_dir = res_root_dir + "/ycsb"
+csv_1 = ycsb_res_dir + "/ycsb-100-0.7.csv"
+csv_2 = ycsb_res_dir + "/ycsb-95-0.7.csv"
+csv_3 = ycsb_res_dir + "/ycsb-50-0.7.csv"
+csv_4 = ycsb_res_dir + "/ycsb-0-0.7.csv"
 
 # Read the CSV file into a Pandas DataFrame
-res_df_1 = pd.read_csv(cvs_1)
-res_df_2 = pd.read_csv(cvs_2)
-res_df_3 = pd.read_csv(cvs_3)
-res_df_4 = pd.read_csv(cvs_4)
+res_df_1 = pd.read_csv(csv_1)
+res_df_2 = pd.read_csv(csv_2)
+res_df_3 = pd.read_csv(csv_3)
+res_df_4 = pd.read_csv(csv_4)
 
 # Extract the data
 x = res_df_1["Remote_Ratio"]
@@ -157,4 +158,4 @@ fig.legend(loc='upper center', bbox_to_anchor=(0.54, 1.03), frameon=False, fancy
 fig.text(0.54, 0, 'Multi-partition Transaction Percentage', ha='center')
 fig.text(-0.01, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
-plt.savefig(output_dir + "/ycsb.pdf", format="pdf", bbox_inches="tight")
+plt.savefig(ycsb_res_dir + "/ycsb.pdf", format="pdf", bbox_inches="tight")

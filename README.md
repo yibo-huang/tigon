@@ -59,3 +59,15 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # we will launch 8
 # generate Figure 5 (c)
 ./scripts/plot/plot_tpcc.py ./results/test1
 ```
+
+# Reproduce Figure 6
+
+```sh
+# run experiments
+./scripts/run_ycsb.sh ./results/test1
+
+# parse results
+./scripts/parse/parse_ycsb.py ./results/test1
+
+# generate Figure 6
+./scripts/plot/plot_ycsb.py ./results/test1
