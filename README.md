@@ -71,3 +71,17 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # we will launch 8
 
 # generate Figure 6
 ./scripts/plot/plot_ycsb.py ./results/test1
+```
+
+# Reproduce Figure 7
+
+```sh
+# run experiments
+./scripts/run_hwcc_budget.sh ./results/test1
+
+# parse results
+./scripts/parse/parse_hwcc_budget.py ./results/test1
+
+# generate Figure 6
+./scripts/plot/plot_hwcc_budget.py ./results/test1
+```

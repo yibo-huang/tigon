@@ -22,14 +22,15 @@ plt.rcParams["font.size"] = 15
 
 
 if len(sys.argv) != 2:
-        print("Usage: " + sys.argv[0] + " res_dir")
+        print("Usage: " + sys.argv[0] + " RESULT_ROOT_DIR")
         sys.exit(-1)
 
-res_dir = sys.argv[1]
+res_root_dir = sys.argv[1]
+hwcc_budget_res_dir = res_root_dir + "/hwcc_budget"
 
 # Read the CSV file into a Pandas DataFrame
-res_df_tpcc = pd.read_csv(res_dir + "/tpcc-data-movement.csv")
-res_df_ycsb = pd.read_csv(res_dir + "/ycsb-data-movement-95-0.7.csv")
+res_df_tpcc = pd.read_csv(hwcc_budget_res_dir + "/tpcc-hwcc-budget.csv")
+res_df_ycsb = pd.read_csv(hwcc_budget_res_dir + "/ycsb-hwcc-budget-95-0.7.csv")
 
 # Extract the data
 x_tpcc = res_df_tpcc["Remote_Ratio"]
@@ -113,4 +114,4 @@ fig.text(0.27, -0.15, '(a) TPC-C', ha='center')
 fig.text(0.79, -0.15, '(b) YCSB (95%R, 5%W)', ha='center')
 fig.text(-0.03, 0.5, 'Throughput (txns/sec)', va='center', rotation='vertical')
 
-plt.savefig(res_dir + "/hwcc.pdf", format="pdf", bbox_inches="tight")
+plt.savefig(hwcc_budget_res_dir + "/hwcc_budget.pdf", format="pdf", bbox_inches="tight")
