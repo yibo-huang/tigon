@@ -50,13 +50,13 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # we will launch 8
 # parse results
 ./scripts/parse/parse_tpcc.sh ./results/test1
 
-# generate Figure 5 (a)
+# generate Figure 5(a)
 ./scripts/plot/plot_tpcc_sundial.py ./results/test1
 
-# generate Figure 5 (b)
+# generate Figure 5(b)
 ./scripts/plot/plot_tpcc_twopl.py ./results/test1
 
-# generate Figure 5 (c)
+# generate Figure 5(c)
 ./scripts/plot/plot_tpcc.py ./results/test1
 ```
 
@@ -82,6 +82,19 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # we will launch 8
 # parse results
 ./scripts/parse/parse_hwcc_budget.py ./results/test1
 
-# generate Figure 6
+# generate Figure 7
 ./scripts/plot/plot_hwcc_budget.py ./results/test1
+```
+
+# Reproduce Figure 8
+
+```sh
+# run experiments
+./scripts/run_swcc.sh ./results/test1
+
+# parse results
+./scripts/parse/parse_swcc.py ./results/test1
+
+# generate Figure 8
+./scripts/plot/plot_swcc.py ./results/test1
 ```
