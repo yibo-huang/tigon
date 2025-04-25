@@ -1,5 +1,5 @@
-# Tigon: A Distributed Database for a CXL Pod
-Tigon is a distributed in-memory OLTP database that synchronizes cross-host concurrent data accesses over shared CXL memory.
+# Tigon
+Tigon is a research distributed in-memory OLTP database that synchronizes cross-host concurrent data accesses over shared CXL memory.
 
 This repository contains the following:
 * An implementation of Tigon.
@@ -7,7 +7,7 @@ This repository contains the following:
 * A benchmarking framework that supports full TPC-C, YCSB, and SmallBank.
 * Scripts for emulating a CXL pod on a single physical machine.
 * Scripts for building and running Tigon.
-* Scripts for running the experiments and obtaining the results.
+* Scripts for reproducing the results in the paper.
 
 ## Claims
 By running the experiments, you should be able to reproduce the numbers shown in:
@@ -18,12 +18,17 @@ By running the experiments, you should be able to reproduce the numbers shown in
 * **Figure 7**: Tigon's sensitivity to the size of hardware cache-coherent region.
 * **Figure 8**: Comparison of different software cache-coherence protocols.
 
-## To OSDI '25 Artifact Evaluation Reviewers
-* The numbers in the paper were obtained using a real CXL memory module. However, we are not able to provide access to it due to its limited availability. Therefore, we recommend emulating CXL memory using remote NUMA memory. **Although the numbers obtained using emulated CXL memory may not be exactly the same as the paper, the overall trends should be the same.**
-* We provide each reviewer with a pre-configured machine (details on HotCRP). If you decide to use it, please skip [Testbed Setup](#Testbed-Setup) and start at [Compile and Run Tigon](#Compile-and-Run-Tigon) directly.
-* Should there be any questions, please contact us via HotCRP. We understand that evaluating artifacts is hard work and are happy to assist you throughout the process.
+## Emulate a CXL Pod using VMs
+As shown in the figure below, we emulate a CXL pod by running multiple VMs on a single host connected to a CXL 1.1 memory module.
 
-## VM-based CXL Pod Emulation
+![](emulation.png)
+
+## Important Notes
+* We are unable to provide access to real CXL memory hardware due to its limited availability. Instead, we provide pre-configured two-socket machines to emulate it using remote NUMA memory. Please check HotCRP for details.
+* If you decide to use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Compile and Run Tigon](#Compile-and-Run-Tigon) directly.
+* **Although the numbers obtained using emulated CXL memory may not be exactly the same as the paper, the overall trends should be the same.**
+* We provide raw numbers for Motor (one of our baselines) in ``results/motor``.
+* Please execute the instructions in order and run all the commands at the project root directory.
 
 ## Testbed Setup
 
@@ -44,15 +49,30 @@ sudo reboot # reboot to switch to the new kernel
 ./emulation/image/make_vm_img.sh # build VM image
 ```
 
-4. By default, 
+4. Launch VMs
+```bash
+# if you emulate CXL memory using remote NUMA node, run the following:
 sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # launch 8 VMs each with 5 cores
-./scripts/setup.sh VMS 8 # setup VMs
+
+
+# if you use real CXL memory, run the following:
+sudo daxctl reconfigure-device --mode=system-ram dax0.0 --force # manage CXL memory as a CPU-less NUMA node
+sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 0 2 # replace the last argument with the node number of CXL memory
 ```
 
-## All-in-one Script
+5. Setup VMs
+```bash
+./scripts/setup.sh VMS 8 # 8 is the number of VMs
+```
 
-If you have access to one of our pre-configured machines (or have ), then you can use an all-in-one script to run all experiments and get all results.
+## Compile Tigon and Send it to VMs
+```bash
+./scripts/run.sh COMPILE_SYNC 8 # 8 is the number of VMs
+```
 
+## Reproduce the Results
+
+We provide an all-in-one script for your conn
 ```bash
 ./scripts/run_all.sh
 ```
