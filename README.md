@@ -4,7 +4,7 @@ Tigon is a research distributed transactional in-memory database that synchroniz
 This repository contains the following:
 * An implementation of Tigon.
 * Baselines optimized for a CXL pod: Sundial-CXL, Sundial+, DS2PL-CXL, and DS2PL+.
-* A benchmarking framework that supports full TPC-C, YCSB, and SmallBank.
+* A benchmarking framework that supports full TPC-C, YCSB, SmallBank, and TATP (WIP).
 * Scripts for emulating a CXL pod on a single physical machine.
 * Scripts for building and running Tigon.
 * Scripts for reproducing the results in the paper.
@@ -19,20 +19,18 @@ By running the experiments, you should be able to reproduce the numbers shown in
 * **Figure 8**: Comparison of different software cache-coherence protocols.
 
 ## Emulate a CXL Pod using VMs
-We emulate a CXL pod by running multiple virtual machines (VMs) on a single host connected to a CXL 1.1 memory module.
+We emulate a CXL pod by running multiple virtual machines (VMs) on a single host connected to a CXL 1.1 memory module. So each host running on a real CXL pod is emulated by a VM running on a single host sharing access to a CXL memory module.
 
 ![](emulation.png)
 
 ## Important Notes
-* We are unable to provide access to CXL memory prototype due to its limited availability. Therefore, we provide pre-configured two-socket machines from [Chameleon Cloud](https://www.chameleoncloud.org/) to emulate it using remote NUMA memory. We highly recommend using these machines for AE as Tigon is well-tested on them. Please check HotCRP regarding the instructions to access these machines.
-* If you decide to use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Compile and Run Tigon](#Compile-and-Run-Tigon) directly.
-* **Although the numbers obtained using emulated CXL memory may not be exactly the same as the paper, the overall trends should be the same.**
+* If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Reproduce the Results with an All-in-one Script](#Reproduce-the-Results-with-an-All-in-one-Script) directly.
 * We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor.
 * Please execute the instructions in order and run all the commands in the project root directory.
 
 ## Testbed Setup
 
-1. Clone the repo
+1. Clone the repository
 ```bash
 git clone https://github.com/yibo-huang/tigon.git
 ```
@@ -70,15 +68,6 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 0 2 # replace the last
 ./scripts/run.sh COMPILE_SYNC 8 # 8 is the number of VMs
 ```
 
-## Hello-World Example
-```bash
-# run TPCC experiments (check run.sh for detailed usage)
-./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 30 0 BLACKHOLE 20000 0 0
-
-# run YCSB experiments (check run.sh for detailed usage)
-./scripts/run.sh YCSB TwoPLPasha 8 3 rmw 100000 50 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough NonPart 30 0 BLACKHOLE 20000 0 0
-```
-
 ## Reproduce the Results with an All-in-one Script
 
 We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times to obtain more results, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
@@ -86,7 +75,7 @@ We provide an all-in-one script for your convenience, which runs all the experim
 ./scripts/run_all.sh results/test1 # use a different directory name under results each time to avoid overwriting old results
 ```
 
-## Detailed Instructions
+## Reproduce the Results One by One
 ### Reproduce Figure 5
 
 ```bash
@@ -121,5 +110,17 @@ We provide an all-in-one script for your convenience, which runs all the experim
 ./scripts/plot/plot_swcc.py ./results/test1 # generate Figure 8
 ```
 
+## Play Around
+
+Tigon is highly tunable. Here we provide instructions to run and test Tigon with different configurations.
+
+```bash
+# run TPCC experiments (check run.sh for detailed usage)
+./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 30 0 BLACKHOLE 20000 0 0
+
+# run YCSB experiments (check run.sh for detailed usage)
+./scripts/run.sh YCSB TwoPLPasha 8 3 rmw 100000 50 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough NonPart 30 0 BLACKHOLE 20000 0 0
+```
+
 ## Acknowledgement
-This repo is implemented based on the [lotus](https://github.com/DBOS-project/lotus) repo from Xinjing Zhou.
+This repository is implemented based on [lotus](https://github.com/DBOS-project/lotus) from Xinjing Zhou.
