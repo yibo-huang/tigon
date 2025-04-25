@@ -1,11 +1,11 @@
 # Tigon
-Tigon[^1](#1) is a research distributed transactional in-memory database that synchronizes cross-host concurrent data accesses over shared CXL memory. Tigon adopts the Pasha[^2](#2) architecture.
+Tigon[^1] is a research distributed transactional in-memory database that synchronizes cross-host concurrent data accesses over shared CXL memory. Tigon adopts the Pasha architecture[^2].
 This repository is implemented based on the [lotus](https://github.com/DBOS-project/lotus) codebase from Xinjing Zhou.
 
 This repository contains the following:
 * An implementation of Tigon
-* Sundial[^3](#3) optimized for a CXL pod: Sundial-CXL, Sundial+
-* DS2PL[^4](#4) optimized for a CXL pod: DS2PL-CXL, and DS2PL+
+* Sundial[^3] optimized for a CXL pod: Sundial-CXL, Sundial+
+* DS2PL[^4] optimized for a CXL pod: DS2PL-CXL, and DS2PL+
 * A benchmarking framework that supports full TPC-C, YCSB, SmallBank, and TATP (WIP)
 * Scripts for emulating a CXL pod on a single physical machine
 * Scripts for building and running Tigon
@@ -190,11 +190,7 @@ Common Arguments:
 This script will print out statistics every second during your experiment, including transaction throughput, abort rate, data movement frequency, etc. After the experiment finishes, it will print out averaged statistics.
 
 ## References
-<a id="1">[1]</a>
-Tigon: A Distributed Database for a CXL Pod, *To appear at OSDI '25*\
-<a id="2">[2]</a>
-Pasha: An Efficient, Scalable Database Architecture for CXL Pods, *CIDR '25*\
-<a id="3">[3]</a>
-Sundial: Harmonizing Concurrency Control and Caching in a Distributed OLTP Database Management System, VLDB '18\
-<a id="4">[4]</a>
-Lotus: scalable multi-partition transactions on single-threaded partitioned databases, VLDB '22
+[^1]: Tigon: A Distributed Database for a CXL Pod, *To appear at OSDI '25*\
+[^2]: Pasha: An Efficient, Scalable Database Architecture for CXL Pods, *CIDR '25*\
+[^3]: Sundial: Harmonizing Concurrency Control and Caching in a Distributed OLTP Database Management System, *VLDB '18*\
+[^4]: Lotus: scalable multi-partition transactions on single-threaded partitioned databases, *VLDB '22*
