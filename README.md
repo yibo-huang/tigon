@@ -1,6 +1,6 @@
 # Tigon
-Tigon is a research distributed transactional in-memory database that synchronizes cross-host concurrent data accesses over shared CXL memory.
-Tigon is implemented based on the [lotus](https://github.com/DBOS-project/lotus) codebase from Xinjing Zhou.
+Tigon [[1]](#1) is a research distributed transactional in-memory database that synchronizes cross-host concurrent data accesses over shared CXL memory. Tigon adopts the Pasha [[2]](#2) architecture.
+This repository is implemented based on the [lotus](https://github.com/DBOS-project/lotus) codebase from Xinjing Zhou.
 
 This repository contains the following:
 * An implementation of Tigon.
@@ -9,6 +9,11 @@ This repository contains the following:
 * Scripts for emulating a CXL pod on a single physical machine.
 * Scripts for building and running Tigon.
 * Scripts for reproducing the results in the paper.
+
+<a id="1">[1]</a>
+Tigon: A Distributed Database for a CXL Pod, OSDI '25 \
+<a id="2">[2]</a>
+Pasha: An Efficient, Scalable Database Architecture for CXL Pods, CIDR '25
 
 ## Claims
 By running the experiments, you should be able to reproduce the numbers shown in:
@@ -185,3 +190,5 @@ Common Arguments:
 * ``EPOCH_LEN``: Epoch length (ms). Effective only when epoch-based group commit is enabled
 * ``MODEL_CXL_SEARCH``: Enable/disable the shortcut pointer optimization
 * ``GATHER_OUTPUTS``: Enable/disable collecting outputs from all hosts. If disabled, only host 1's output is shown
+
+This script will print out statistics every second during your experiment, including transaction throughput, abort rate, data movement frequency, etc. After the experiment finishes, it will print out averaged statistics.
