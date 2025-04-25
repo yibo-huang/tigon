@@ -27,7 +27,7 @@ As shown in the figure below, we emulate a CXL pod by running multiple VMs on a 
 * We are unable to provide access to real CXL memory hardware due to its limited availability. Instead, we provide pre-configured two-socket machines to emulate it using remote NUMA memory. Please check HotCRP for details.
 * If you decide to use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Compile and Run Tigon](#Compile-and-Run-Tigon) directly.
 * **Although the numbers obtained using emulated CXL memory may not be exactly the same as the paper, the overall trends should be the same.**
-* We provide raw numbers for Motor (one of our baselines) in ``results/motor``.
+* We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor.
 * Please execute the instructions in order and run all the commands at the project root directory.
 
 ## Testbed Setup
