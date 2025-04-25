@@ -1,5 +1,5 @@
 # Tigon
-Tigon is a research distributed in-memory OLTP database that synchronizes cross-host concurrent data accesses over shared CXL memory.
+Tigon is a research distributed transactional in-memory database that synchronizes cross-host concurrent data accesses over shared CXL memory.
 
 This repository contains the following:
 * An implementation of Tigon.
@@ -19,16 +19,16 @@ By running the experiments, you should be able to reproduce the numbers shown in
 * **Figure 8**: Comparison of different software cache-coherence protocols.
 
 ## Emulate a CXL Pod using VMs
-As shown in the figure below, we emulate a CXL pod by running multiple VMs on a single host connected to a CXL 1.1 memory module.
+We emulate a CXL pod by running multiple virtual machines (VMs) on a single host connected to a CXL 1.1 memory module.
 
 ![](emulation.png)
 
 ## Important Notes
-* We are unable to provide access to real CXL memory hardware due to its limited availability. Instead, we provide pre-configured two-socket machines to emulate it using remote NUMA memory. Please check HotCRP for details.
+* We are unable to provide access to CXL memory prototype due to its limited availability. Therefore, we provide pre-configured two-socket machines from [Chameleon Cloud](https://www.chameleoncloud.org/) to emulate it using remote NUMA memory. We highly recommend using these machines for AE as Tigon is well-tested on them. Please check HotCRP regarding the instructions to access these machines.
 * If you decide to use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Compile and Run Tigon](#Compile-and-Run-Tigon) directly.
 * **Although the numbers obtained using emulated CXL memory may not be exactly the same as the paper, the overall trends should be the same.**
 * We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor.
-* Please execute the instructions in order and run all the commands at the project root directory.
+* Please execute the instructions in order and run all the commands in the project root directory.
 
 ## Testbed Setup
 
@@ -40,13 +40,13 @@ git clone https://github.com/yibo-huang/tigon.git
 2. Install dependencies and switch the kernel to 5.19
 ```bash
 ./scripts/setup.sh DEPS # install dependencies
-./scripts/setup.sh HOST # setup current host and install the 5.19 kernel
+./scripts/setup.sh HOST # setup host and install kernel 5.19
 sudo reboot # reboot to switch to the new kernel
 ```
 
 3. Build VM image
 ```bash
-./emulation/image/make_vm_img.sh # build VM image
+./emulation/image/make_vm_img.sh
 ```
 
 4. Launch VMs
@@ -55,9 +55,9 @@ sudo reboot # reboot to switch to the new kernel
 sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # launch 8 VMs each with 5 cores
 
 
-# if you use real CXL memory, run the following:
+# if you are using real CXL memory, run the following:
 sudo daxctl reconfigure-device --mode=system-ram dax0.0 --force # manage CXL memory as a CPU-less NUMA node
-sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 0 2 # replace the last argument with the node number of CXL memory
+sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 0 2 # replace the last argument with the NUMA node number of CXL memory (e.g., 2)
 ```
 
 5. Setup VMs
@@ -65,29 +65,13 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 0 2 # replace the last
 ./scripts/setup.sh VMS 8 # 8 is the number of VMs
 ```
 
-## Compile Tigon and Send it to VMs
+## Compile Tigon and Send the Binary to VMs
 ```bash
 ./scripts/run.sh COMPILE_SYNC 8 # 8 is the number of VMs
 ```
 
-## Reproduce the Results
-
-We provide an all-in-one script for your conn
+## Hello-World Example
 ```bash
-./scripts/run_all.sh
-```
-
-## Detailed instructions
-
-This section will guide you on how to configure, build, and run all the experiments **from scratch**.
-If you have access to a pre-configured cluster, skip to [building and deploying the binaries](#Building-and-Deploying-the-Binaries).
-
-## Build and Run Experiments
-
-```bash
-# build and sync
-./scripts/run.sh COMPILE_SYNC 8
-
 # run TPCC experiments (check run.sh for detailed usage)
 ./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 30 0 BLACKHOLE 20000 0 0
 
@@ -95,6 +79,14 @@ If you have access to a pre-configured cluster, skip to [building and deploying 
 ./scripts/run.sh YCSB TwoPLPasha 8 3 rmw 100000 50 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough NonPart 30 0 BLACKHOLE 20000 0 0
 ```
 
+## Reproduce the Results with an All-in-one Script
+
+We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times to obtain more results, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
+```bash
+./scripts/run_all.sh results/test1 # use a different directory name under results each time to avoid overwriting old results
+```
+
+## Detailed Instructions
 ### Reproduce Figure 5
 
 ```bash
