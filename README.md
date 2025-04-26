@@ -32,7 +32,7 @@ We emulate a CXL pod by running multiple virtual machines (VMs) on a single host
 
 ## Important Notes
 * If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup)
-* We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor
+* Since Motor (one of our baselines) requires special hardware (4 machines connected via RDMA), we provide pre-measured raw numbers in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor
 * Please run all the commands in the project root directory
 
 ## Testbed Setup (Skip if using pre-configured machines)
@@ -107,7 +107,7 @@ I0426 06:22:59.981012 204381 Database.h:736] TPC-C consistency check passed!
 killing previous experiments...
 ```
 
-## Reproduce the Results with an All-in-one Script
+## Reproduce the Results with an All-in-one Script (~5 hours)
 
 We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
 ```bash
