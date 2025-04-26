@@ -8,12 +8,12 @@ set(CMAKE_C_STANDARD 14)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(CMAKE_CXX_FLAGS "-pthread -Wall -fno-omit-frame-pointer -pedantic -O3 -DNDEBUG -g3 \
+set(CMAKE_CXX_FLAGS "-pthread -Wall -fno-omit-frame-pointer -pedantic -O3 -march=native -DNDEBUG -g3 \
                     -Wno-long-long -Wno-unused-variable -Wno-unused-but-set-variable \
                     -Wno-variadic-macros -Wno-unused-lambda-capture -Wno-c99-extensions \
                     -Wno-zero-length-array -Wno-deprecated-declarations"
 )
-set(CMAKE_EXE_LINKER_FLAGS "-O3 -no-pie -fuse-ld=lld-15")
+set(CMAKE_EXE_LINKER_FLAGS "-O3 -march=native -no-pie -fuse-ld=lld-15")
 
 # include path
 include_directories(

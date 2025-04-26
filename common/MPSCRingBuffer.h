@@ -181,7 +181,7 @@ class MPSCRingBuffer {
                  * covering the given range.
                  */
                 for (uint64_t ptr = (uint64_t)addr & ~(cacheline_size - 1); ptr < (uint64_t)addr + len; ptr += cacheline_size) {
-                        asm volatile ("clflush (%0)" :: "r"(ptr));
+                        _mm_clflushopt((void *)ptr);
                 }
 
                 // make sure clflush completes before memcpy
@@ -195,7 +195,7 @@ class MPSCRingBuffer {
                  * covering the given range.
                  */
                 for (uint64_t ptr = (uint64_t)addr & ~(cacheline_size - 1); ptr < (uint64_t)addr + len; ptr += cacheline_size) {
-                        asm volatile ("clwb (%0)" :: "r"(ptr));
+                        _mm_clwb((void *)ptr);
                 }
 
                 // make sure clwb completes before memcpy
