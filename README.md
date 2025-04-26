@@ -31,11 +31,11 @@ We emulate a CXL pod by running multiple virtual machines (VMs) on a single host
 ![](emulation.png)
 
 ## Important Notes
-* If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Reproduce the Results with an All-in-one Script](#Reproduce-the-Results-with-an-All-in-one-Script) directly
+* If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup)
 * We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor
-* **Please run all the commands in the project root directory**
+* Please run all the commands in the project root directory
 
-## Testbed Setup
+## Testbed Setup (Skip if using pre-configured machines)
 
 ### Hardware Requirements
 
@@ -87,7 +87,7 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # launch 8 VMs eac
 ./scripts/run.sh COMPILE_SYNC 8 # 8 is the number of VMs
 ```
 
-## Hello-World Example for Kick-the-tires DDL
+## Hello-World Example for Kick-the-tires Deadline
 The command below runs Tigon with TPC-C as the workload.
 ```bash
 # example command to run TPC-C
@@ -214,4 +214,3 @@ Common Arguments:
 * ``GATHER_OUTPUTS``: Enable/disable collecting outputs from all hosts. If disabled, only host 1's output is shown
 
 This script will print out statistics every second during the experiment, such as transaction throughput, abort rate and data movement frequency. It will print out averaged statistics at the end.
-
