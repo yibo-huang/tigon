@@ -14,13 +14,13 @@
 namespace star
 {
 
-class PolicyOnDemandFIFO : public MigrationManager {
+class PolicyFIFO : public MigrationManager {
     public:
         struct FIFOMeta {
                 MigrationManager::migrated_row_entity *row_entity_ptr{ nullptr };       // this will be in local DRAM and is only accessed by the owner host
         };
 
-        PolicyOnDemandFIFO(std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
+        PolicyFIFO(std::function<migration_result(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &, bool, void *&)> move_from_partition_to_shared_region,
                         std::function<bool(ITable *, const void *, const std::tuple<std::atomic<uint64_t> *, void *> &)> move_from_shared_region_to_partition,
                         std::function<bool(ITable *, const void *, bool, bool &, void *&)> delete_and_update_next_key_info,
                         const std::string when_to_move_out_str,

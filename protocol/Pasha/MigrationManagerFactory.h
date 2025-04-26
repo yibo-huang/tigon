@@ -8,7 +8,7 @@
 
 #include "protocol/Pasha/MigrationManager.h"
 #include "protocol/Pasha/PolicyEagerly.h"
-#include "protocol/Pasha/PolicyOnDemandFIFO.h"
+#include "protocol/Pasha/PolicyFIFO.h"
 #include "protocol/Pasha/PolicyNoMoveOut.h"
 #include "protocol/Pasha/PolicyLRU.h"
 #include "protocol/Pasha/PolicyClock.h"
@@ -26,8 +26,8 @@ class MigrationManagerFactory {
                 MigrationManager *migration_manager = nullptr;
 
                 if (protocol == "SundialPasha") {
-                        if (migration_policy == "OnDemandFIFO") {
-                                migration_manager = new PolicyOnDemandFIFO(
+                        if (migration_policy == "FIFO") {
+                                migration_manager = new PolicyFIFO(
                                         std::bind(&SundialPashaHelper::move_from_partition_to_shared_region, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         std::bind(&SundialPashaHelper::move_from_shared_region_to_partition, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&SundialPashaHelper::delete_and_update_next_key_info, sundial_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
@@ -67,8 +67,8 @@ class MigrationManagerFactory {
                                 CHECK(0);
                         }
                 } else if (protocol == "TwoPLPasha") {
-                        if (migration_policy == "OnDemandFIFO") {
-                                migration_manager = new PolicyOnDemandFIFO(
+                        if (migration_policy == "FIFO") {
+                                migration_manager = new PolicyFIFO(
                                         std::bind(&TwoPLPashaHelper::move_from_partition_to_shared_region, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
                                         std::bind(&TwoPLPashaHelper::move_from_shared_region_to_partition, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
                                         std::bind(&TwoPLPashaHelper::delete_and_update_next_key_info, twopl_pasha_global_helper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
