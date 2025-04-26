@@ -87,6 +87,26 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # launch 8 VMs eac
 ./scripts/run.sh COMPILE_SYNC 8 # 8 is the number of VMs
 ```
 
+## Hello-World Example for Kick-the-tires DDL
+The command below runs Tigon with TPC-C as the workload.
+```bash
+# example command to run TPC-C
+./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 10 15 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 15 5 GROUP_WAL 20000 0 0
+```
+
+You can expect the last few lines of output to look something like this (numbers may differ):
+```bash
+I0426 06:22:58.143128 204381 Coordinator.h:610] Global Stats: total_commit: 360162 total_size_index_usage: 11890568 total_size_metadata_usage: 2463208 total_size_data_usage: 168300112 total_size_transport_usage: 134218176 total_size_misc_usage: 352 total_hw_cc_usage: 14354128 total_usage: 316872416
+I0426 06:22:59.143204 204415 Dispatcher.h:154] Incoming Dispatcher exits, network size: 5967050. socket_message_recv_latency(50th) 1 socket_message_recv_latency(75th) 2 socket_message_recv_latency(95th) 2 socket_message_recv_latency(99th) 4 internal_message_recv_latency(50th) 0 socket_message_recv_cnt 4141 socket_read_syscall 47768196 internal_message_recv_cnt 0
+I0426 06:22:59.143455 204381 WALLogger.h:539] Group Commit Stats: 45391 us (50%) 62229 us (75%) 91695 us (95%) 111490 us (99%) 47239 us (avg) committed_txn_cnt 620218
+I0426 06:22:59.146075 204381 WALLogger.h:545] Queuing Stats: 22565 us (50%) 39183 us (75%) 57647 us (95%) 72655 us (99%) 25590 us (avg)
+I0426 06:22:59.146092 204381 WALLogger.h:550] Disk Sync Stats: 1717 us (50%) 2071 us (75%) 4620 us (95%) 7078 us (99%) 2040 us (avg) disk_sync_cnt 5098 disk_sync_size 1543621646 current global epoch 2226
+I0426 06:22:59.206394 204381 Coordinator.h:155] round_trip_latency 58 (50th) 60 (75th) 71 (95th) 71 (99th) 
+I0426 06:22:59.206580 204381 Coordinator.h:407] Coordinator exits.
+I0426 06:22:59.981012 204381 Database.h:736] TPC-C consistency check passed!
+killing previous experiments...
+```
+
 ## Reproduce the Results with an All-in-one Script
 
 We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
