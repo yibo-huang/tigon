@@ -111,7 +111,7 @@ killing previous experiments...
 
 We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
 ```bash
-./scripts/run_all.sh results/test1 # use a different directory name under results each time to avoid overwriting old results
+./scripts/push_button.sh results/test1 # use a different directory name under results each time to avoid overwriting old results
 ```
 
 To inteprete the results:
