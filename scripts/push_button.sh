@@ -17,26 +17,24 @@ fi
 
 typeset RESULT_ROOT_DIR=$1
 
-# run experiments
+# TPC-C
 ./scripts/run_tpcc.sh $RESULT_ROOT_DIR
-./scripts/run_ycsb.sh $RESULT_ROOT_DIR
-./scripts/run_hwcc_budget.sh $RESULT_ROOT_DIR
-./scripts/run_swcc.sh $RESULT_ROOT_DIR
-
-# parse and generate Figure 5
 ./scripts/parse/parse_tpcc.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_tpcc_sundial.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_tpcc_twopl.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_tpcc.py $RESULT_ROOT_DIR
 
-# parse and generate Figure 6
+# YCSB
+./scripts/run_ycsb.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_ycsb.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_ycsb.py $RESULT_ROOT_DIR
 
-# parse and generate Figure 7
+# HWcc Budget
+./scripts/run_hwcc_budget.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_hwcc_budget.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_hwcc_budget.py $RESULT_ROOT_DIR
 
-# parse and generate Figure 8
+# SWcc
+./scripts/run_swcc.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_swcc.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_swcc.py $RESULT_ROOT_DIR
