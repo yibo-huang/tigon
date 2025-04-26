@@ -6,9 +6,9 @@ This repository contains the following:
 * An implementation of Tigon
 * Sundial[^3] optimized for a CXL pod: Sundial-CXL and Sundial+
 * DS2PL[^4] optimized for a CXL pod: DS2PL-CXL and DS2PL+
-* A benchmarking framework that supports full TPC-C, YCSB, SmallBank, and TATP (WIP)
+* A benchmarking framework that supports full TPC-C with consistency check, YCSB, SmallBank, and TATP (WIP)
 * Scripts for emulating a CXL pod on a single physical machine
-* Scripts for building and running Tigon
+* Scripts for building and running Tigon/baselines
 * Scripts for reproducing the results in the paper
 
 [^1]: Tigon: A Distributed Database for a CXL Pod, *To appear at OSDI '25*
@@ -18,22 +18,22 @@ This repository contains the following:
 
 ## Claims
 By running the experiments, you should be able to reproduce the numbers shown in:
-* **Figure 5(a)**: TPC-C throughput of Sundial, Sundial-CXL, and Sundial+, varying percentages of multi-partition transactions.
-* **Figure 5(b)**: TPC-C throughput of DS2PL, DS2PL-CXL, and DS2PL+, varying percentages of multi-partition transactions.
-* **Figure 5(c)**: TPC-C throughput of Tigon, Sundial+, DS2PL+, and Motor, varying percentages of multi-partition transactions.
-* **Figure 6**: YCSB throughput of Tigon, Sundial+, DS2PL+, and Motor, varying both read/write ratios and percentages of multi-partition transactions.
-* **Figure 7**: Tigon's sensitivity to the size of hardware cache-coherent region.
-* **Figure 8**: Comparison of different software cache-coherence protocols.
+* **Figure 5(a)**: TPC-C throughput of Sundial, Sundial-CXL, and Sundial+, varying percentages of multi-partition transactions
+* **Figure 5(b)**: TPC-C throughput of DS2PL, DS2PL-CXL, and DS2PL+, varying percentages of multi-partition transactions
+* **Figure 5(c)**: TPC-C throughput of Tigon, Sundial+, DS2PL+, and Motor, varying percentages of multi-partition transactions
+* **Figure 6**: YCSB throughput of Tigon, Sundial+, DS2PL+, and Motor, varying both read/write ratios and percentages of multi-partition transactions
+* **Figure 7**: Tigon's sensitivity to the size of hardware cache-coherent region
+* **Figure 8**: Comparison of different software cache-coherence protocols
 
 ## Emulate a CXL Pod using VMs
-We emulate a CXL pod by running multiple virtual machines (VMs) on a single host connected to a CXL 1.1 memory module. So each host running on a real CXL pod is emulated by a VM running on a single host sharing access to a CXL memory module.
+We emulate a CXL pod by running multiple virtual machines (VMs) on a single host connected to a CXL 1.1 memory module because there are no commercially available (or hardware prototype) CXL devices that support fine-grained memory sharing with hardware cache coherence. Each physical host running on a real CXL pod is emulated by a VM running on a single host sharing access to a CXL memory module. The cache coherence across VMs is maintained by hardware as the CXL 1.1 memory device is cache-coherent to its connected physical machine.
 
 ![](emulation.png)
 
 ## Important Notes
-* If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Reproduce the Results with an All-in-one Script](#Reproduce-the-Results-with-an-All-in-one-Script) directly.
-* We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor.
-* Please execute the instructions in order and run all the commands in the project root directory.
+* If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup) and jump to [Reproduce the Results with an All-in-one Script](#Reproduce-the-Results-with-an-All-in-one-Script) directly
+* We provide raw numbers for Motor (one of our baselines) in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor
+* Please execute the instructions in order and run all the commands in the project root directory
 
 ## Testbed Setup
 
@@ -146,20 +146,20 @@ The result pdf is ``results/swcc/swcc.pdf``
 
 ## Test Tigon in Various Configurations
 
-Tigon is highly-configurable. We explain how to use ``scripts/run.sh`` to test Tigon in various configurations.
+Tigon is highly-configurable. Here we explain how to use ``scripts/run.sh`` to test Tigon in various configurations.
 
 ```bash
 # run TPCC experiments
-./scripts/run.sh TPCC CC_PROTOCOL HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD ENABLE_MIGRATION_OPTIMIZATION MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS
+./scripts/run.sh TPCC SYSTEM HOST_NUM WORKER_NUM QUERY_TYPE REMOTE_NEWORDER_PERC REMOTE_PAYMENT_PERC USE_CXL_TRANS USE_OUTPUT_THREAD ENABLE_MIGRATION_OPTIMIZATION MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS
 
 # example command to run TPC-C
-./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 30 0 BLACKHOLE 20000 0 0
+./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 10 15 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 30 10 BLACKHOLE 20000 0 0
 
 # run YCSB experiments
-./scripts/run.sh YCSB CC_PROTOCOL HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD ENABLE_MIGRATION_OPTIMIZATION MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS
+./scripts/run.sh YCSB SYSTEM HOST_NUM WORKER_NUM QUERY_TYPE KEYS RW_RATIO ZIPF_THETA CROSS_RATIO USE_CXL_TRANS USE_OUTPUT_THREAD ENABLE_MIGRATION_OPTIMIZATION MIGRATION_POLICY WHEN_TO_MOVE_OUT HW_CC_BUDGET ENABLE_SCC SCC_MECH PRE_MIGRATE TIME_TO_RUN TIME_TO_WARMUP LOGGING_TYPE EPOCH_LEN MODEL_CXL_SEARCH GATHER_OUTPUTS
 
 # example command to run YCSB
-./scripts/run.sh YCSB TwoPLPasha 8 3 rmw 100000 50 0 0 1 0 1 Clock OnDemand 200000000 1 WriteThrough NonPart 30 0 BLACKHOLE 20000 0 0
+./scripts/run.sh YCSB TwoPLPasha 8 3 rmw 300000 50 0.7 10 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 30 10 BLACKHOLE 20000 0 0
 ```
 TPC-C Specific Arguments:
 * ``QUERY_TYPE``: Query type to run. ``mixed`` includes all five transactions; ``first_two`` includes only the first two transactions
@@ -168,29 +168,30 @@ TPC-C Specific Arguments:
 
 YCSB Specific Arguments:
 * ``QUERY_TYPE``: Query type to run. ``rmw`` includes standard YCSB read/write queries; ``custom`` includes mixed inserts/deletes
+* ``KEYS``: Number of KV pairs per host
 * ``RW_RATIO``: Ratio of read/write operations. e.g., 50 means 50% read and 50% write
 * ``ZIPF_THETA``: Skewness factor for Zipfian distribution (0-1)
 * ``CROSS_RATIO``: Percentages of remote operations within a transaction (0-100)
 
 Common Arguments:
-* ``CC_PROTOCOL``: System to run. ``Sundial``, ``TwoPL``, ``TwoPLPasha`` (Tigon), ``TwoPLPashaPhantom`` (Tigon with phantom avoidance disabled).
-* ``HOST_NUM``: Number of hosts (VMs)
-* ``WORKER_NUM``: Number of transaction workers per host (VM)
+* ``SYSTEM``: System to run. ``Sundial``, ``TwoPL``, ``TwoPLPasha`` (Tigon), ``TwoPLPashaPhantom`` (Tigon with phantom avoidance disabled), ``SundialPasha`` (Sundial adopting the Pasha architecture).
+* ``HOST_NUM``: Number of hosts
+* ``WORKER_NUM``: Number of transaction workers per host
 * ``USE_CXL_TRANS``: Enable/disable CXL transport
 * ``USE_OUTPUT_THREAD``: Enable/disable repurposing output threads for transaction processing. If enabled, ``USE_CXL_TRANS`` must also be enabled
 * ``ENABLE_MIGRATION_OPTIMIZATION``: Enable/disable data movement optimization
-* ``MIGRATION_POLICY``: Migration policy to use. ``Clock``, ``LRU``, ``FIFO``, ``NoMoveOut`` never moves out data.
+* ``MIGRATION_POLICY``: Migration policy to use. ``Clock``, ``LRU``, ``FIFO``, ``NoMoveOut``
 * ``WHEN_TO_MOVE_OUT``: When to move out data. ``OnDemand`` triggers data moving out when CXL memory is full
-* ``HW_CC_BUDGET``: The size of hardware cache-coherent CXL memory (MB)
+* ``HW_CC_BUDGET``: The size of hardware cache-coherent region (in bytes)
 * ``ENABLE_SCC``: Enable/disable software cache-coherence
-* ``SCC_MECH``: Software cache-coherence protocol to use. ``WriteThrough`` is Tigon's default SWcc protocol; ``WriteThroughNoSharedRead`` disables shared reader; ``NonTemporal`` always do non-temporal access; ``NoOP`` always do temporal access
+* ``SCC_MECH``: Software cache-coherence protocol to use. ``WriteThrough`` is Tigon's default protocol; ``WriteThroughNoSharedRead`` disables shared reader; ``NonTemporal`` always do non-temporal access; ``NoOP`` always do temporal access, assuming full hardware cache-coherence
 * ``PRE_MIGRATE``: Pre-migrate data before experiments. ``None`` migrates nothing; ``NonPart`` migrates non-partitionable data; ``All`` migrates all data
-* ``TIME_TO_RUN``: Total run time for the experiment (s), including the warmup time
-* ``TIME_TO_WARMUP``: Warmup time for the experiment (s)
+* ``TIME_TO_RUN``: Total run time in seconds, including the warmup time
+* ``TIME_TO_WARMUP``: Warmup time in seconds
 * ``LOGGING_TYPE``: Logging mechanism to use. ``BLACKHOLE`` disables logging. ``GROUP_WAL`` enables epoch-based group commit
 * ``EPOCH_LEN``: Epoch length (ms). Effective only when epoch-based group commit is enabled
 * ``MODEL_CXL_SEARCH``: Enable/disable the shortcut pointer optimization
 * ``GATHER_OUTPUTS``: Enable/disable collecting outputs from all hosts. If disabled, only host 1's output is shown
 
-This script will print out statistics every second during your experiment, including transaction throughput, abort rate, data movement frequency, etc. After the experiment finishes, it will print out averaged statistics.
+This script will print out statistics every second during the experiment, such as transaction throughput, abort rate and data movement frequency. It will print out averaged statistics at the end.
 
