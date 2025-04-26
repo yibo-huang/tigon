@@ -48,7 +48,6 @@ if [ $TASK_TYPE = "DEPS" ]; then
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y;
         source ~/.cargo/env
         fi
-        source $HOME/.cargo/env
 
         exit 0
 elif [ $TASK_TYPE = "HOST" ]; then
