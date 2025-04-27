@@ -185,34 +185,34 @@ Tigon is highly-configurable. Here we explain how to use ``scripts/run.sh`` to t
 ```
 TPC-C Specific Arguments:
 * ``QUERY_TYPE``: Query type to run. ``mixed`` includes all five transactions; ``first_two`` includes only the first two transactions
-* ``REMOTE_NEWORDER_PERC``: Percentages of remote NewOrder transactions (0-100)
-* ``REMOTE_PAYMENT_PERC``: Percentages of remote Payment transactions (0-100)
+* ``REMOTE_NEWORDER_PERC``: Percentage of remote NewOrder transactions (0-100)
+* ``REMOTE_PAYMENT_PERC``: Percentage of remote Payment transactions (0-100)
 
 YCSB Specific Arguments:
 * ``QUERY_TYPE``: Query type to run. ``rmw`` includes standard YCSB read/write queries; ``custom`` includes mixed inserts/deletes
 * ``KEYS``: Number of KV pairs per host
 * ``RW_RATIO``: Ratio of read/write operations. e.g., 50 means 50% read and 50% write
 * ``ZIPF_THETA``: Skewness factor for Zipfian distribution (0-1)
-* ``CROSS_RATIO``: Percentages of remote operations within a transaction (0-100)
+* ``CROSS_RATIO``: Percentage of remote operations within a transaction (0-100)
 
 Common Arguments:
-* ``SYSTEM``: System to run. ``Sundial``, ``TwoPL``, ``TwoPLPasha`` (Tigon), ``TwoPLPashaPhantom`` (Tigon with phantom avoidance disabled), ``SundialPasha`` (Sundial adopting the Pasha architecture).
+* ``SYSTEM``: System to run. ``Sundial``, ``TwoPL``, ``TwoPLPasha`` (Tigon), ``TwoPLPashaPhantom`` (Tigon with phantom detection disabled), ``SundialPasha`` (Sundial adopting the Pasha architecture).
 * ``HOST_NUM``: Number of hosts
 * ``WORKER_NUM``: Number of transaction workers per host
 * ``USE_CXL_TRANS``: Enable/disable CXL transport
 * ``USE_OUTPUT_THREAD``: Enable/disable repurposing output threads for transaction processing. If enabled, ``USE_CXL_TRANS`` must also be enabled
 * ``ENABLE_MIGRATION_OPTIMIZATION``: Enable/disable data movement optimization
 * ``MIGRATION_POLICY``: Migration policy to use. ``Clock``, ``LRU``, ``FIFO``, ``NoMoveOut``
-* ``WHEN_TO_MOVE_OUT``: When to move out data. ``OnDemand`` triggers data moving out when CXL memory is full
-* ``HW_CC_BUDGET``: The size of hardware cache-coherent region (in bytes)
+* ``WHEN_TO_MOVE_OUT``: When to move out data. ``OnDemand`` triggers data moving out only when CXL memory is full
+* ``HW_CC_BUDGET``: Size of hardware cache-coherent region (in bytes)
 * ``ENABLE_SCC``: Enable/disable software cache-coherence
 * ``SCC_MECH``: Software cache-coherence protocol to use. ``WriteThrough`` is Tigon's default protocol; ``WriteThroughNoSharedRead`` disables shared reader; ``NonTemporal`` always do non-temporal access; ``NoOP`` always do temporal access, assuming full hardware cache-coherence
 * ``PRE_MIGRATE``: Pre-migrate data before experiments. ``None`` migrates nothing; ``NonPart`` migrates non-partitionable data; ``All`` migrates all data
-* ``TIME_TO_RUN``: Total run time in seconds, including the warmup time
+* ``TIME_TO_RUN``: Total run time in seconds, including warmup time
 * ``TIME_TO_WARMUP``: Warmup time in seconds
 * ``LOGGING_TYPE``: Logging mechanism to use. ``BLACKHOLE`` disables logging. ``GROUP_WAL`` enables epoch-based group commit
 * ``EPOCH_LEN``: Epoch length (ms). Effective only when epoch-based group commit is enabled
 * ``MODEL_CXL_SEARCH``: Enable/disable the shortcut pointer optimization
-* ``GATHER_OUTPUTS``: Enable/disable collecting outputs from all hosts. If disabled, only host 1's output is shown
+* ``GATHER_OUTPUTS``: Enable/disable collecting outputs from all hosts. If disabled, only the output of the first host is shown
 
 This script will print out statistics every second during the experiment, such as transaction throughput, abort rate and data movement frequency. It will print out averaged statistics at the end.
