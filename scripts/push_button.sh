@@ -18,6 +18,7 @@ fi
 typeset RESULT_ROOT_DIR=$1
 
 # TPC-C
+echo "Running TPC-C experiments..."
 ./scripts/run_tpcc.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_tpcc.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_tpcc_sundial.py $RESULT_ROOT_DIR
@@ -25,16 +26,19 @@ typeset RESULT_ROOT_DIR=$1
 ./scripts/plot/plot_tpcc.py $RESULT_ROOT_DIR
 
 # YCSB
+echo "Running YCSB experiments..."
 ./scripts/run_ycsb.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_ycsb.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_ycsb.py $RESULT_ROOT_DIR
 
 # HWcc Budget
+echo "Running HWcc Budget experiments..."
 ./scripts/run_hwcc_budget.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_hwcc_budget.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_hwcc_budget.py $RESULT_ROOT_DIR
 
 # SWcc
+echo "Running SWcc experiments..."
 ./scripts/run_swcc.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_swcc.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_swcc.py $RESULT_ROOT_DIR
