@@ -107,23 +107,25 @@ I0426 06:22:59.981012 204381 Database.h:736] TPC-C consistency check passed!
 killing previous experiments...
 ```
 
-## Reproduce the Results with an All-in-one Script (~5 hours)
+## Reproduce the Results with an All-in-one Script (~7.5h)
 
 We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
+
+We recommend running it overnight using tmux or vscode remote ssh.
 ```bash
 ./scripts/push_button.sh results/test1 # use a different directory name under results each time to avoid overwriting old results
 ```
 
 To inteprete the results:
-* Figure 5 (a): ``results/tpcc/tpcc-sundial.pdf``
-* Figure 5 (b): ``results/tpcc/tpcc-twopl.pdf``
-* Figure 5 (c): ``results/tpcc/tpcc.pdf``
-* Figure 6: ``results/ycsb/ycsb.pdf``
-* Figure 7: ``results/hwcc_budget/hwcc_budget.pdf``
-* Figure 8: ``results/swcc/swcc.pdf``
+* Figure 5 (a): ``results/test1/tpcc/tpcc-sundial.pdf``
+* Figure 5 (b): ``results/test1/tpcc/tpcc-twopl.pdf``
+* Figure 5 (c): ``results/test1/tpcc/tpcc.pdf``
+* Figure 6: ``results/test1/ycsb/ycsb.pdf``
+* Figure 7: ``results/test1/hwcc_budget/hwcc_budget.pdf``
+* Figure 8: ``results/test1/swcc/swcc.pdf``
 
 ## Reproduce the Results One by One
-### Reproduce Figure 5
+### Reproduce Figure 5 (~1h)
 
 ```bash
 ./scripts/run_tpcc.sh ./results/test1 # run experiments
@@ -133,36 +135,36 @@ To inteprete the results:
 ./scripts/plot/plot_tpcc.py ./results/test1 # generate Figure 5(c)
 ```
 To inteprete the results:
-* Figure 5 (a): ``results/tpcc/tpcc-sundial.pdf``
-* Figure 5 (b): ``results/tpcc/tpcc-twopl.pdf``
-* Figure 5 (c): ``results/tpcc/tpcc.pdf``
+* Figure 5 (a): ``results/test1/tpcc/tpcc-sundial.pdf``
+* Figure 5 (b): ``results/test1/tpcc/tpcc-twopl.pdf``
+* Figure 5 (c): ``results/test1/tpcc/tpcc.pdf``
 
-### Reproduce Figure 6
+### Reproduce Figure 6 (~2.5h)
 
 ```bash
 ./scripts/run_ycsb.sh ./results/test1 # run experiments
 ./scripts/parse/parse_ycsb.py ./results/test1 # parse results
 ./scripts/plot/plot_ycsb.py ./results/test1 # generate Figure 6
 ```
-The result pdf is ``results/ycsb/ycsb.pdf``
+The result pdf is ``results/test1/ycsb/ycsb.pdf``
 
-### Reproduce Figure 7
+### Reproduce Figure 7 (~3h)
 
 ```bash
 ./scripts/run_hwcc_budget.sh ./results/test1 # run experiments
 ./scripts/parse/parse_hwcc_budget.py ./results/test1 # parse results
 ./scripts/plot/plot_hwcc_budget.py ./results/test1 # generate Figure 7
 ```
-The result pdf is ``results/hwcc_budget/hwcc_budget.pdf``
+The result pdf is ``results/test1/hwcc_budget/hwcc_budget.pdf``
 
-### Reproduce Figure 8
+### Reproduce Figure 8 (~1h)
 
 ```bash
 ./scripts/run_swcc.sh ./results/test1 # run experiments
 ./scripts/parse/parse_swcc.py ./results/test1 # parse results
 ./scripts/plot/plot_swcc.py ./results/test1 # generate Figure 8
 ```
-The result pdf is ``results/swcc/swcc.pdf``
+The result pdf is ``results/test1/swcc/swcc.pdf``
 
 ## Test Tigon in Various Configurations
 
