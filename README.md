@@ -129,7 +129,7 @@ To inteprete the results:
 
 ```bash
 ./scripts/run_tpcc.sh ./results/test1 # run experiments
-./scripts/parse/parse_tpcc.sh ./results/test1 # parse results
+./scripts/parse/parse_tpcc.py ./results/test1 # parse results
 ./scripts/plot/plot_tpcc_sundial.py ./results/test1 # generate Figure 5(a)
 ./scripts/plot/plot_tpcc_twopl.py ./results/test1 # generate Figure 5(b)
 ./scripts/plot/plot_tpcc.py ./results/test1 # generate Figure 5(c)
