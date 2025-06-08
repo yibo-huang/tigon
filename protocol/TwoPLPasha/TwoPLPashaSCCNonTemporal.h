@@ -25,12 +25,12 @@ class TwoPLPashaSCCNonTemporal : public SCCManager {
 
         void do_read(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) override
         {
-                // do nothing
+                memcpy(dst, src, size);
         }
 
         void do_write(void *scc_meta, std::size_t cur_host_id, void *dst, const void *src, uint64_t size) override
         {
-                // do nothing
+                memcpy(dst, src, size);
         }
 
         void prepare_read(void *scc_meta, std::size_t cur_host_id, void *scc_data, uint64_t size) override

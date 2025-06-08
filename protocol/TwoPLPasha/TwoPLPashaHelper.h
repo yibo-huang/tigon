@@ -345,6 +345,7 @@ class TwoPLPashaHelper {
 
                         void *src = scc_data->data;
                         smeta->lock();
+                        scc_manager->prepare_read(nullptr, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
                         DCHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
                         scc_manager->do_read(nullptr, coordinator_id, dest, src, size);
                         tid_ = scc_data->tid;
@@ -357,18 +358,8 @@ class TwoPLPashaHelper {
 
         uint64_t remote_read(char *row, void *dest, std::size_t size)
 	{
-		TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(row);
-                TwoPLPashaSharedDataSCC *scc_data = smeta->get_scc_data();
-                void *src = scc_data->data;
-                uint64_t tid_ = 0;
-
-		smeta->lock();
-                DCHECK(scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == true);
-                scc_manager->do_read(nullptr, coordinator_id, dest, src, size);
-                tid_ = scc_data->tid;
-		smeta->unlock();
-
-		return remove_lock_bit(tid_);
+                // unused
+		CHECK(0);
 	}
 
         void update(const std::tuple<MetaDataType *, void *> &row, const void *value, std::size_t value_size)
