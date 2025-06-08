@@ -6,15 +6,10 @@ This repository contains the following:
 * An implementation of Tigon
 * Sundial[^3] optimized for a CXL pod: Sundial-CXL and Sundial+
 * DS2PL[^4] optimized for a CXL pod: DS2PL-CXL and DS2PL+
-* A benchmarking framework that supports full TPC-C with consistency check, YCSB, SmallBank, and TATP (WIP)
+* A benchmarking framework that supports full TPC-C, YCSB, and SmallBank
 * Scripts for emulating a CXL pod on a single physical machine
 * Scripts for building and running Tigon/baselines
-* Scripts for reproducing the results in the paper
-
-[^1]: Tigon: A Distributed Database for a CXL Pod, *To appear at OSDI '25*
-[^2]: Pasha: An Efficient, Scalable Database Architecture for CXL Pods, *CIDR '25*
-[^3]: Sundial: Harmonizing Concurrency Control and Caching in a Distributed OLTP Database Management System, *VLDB '18*
-[^4]: Lotus: scalable multi-partition transactions on single-threaded partitioned databases, *VLDB '22*
+* Scripts for reproducing the results reported in the paper
 
 ## Claims
 By running the experiments, you should be able to reproduce the numbers shown in:
@@ -31,11 +26,10 @@ We emulate a CXL pod by running multiple virtual machines (VMs) on a single host
 ![](emulation.png)
 
 ## Important Notes
-* If you use one of our pre-configured machines, please skip [Testbed Setup](#Testbed-Setup)
-* Since Motor (one of our baselines) requires special hardware (4 machines connected via RDMA), we provide pre-measured raw numbers in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor
-* Please run all the commands in the project root directory
+* Since Motor[^5] (one of our baselines) requires special hardware (4 machines connected via RDMA), we provide pre-measured raw numbers in ``results/motor``. If you would like to run Motor, please refer to https://github.com/minghust/motor
+* Please run all the commands under the project root directory
 
-## Testbed Setup (Skip if using pre-configured machines)
+## Testbed Setup
 
 ### Hardware Requirements
 
@@ -55,11 +49,9 @@ We emulate a CXL pod by running multiple virtual machines (VMs) on a single host
 git clone https://github.com/yibo-huang/tigon.git
 ```
 
-2. Install dependencies and switch the kernel to 5.19
+2. Host setup
 ```bash
-./scripts/setup.sh DEPS # install dependencies
-./scripts/setup.sh HOST # setup host and install kernel 5.19
-sudo reboot # reboot to switch to the new kernel
+./scripts/setup.sh HOST
 ```
 
 3. Build VM image
@@ -87,10 +79,9 @@ sudo ./emulation/start_vms.sh --using-old-img --cxl 0 5 8 1 1 # launch 8 VMs eac
 ./scripts/run.sh COMPILE_SYNC 8 # 8 is the number of VMs
 ```
 
-## Hello-World Example for Kick-the-tires Deadline
+## Hello-World Example
 The command below runs Tigon with TPC-C as the workload.
 ```bash
-# example command to run TPC-C
 ./scripts/run.sh TPCC TwoPLPasha 8 3 mixed 10 15 1 0 1 Clock OnDemand 200000000 1 WriteThrough None 15 5 GROUP_WAL 20000 0 0
 ```
 
@@ -111,21 +102,21 @@ killing previous experiments...
 
 We provide an all-in-one script for your convenience, which runs all the experiments and generates all the figures. The figures are stored in ``results/test1``. If you would like to run it multiple times, please use different directory names under ``results`` to avoid overwriting old results (e.g., ``results/test2``).
 
-We recommend running it overnight using tmux or vscode remote ssh.
+We recommend running it overnight using tmux.
 ```bash
 ./scripts/push_button.sh results/test1 # use a different directory name under results each time to avoid overwriting old results
 ```
 
 To inteprete the results:
-* Figure 5 (a): ``results/test1/tpcc/tpcc-sundial.pdf``
-* Figure 5 (b): ``results/test1/tpcc/tpcc-twopl.pdf``
-* Figure 5 (c): ``results/test1/tpcc/tpcc.pdf``
-* Figure 6: ``results/test1/ycsb/ycsb.pdf``
+* Figure 4 (a): ``results/test1/tpcc/tpcc-sundial.pdf``
+* Figure 4 (b): ``results/test1/tpcc/tpcc-twopl.pdf``
+* Figure 4 (c): ``results/test1/tpcc/tpcc.pdf``
+* Figure 5: ``results/test1/ycsb/ycsb.pdf``
 * Figure 7: ``results/test1/hwcc_budget/hwcc_budget.pdf``
 * Figure 8: ``results/test1/swcc/swcc.pdf``
 
 ## Reproduce the Results One by One
-### Reproduce Figure 5 (~1h)
+### Reproduce Figure 4 (~1h)
 
 ```bash
 ./scripts/run_tpcc.sh ./results/test1 # run experiments
@@ -139,7 +130,7 @@ To inteprete the results:
 * Figure 5 (b): ``results/test1/tpcc/tpcc-twopl.pdf``
 * Figure 5 (c): ``results/test1/tpcc/tpcc.pdf``
 
-### Reproduce Figure 6 (~2.5h)
+### Reproduce Figure 5 (~2.5h)
 
 ```bash
 ./scripts/run_ycsb.sh ./results/test1 # run experiments
@@ -215,4 +206,32 @@ Common Arguments:
 * ``MODEL_CXL_SEARCH``: Enable/disable the shortcut pointer optimization
 * ``GATHER_OUTPUTS``: Enable/disable collecting outputs from all hosts. If disabled, only the output of the first host is shown
 
-This script will print out statistics every second during the experiment, such as transaction throughput, abort rate and data movement frequency. It will print out averaged statistics at the end.
+This script will print out statistics every second during the experiment, such as transaction throughput, abort rate and data movement frequency, and averaged statistics at the end.
+
+## Publication
+
+Please consider citing Tigon and Pasha if you find them useful:
+``` bibtex
+@inproceedings{tigon,
+author = {Yibo Huang and Haowei Chen and Newton Ni and Yan Sun and Vijay Chidambaram and Dixin Tang and Emmett Witchel},
+title = {Tigon: A Distributed Database for a CXL Pod},
+booktitle = {19th USENIX Symposium on Operating Systems Design and Implementation (OSDI 25)},
+year = {2025},
+address = {Boston, MA},
+publisher = {USENIX Association},
+month = jul
+}
+
+@inproceedings{pasha,
+author={Huang, Yibo and Ni, Newton and Chidambaram, Vijay and Witchel, Emmett and Tang, Dixin},
+title={Pasha: An Efficient, Scalable Database Architecture for CXL Pods},
+booktitle={Proceedings of the Conference on Innovative Data Systems Research (CIDR)},
+year={2024},
+}
+```
+
+[^1]: Tigon: A Distributed Database for a CXL Pod, *To appear at OSDI '25*
+[^2]: Pasha: An Efficient, Scalable Database Architecture for CXL Pods, *CIDR '25*
+[^3]: Sundial: Harmonizing Concurrency Control and Caching in a Distributed OLTP Database Management System, *VLDB '18*
+[^4]: Lotus: scalable multi-partition transactions on single-threaded partitioned databases, *VLDB '22*
+[^5]: Motor: Enabling Multi-Versioning for Distributed Transactions on Disaggregated Memory, *OSDI '24*
