@@ -42,3 +42,7 @@ echo "Running SWcc experiments..."
 ./scripts/run_swcc.sh $RESULT_ROOT_DIR
 ./scripts/parse/parse_swcc.py $RESULT_ROOT_DIR
 ./scripts/plot/plot_swcc.py $RESULT_ROOT_DIR
+
+# MISC
+echo "Running Misc experiments"
+./scripts/run_misc.sh $RESULT_ROOT_DIR

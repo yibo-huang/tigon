@@ -7,8 +7,7 @@ typeset SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null &
 typeset current_date_time="`date +%Y%m%d%H%M`"
 
 function print_usage {
-        echo "[usage] ./setup.sh [DEPS/HOST/VMS] EXP-SPECIFIC"
-        echo "DEPS: None"
+        echo "[usage] ./setup.sh [HOST/VMS] EXP-SPECIFIC"
         echo "HOST: None"
         echo "VMS: HOST_NUM"
 }
@@ -22,7 +21,7 @@ typeset TASK_TYPE=$1
 
 source $SCRIPT_DIR/utilities.sh
 
-if [ $TASK_TYPE = "DEPS" ]; then
+if [ $TASK_TYPE = "HOST" ]; then
         if [ $# != 1 ]; then
                 print_usage
                 exit -1
@@ -43,31 +42,11 @@ if [ $TASK_TYPE = "DEPS" ]; then
         sudo apt-get install -y msttcorefonts -qq
         rm ~/.cache/matplotlib -rf           # remove cache
 
-        # install Rust
-        if ! which rustc; then
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y;
-        source ~/.cargo/env
-        fi
-
-        exit 0
-elif [ $TASK_TYPE = "HOST" ]; then
-        if [ $# != 1 ]; then
-                print_usage
-                exit -1
-        fi
-        echo "Setting up current machine..."
-
         # setup ssh key
         [ -f $HOME/.ssh/id_rsa ] || ssh-keygen -t rsa -N "" -f $HOME/.ssh/id_rsa
         cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
 
-        # kernel 5.19.0-50-generic
-        sudo apt-get install -y linux-image-5.19.0-50-generic linux-headers-5.19.0-50-generic \
-                linux-hwe-5.19-headers-5.19.0-50 linux-modules-5.19.0-50-generic \
-                linux-modules-extra-5.19.0-50-generic
-
-        echo "Please reboot to switch to the new kernel!"
-        exit -1
+        exit 0
 elif [ $TASK_TYPE = "VMS" ]; then
         if [ $# != 2 ]; then
                 print_usage

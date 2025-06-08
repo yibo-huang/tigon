@@ -26,7 +26,7 @@ typeset HOST_NUM=8
 typeset WORKER_NUM=3
 typeset OLD_WORKER_NUM=2
 
-typeset DEFAULT_WAL_GROUP_COMMIT_TIME=20000 # 20 ms
+typeset DEFAULT_WAL_GROUP_COMMIT_TIME=10000 # 10 ms
 
 typeset DEFAULT_HCC_SIZE_LIMIT=$(( 1024*1024*200 ))     # 200 MB
 
@@ -54,6 +54,6 @@ run_remote_txn_overhead_tpcc $RESULT_DIR Sundial $HOST_NUM $OLD_WORKER_NUM 0 1 N
 ########### Tigon BEGIN ###########
 
 run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPasha $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThrough NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME               # Tigon-TwoPL
-# run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPashaPhantom $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThrough NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME        # Tigon-TwoPL without phantom detection
+run_remote_txn_overhead_tpcc $RESULT_DIR TwoPLPashaPhantom $HOST_NUM $WORKER_NUM 1 0 Clock OnDemand $DEFAULT_HCC_SIZE_LIMIT 1 WriteThrough NonPart GROUP_WAL $DEFAULT_WAL_GROUP_COMMIT_TIME 0 $TPCC_RUN_TIME $TPCC_WARMUP_TIME        # Tigon-TwoPL without phantom detection
 
 ########### Tigon END ###########

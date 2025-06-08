@@ -3,8 +3,12 @@
 import sys
 import math
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 if len(sys.argv) != 2:
         print("Usage: " + sys.argv[0] + " RESULT_ROOT_DIR")
@@ -57,7 +61,7 @@ max_y_rounded_up = math.ceil(max_y / 200000.0) * 200000.0
 
 # Transform Y axises
 ax = plt.subplot(111)
-plt.ylim(0, 600000)
+plt.ylim(0, 700000)
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.0f}'.format(x/1000) + 'K' if x != 0 else 0))
 
 # Create the line plot
@@ -66,6 +70,7 @@ plt.plot(x, twopl_cxl_y, color="#ffc003", marker="^", **DEFAULT_PLOT, markerface
 plt.plot(x, twopl_net_y, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor="none",label="DS2PL-NET")
 
 # Configure legend
-ax.legend(loc='upper right', frameon=True, fancybox=True, framealpha=1, ncol=1)
+legend = ax.legend(loc='upper right', bbox_to_anchor=(1.019, 1.026), columnspacing=1, frameon=True, fancybox=False, framealpha=1, ncol=1, edgecolor='black')
+legend.get_frame().set_linewidth(0.7)
 
 plt.savefig(res_root_dir + "/tpcc/tpcc-twopl.pdf", format="pdf", bbox_inches="tight")

@@ -4,8 +4,12 @@ import sys
 import math
 import pandas as pd
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 ### common config START ###
 
@@ -79,9 +83,9 @@ tmp_list.extend(tigon_non_temporal_y_ycsb)
 tmp_list.extend(tigon_no_swcc_y_ycsb)
 
 max_y = max(tmp_list)
-max_y_rounded_up_ycsb = math.ceil(max_y / 200000.0) * 200000.0
+max_y_rounded_up_ycsb = math.ceil(max_y / 500000.0) * 500000.0
 
-ax[1].set_ylim(0, 2000000)
+ax[1].set_ylim(0, max_y_rounded_up_ycsb)
 ax[1].yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: '{:,.1f}'.format(x/1000000) + 'M' if x != 0 else 0))
 
 ax[1].plot(x_ycsb, tigon_y_ycsb, color="#000000", marker="s", **DEFAULT_PLOT)

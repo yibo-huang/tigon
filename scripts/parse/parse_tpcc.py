@@ -11,12 +11,12 @@ from common import get_row, parse_results, append_motor_numbers
 ### baselines only ###
 def construct_input_list_tpcc_baseline(tpcc_res_dir):
         input_file_list = list()
-        input_file_list.append(("Sundial-CXL-improved", tpcc_res_dir + "/tpcc-Sundial-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("TwoPL-CXL-improved", tpcc_res_dir + "/tpcc-TwoPL-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("Sundial-CXL", tpcc_res_dir + "/tpcc-Sundial-8-2-1-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("TwoPL-CXL", tpcc_res_dir + "/tpcc-TwoPL-8-2-1-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("Sundial-NET", tpcc_res_dir + "/tpcc-Sundial-8-2-0-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("TwoPL-NET", tpcc_res_dir + "/tpcc-TwoPL-8-2-0-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
+        input_file_list.append(("Sundial-CXL-improved", tpcc_res_dir + "/tpcc-Sundial-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("TwoPL-CXL-improved", tpcc_res_dir + "/tpcc-TwoPL-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("Sundial-CXL", tpcc_res_dir + "/tpcc-Sundial-8-2-1-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("TwoPL-CXL", tpcc_res_dir + "/tpcc-TwoPL-8-2-1-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("Sundial-NET", tpcc_res_dir + "/tpcc-Sundial-8-2-0-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("TwoPL-NET", tpcc_res_dir + "/tpcc-TwoPL-8-2-0-1-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
         return input_file_list
 
 def parse_tpcc_baseline(tpcc_res_dir):
@@ -29,11 +29,11 @@ def parse_tpcc_baseline(tpcc_res_dir):
 ### Tigon and baselines ###
 def construct_input_list_tpcc(tpcc_res_dir):
         input_file_list = list()
-        input_file_list.append(("Tigon", tpcc_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-Clock-OnDemand-209715200-1-WriteThrough-NonPart-GROUP_WAL-20000-0.txt"))
-        # input_file_list.append(("Tigon-Phantom", tpcc_res_dir + "/tpcc-TwoPLPashaPhantom-8-3-1-0-Clock-OnDemand-209715200-1-WriteThrough-NonPart-GROUP_WAL-20000-0.txt"))
+        input_file_list.append(("Tigon", tpcc_res_dir + "/tpcc-TwoPLPasha-8-3-1-0-Clock-OnDemand-209715200-1-WriteThrough-NonPart-GROUP_WAL-10000-0.txt"))
+        # input_file_list.append(("Tigon-Phantom", tpcc_res_dir + "/tpcc-TwoPLPashaPhantom-8-3-1-0-Clock-OnDemand-209715200-1-WriteThrough-NonPart-GROUP_WAL-10000-0.txt"))
 
-        input_file_list.append(("Sundial-CXL-improved", tpcc_res_dir + "/tpcc-Sundial-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("TwoPL-CXL-improved", tpcc_res_dir + "/tpcc-TwoPL-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
+        input_file_list.append(("Sundial-CXL-improved", tpcc_res_dir + "/tpcc-Sundial-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("TwoPL-CXL-improved", tpcc_res_dir + "/tpcc-TwoPL-8-3-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
         return input_file_list
 
 def parse_tpcc(tpcc_res_dir, motor_tpcc_csv):

@@ -4,8 +4,12 @@ import sys
 import math
 import pandas as pd
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 ### common config START ###
 
@@ -17,6 +21,8 @@ DEFAULT_PLOT = {
 }
 
 plt.rcParams["font.size"] = 11
+
+bbox_config = dict(facecolor='white', edgecolor='black', linewidth=0.7, pad=2.8)
 
 ### common config END ###
 
@@ -75,7 +81,7 @@ tmp_list.extend(twopl_cxl_improved_y_2)
 tmp_list.extend(motor_y_2)
 
 max_y_1_2 = max(tmp_list)
-max_y_rounded_up_1_2 = math.ceil(max_y_1_2 / 200000.0) * 200000.0
+max_y_rounded_up_1_2 = math.ceil(max_y_1_2 / 1000000.0) * 1000000.0
 
 ### calculate Y limit for 3 and 4 ###
 tmp_list = list()
@@ -89,7 +95,7 @@ tmp_list.extend(twopl_cxl_improved_y_4)
 tmp_list.extend(motor_y_4)
 
 max_y_3_4 = max(tmp_list)
-max_y_rounded_up_3_4 = math.ceil(max_y_3_4 / 200000.0) * 200000.0
+max_y_rounded_up_3_4 = math.ceil(max_y_3_4 / 100000.0) * 100000.0
 
 ### subplot 1 ###
 ax[0, 0].set_ylim(0, max_y_rounded_up_1_2)
@@ -100,7 +106,7 @@ ax[0, 0].plot(x, sundial_cxl_improved_y_1, color="#4372c4", marker="^", **DEFAUL
 ax[0, 0].plot(x, twopl_cxl_improved_y_1, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none", label="DS2PL+")
 ax[0, 0].plot(x, motor_y_1, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none", label="Motor")
 
-ax[0, 0].text(0.5, 0.95, '100% R, 0% W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[0, 0].text(0.5, 0.9795, '100%R, 0%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 0].transAxes, bbox=bbox_config)
 
 ax[0, 0].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[0, 0].set_xticklabels([])
@@ -114,7 +120,7 @@ ax[0, 1].plot(x, sundial_cxl_improved_y_2, color="#4372c4", marker="^", **DEFAUL
 ax[0, 1].plot(x, twopl_cxl_improved_y_2, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
 ax[0, 1].plot(x, motor_y_2, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
-ax[0, 1].text(0.5, 0.95, '95% R, 5% W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[0, 1].text(0.5, 0.9795, '95%R, 5%W', horizontalalignment='center', verticalalignment='top', transform=ax[0, 1].transAxes, bbox=bbox_config)
 
 ax[0, 1].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[0, 1].set_xticklabels([])
@@ -129,7 +135,7 @@ ax[1, 0].plot(x, sundial_cxl_improved_y_3, color="#4372c4", marker="^", **DEFAUL
 ax[1, 0].plot(x, twopl_cxl_improved_y_3, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
 ax[1, 0].plot(x, motor_y_3, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
-ax[1, 0].text(0.5, 0.95, '50% R, 50% W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 0].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[1, 0].text(0.5, 0.9795, '50%R, 50%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 0].transAxes, bbox=bbox_config)
 
 ax[1, 0].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 
@@ -142,7 +148,7 @@ ax[1, 1].plot(x, sundial_cxl_improved_y_4, color="#4372c4", marker="^", **DEFAUL
 ax[1, 1].plot(x, twopl_cxl_improved_y_4, color="#ffc003", marker=">", **DEFAULT_PLOT, markerfacecolor = "none",)
 ax[1, 1].plot(x, motor_y_4, color="#ed7d31", marker="o", **DEFAULT_PLOT, markerfacecolor = "none",)
 
-ax[1, 1].text(0.5, 0.95, '0% R, 100% W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 1].transAxes, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+ax[1, 1].text(0.5, 0.9795, '0%R, 100%W', horizontalalignment='center', verticalalignment='top', transform=ax[1, 1].transAxes, bbox=bbox_config)
 
 ax[1, 1].set_xticks(np.arange(min(x), max(x)+1, 20.0))
 ax[1, 1].set_yticklabels([])

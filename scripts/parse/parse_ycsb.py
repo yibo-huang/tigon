@@ -11,10 +11,10 @@ from common import get_row, parse_results, append_motor_numbers
 ### Tigon and baselines ###
 def construct_input_list_ycsb(ycsb_res_dir, rw_ratio, zipf_theta):
         input_file_list = list()
-        input_file_list.append(("Tigon", ycsb_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-Clock-OnDemand-209715200-1-WriteThrough-NonPart-GROUP_WAL-20000-0.txt"))
+        input_file_list.append(("Tigon", ycsb_res_dir + "/ycsb-TwoPLPasha-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-Clock-OnDemand-209715200-1-WriteThrough-NonPart-GROUP_WAL-10000-0.txt"))
 
-        input_file_list.append(("Sundial-CXL-improved", ycsb_res_dir + "/ycsb-Sundial-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
-        input_file_list.append(("TwoPL-CXL-improved", ycsb_res_dir + "/ycsb-TwoPL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-20000-0.txt"))
+        input_file_list.append(("Sundial-CXL-improved", ycsb_res_dir + "/ycsb-Sundial-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
+        input_file_list.append(("TwoPL-CXL-improved", ycsb_res_dir + "/ycsb-TwoPL-rmw-8-3-" + rw_ratio + "-" + zipf_theta + "-1-0-NoMoveOut-OnDemand-0-0-NoOP-None-GROUP_WAL-10000-0.txt"))
         return input_file_list
 
 def parse_ycsb(ycsb_res_dir, motor_ycsb_csv, rw_ratio, zipf_theta):
