@@ -345,10 +345,12 @@ template <class Database> class TwoPLPasha {
 			return false;
 		}
 
+                uint64_t cur_global_epoch = txn.get_logger()->get_global_epoch();
+
                 {
 			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_prepare_time(us); });
 			if (txn.get_logger()) {
-				write_redo_logs_for_commit(txn);
+				write_redo_logs_for_commit(txn, cur_global_epoch);
 			} else {
 				// do nothing if logging is disabled
 			}
@@ -528,7 +530,7 @@ template <class Database> class TwoPLPasha {
 		{
 			ScopedTimer t([&, this](uint64_t us) { txn.record_commit_unlock_time(us); });
 			// write and replicate
-			release_lock(txn, commit_tid, messages);
+			release_lock(txn, commit_tid, messages, cur_global_epoch);
 		}
 
                 // release migrated rows
@@ -676,7 +678,17 @@ template <class Database> class TwoPLPasha {
                 }
 	}
 
-        void write_redo_logs_for_commit(TransactionType &txn)
+        uint64_t generate_epoch_version(uint64_t cur_epoch_version, uint64_t cur_global_epoch)
+        {
+                uint64_t epoch = cur_epoch_version >> 32;
+                if (cur_global_epoch > epoch) {
+                        return cur_global_epoch << 32;
+                } else {
+                        return cur_epoch_version + 1;
+                }
+        }
+
+        void write_redo_logs_for_commit(TransactionType &txn, uint64_t cur_global_epoch)
 	{
                 // Redo logging for updates
                 auto &writeSet = txn.writeSet;
@@ -689,15 +701,19 @@ template <class Database> class TwoPLPasha {
                         auto value_size = table->value_size();
                         auto key = writeKey.get_key();
                         auto value = writeKey.get_value();
+                        auto tid = writeKey.get_tid();
                         DCHECK(key);
                         DCHECK(value);
                         std::ostringstream ss;
 
                         int log_type = 0;       // 0 stands for update
-                        ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
+                        uint64_t epoch_version = generate_epoch_version(tid, cur_global_epoch);
+                        ss << log_type << tableId << partitionId << epoch_version << std::string((char *)key, key_size) << std::string((char *)value, value_size);
                         auto output = ss.str();
                         txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                 }
+
+                // TODO: write log records for scan_for_update
 
                 // Redo logging for inserts
                 auto &insertSet = txn.insertSet;
@@ -710,12 +726,14 @@ template <class Database> class TwoPLPasha {
                         auto value_size = table->value_size();
                         auto key = insertKey.get_key();
                         auto value = insertKey.get_value();
+                        auto tid = insertKey.get_tid();
                         DCHECK(key);
                         DCHECK(value);
                         std::ostringstream ss;
 
                         int log_type = 1;       // 1 stands for insert
-                        ss << log_type << tableId << partitionId << std::string((char *)key, key_size) << std::string((char *)value, value_size);
+                        uint64_t epoch_version = generate_epoch_version(tid, cur_global_epoch);
+                        ss << log_type << tableId << partitionId << epoch_version << std::string((char *)key, key_size) << std::string((char *)value, value_size);
                         auto output = ss.str();
                         txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                 }
@@ -731,18 +749,20 @@ template <class Database> class TwoPLPasha {
                         auto value_size = table->value_size();
                         auto key = deleteKey.get_key();
                         auto value = deleteKey.get_value();
+                        auto tid = deleteKey.get_tid();
                         DCHECK(key);
                         DCHECK(value);
                         std::ostringstream ss;
 
                         int log_type = 2;       // 2 stands for delete
-                        ss << log_type << tableId << partitionId << std::string((char *)key, key_size);     // do not need to log value for deletes
+                        uint64_t epoch_version = generate_epoch_version(tid, cur_global_epoch);
+                        ss << log_type << tableId << partitionId << epoch_version << std::string((char *)key, key_size);     // do not need to log value for deletes
                         auto output = ss.str();
                         txn.get_logger()->write(output.c_str(), output.size(), false, txn.startTime);
                 }
 	}
 
-	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages)
+	void release_lock(TransactionType &txn, uint64_t commit_tid, std::vector<std::unique_ptr<Message> > &messages, uint64_t cur_global_epoch)
 	{
 		// release read locks & write locks
 		auto &readSet = txn.readSet;
@@ -773,6 +793,7 @@ template <class Database> class TwoPLPasha {
                         if (readKey.get_write_lock_bit()) {
 				if (partitioner.has_master_partition(partitionId)) {
                                         auto cached_row = readKey.get_cached_local_row();
+                                        auto tid = readKey.get_tid();
                                         DCHECK(std::get<0>(cached_row) != nullptr && std::get<1>(cached_row) != nullptr);
 
                                         // model CXL search overhead
@@ -780,11 +801,15 @@ template <class Database> class TwoPLPasha {
                                                 twopl_pasha_global_helper->model_cxl_search_overhead(cached_row, tableId, partitionId, readKey.get_key());
                                         }
 
-                                        twopl_pasha_global_helper->write_lock_release(*std::get<0>(cached_row), table->value_size(), commit_tid);
+                                        uint64_t epoch_version = generate_epoch_version(tid, cur_global_epoch);
+                                        twopl_pasha_global_helper->write_lock_release(*std::get<0>(cached_row), table->value_size(), epoch_version);
                                 } else {
                                         char *migrated_row = readKey.get_cached_migrated_row();
+                                        auto tid = readKey.get_tid();
                                         DCHECK(migrated_row != nullptr);
-                                        twopl_pasha_global_helper->remote_write_lock_release(migrated_row, table->value_size(), commit_tid);
+
+                                        uint64_t epoch_version = generate_epoch_version(tid, cur_global_epoch);
+                                        twopl_pasha_global_helper->remote_write_lock_release(migrated_row, table->value_size(), epoch_version);
                                 }
 			}
 		}
@@ -886,12 +911,14 @@ template <class Database> class TwoPLPasha {
                                                         auto key = reinterpret_cast<const void *>(scan_results[i].key);
                                                         std::atomic<uint64_t> *meta = scan_results[i].meta;
                                                         DCHECK(meta != nullptr);
+                                                        // TODO: update epoch-version
                                                         TwoPLPashaHelper::write_lock_release(*meta);
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
                                                         char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
                                                         DCHECK(cxl_row != nullptr);
+                                                        // TODO: update epoch-version
                                                         TwoPLPashaHelper::remote_write_lock_release(cxl_row);
                                                 }
                                         }
@@ -902,12 +929,14 @@ template <class Database> class TwoPLPasha {
                                                         auto key = reinterpret_cast<const void *>(scan_results[i].key);
                                                         std::atomic<uint64_t> *meta = scan_results[i].meta;
                                                         DCHECK(meta != nullptr);
+                                                        // TODO: update epoch-version
                                                         TwoPLPashaHelper::write_lock_release(*meta);
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
                                                         char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
                                                         DCHECK(cxl_row != nullptr);
+                                                        // TODO: update epoch-version
                                                         TwoPLPashaHelper::remote_write_lock_release(cxl_row);
                                                 }
                                         }

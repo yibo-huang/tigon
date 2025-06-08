@@ -1037,6 +1037,8 @@ out_unlock_lmeta:
                         DCHECK(smeta->is_write_locked() == true);
                         smeta->clear_write_locked();
 
+                        scc_data->tid = new_value;
+
                         scc_manager->finish_write(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaMetadataShared) + size);
                         smeta->unlock();
                 }
@@ -1056,6 +1058,8 @@ out_unlock_lmeta:
                 DCHECK(smeta->get_reader_count() == 0);
                 DCHECK(smeta->is_write_locked() == true);
                 smeta->clear_write_locked();
+
+                scc_data->tid = new_value;
 
                 scc_manager->finish_write(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaMetadataShared) + size);
                 smeta->unlock();

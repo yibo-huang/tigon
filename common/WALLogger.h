@@ -209,6 +209,11 @@ class WALLogger {
 		size_t lsn, std::function<void()> on_blocking = []() {}) = 0;
 	virtual void close() = 0;
 
+        virtual uint64_t get_global_epoch()
+        {
+                return 0;
+        }
+
 	virtual void print_sync_stats(){};
 
 	const std::string filename;
@@ -419,6 +424,11 @@ class PashaGroupCommitLoggerSlave : public WALLogger {
 	void close() override
 	{
 	}
+
+        uint64_t get_global_epoch() override
+        {
+                return cxl_global_epoch->load();
+        }
 
     private:
         LogBuffer *cur_log_buffer{ nullptr };
