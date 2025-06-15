@@ -488,7 +488,7 @@ class TwoPLPashaMessageHandler {
 
                         if (lock_success == true) {
                                 // acquiring lock succeeds
-                                ITable::row_entity cur_row(key, table.key_size(), nullptr, cxl_row, table.value_size());
+                                ITable::row_entity cur_row(key, table.key_size(), reinterpret_cast<std::atomic<uint64_t> *>(cxl_row), scc_data->data, table.value_size());
                                 if (locking_next_tuple == false) {
                                         scan_results.push_back(cur_row);
                                         // continue scan

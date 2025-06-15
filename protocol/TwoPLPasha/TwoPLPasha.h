@@ -178,7 +178,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 auto next_row_entity = scanKey.get_next_row_entity();
-                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.meta);
                                                 DCHECK(cxl_row != nullptr);
                                                 if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                                         TwoPLPashaHelper::remote_read_lock_release(cxl_row);
@@ -204,7 +204,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         TwoPLPashaHelper::remote_read_lock_release(cxl_row);
                                                 }
@@ -221,7 +221,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         TwoPLPashaHelper::remote_write_lock_release(cxl_row);
                                                 }
@@ -470,7 +470,7 @@ template <class Database> class TwoPLPasha {
                                 } else {
                                         auto coordinatorID = partitioner.master_coordinator(partitionId);
                                         for (auto i = 0u; i < scan_results.size(); i++) {
-                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                 DCHECK(cxl_row != nullptr);
                                                 TwoPLPashaHelper::remote_modify_tuple_valid_bit(cxl_row, false);
                                                 // TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
@@ -665,7 +665,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         TwoPLPashaMetadataShared *smeta = reinterpret_cast<TwoPLPashaMetadataShared *>(cxl_row);
                                                         auto value_size = table->value_size();
                                                         twopl_pasha_global_helper->remote_update(cxl_row, smeta->get_scc_data()->data, value_size);
@@ -833,7 +833,7 @@ template <class Database> class TwoPLPasha {
                                                 twopl_pasha_global_helper->write_lock_release(*meta, table->value_size(), commit_tid);
                                         } else {
                                                 auto next_row_entity = insertKey.get_next_row_entity();
-                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.meta);
                                                 DCHECK(cxl_row != nullptr);
                                                 twopl_pasha_global_helper->remote_write_lock_release(cxl_row, table->value_size(), commit_tid);
                                         }
@@ -872,7 +872,7 @@ template <class Database> class TwoPLPasha {
                                         } else {
                                                 DCHECK(scanKey.get_next_row_locked() == true);
                                                 auto next_row_entity = scanKey.get_next_row_entity();
-                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                char *cxl_row = reinterpret_cast<char *>(next_row_entity.meta);
                                                 DCHECK(cxl_row != nullptr);
                                                 if (scanKey.get_request_type() == TwoPLPashaRWKey::SCAN_FOR_READ) {
                                                         TwoPLPashaHelper::remote_read_lock_release(cxl_row);
@@ -899,7 +899,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         TwoPLPashaHelper::remote_read_lock_release(cxl_row);
                                                 }
@@ -916,7 +916,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         // TODO: update epoch-version
                                                         TwoPLPashaHelper::remote_write_lock_release(cxl_row);
@@ -934,7 +934,7 @@ template <class Database> class TwoPLPasha {
                                                 }
                                         } else {
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         // TODO: update epoch-version
                                                         TwoPLPashaHelper::remote_write_lock_release(cxl_row);
@@ -1005,7 +1005,7 @@ template <class Database> class TwoPLPasha {
                                                 // release the next row
                                                 if (scanKey.get_next_row_locked() == true) {
                                                         auto next_row_entity = scanKey.get_next_row_entity();
-                                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
                                                 }
@@ -1015,13 +1015,13 @@ template <class Database> class TwoPLPasha {
                                                 // release the next row
                                                 if (scanKey.get_next_row_locked() == true) {
                                                         auto next_row_entity = scanKey.get_next_row_entity();
-                                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.data);
+                                                        char *cxl_row = reinterpret_cast<char *>(next_row_entity.meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
                                                 }
 
                                                 for (auto i = 0u; i < scan_results.size(); i++) {
-                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].data);
+                                                        char *cxl_row = reinterpret_cast<char *>(scan_results[i].meta);
                                                         DCHECK(cxl_row != nullptr);
                                                         TwoPLPashaHelper::decrease_reference_count_via_ptr(cxl_row);
                                                 }
