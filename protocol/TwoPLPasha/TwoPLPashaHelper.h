@@ -441,7 +441,7 @@ class TwoPLPashaHelper {
                 value &= ~(WRITE_LOCK_BIT_MASK << WRITE_LOCK_BIT_OFFSET);
         }
 
-	uint64_t read_lock(std::atomic<uint64_t> &meta, uint64_t size, bool &success)
+	uint64_t read_lock(std::atomic<uint64_t> &meta, void* data_ptr, uint64_t size, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 uint64_t old_value = 0, new_value = 0;
@@ -476,14 +476,33 @@ class TwoPLPashaHelper {
                         // SCC prepare read
                         scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
-                        if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
-                                smeta->unlock();
-                                success = false;
-                                goto out_unlock_lmeta;
-                        }
+                        if (smeta->is_data_modified_since_moved_in() == true) {
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
 
-                        old_value = scc_data->tid;
-                        tid = remove_lock_bit(old_value);
+                                old_value = scc_data->tid;
+                                tid = remove_lock_bit(old_value);
+
+                                // we update our local cache
+                                lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
+                                lmeta->tid = scc_data->tid;
+                                scc_manager->do_read(nullptr, coordinator_id, data_ptr, scc_data->data, size);
+
+                                // unset the flag
+                                smeta->clear_is_data_modified_since_moved_in();
+                        } else {
+                                if (lmeta->is_valid == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
+
+                                old_value = lmeta->tid;
+                                tid = remove_lock_bit(old_value);
+                        }
 
                         // can we get the lock?
                         if (smeta->is_write_locked() || smeta->get_reader_count() == smeta->get_reader_count_max()) {
@@ -689,7 +708,7 @@ out_unlock_lmeta:
 		return tid;
 	}
 
-	uint64_t write_lock(std::atomic<uint64_t> &meta, uint64_t size, bool &success)
+	uint64_t write_lock(std::atomic<uint64_t> &meta, void* data_ptr, uint64_t size, bool &success)
 	{
                 TwoPLPashaMetadataLocal *lmeta = reinterpret_cast<TwoPLPashaMetadataLocal *>(meta.load());
                 uint64_t old_value = 0, new_value = 0;
@@ -724,14 +743,33 @@ out_unlock_lmeta:
                         // SCC prepare read
                         scc_manager->prepare_read(smeta, coordinator_id, scc_data, sizeof(TwoPLPashaSharedDataSCC) + size);
 
-                        if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
-                                smeta->unlock();
-                                success = false;
-                                goto out_unlock_lmeta;
-                        }
+                        if (smeta->is_data_modified_since_moved_in() == true) {
+                                if (scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index) == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
 
-                        old_value = scc_data->tid;
-                        tid = remove_lock_bit(old_value);
+                                old_value = scc_data->tid;
+                                tid = remove_lock_bit(old_value);
+
+                                // we update our local cache
+                                lmeta->is_valid = scc_data->get_flag(TwoPLPashaSharedDataSCC::valid_flag_index);
+                                lmeta->tid = scc_data->tid;
+                                scc_manager->do_read(nullptr, coordinator_id, data_ptr, scc_data->data, size);
+
+                                // unset the flag
+                                smeta->clear_is_data_modified_since_moved_in();
+                        } else {
+                                if (lmeta->is_valid == false) {
+                                        smeta->unlock();
+                                        success = false;
+                                        goto out_unlock_lmeta;
+                                }
+
+                                old_value = lmeta->tid;
+                                tid = remove_lock_bit(old_value);
+                        }
 
                         // can we get the lock?
                         if (smeta->get_reader_count() > 0 || smeta->is_write_locked()) {
@@ -1783,7 +1821,7 @@ out_unlock_lmeta:
                                 DCHECK(next_meta != nullptr);
                                 std::atomic<uint64_t> &meta = *reinterpret_cast<std::atomic<uint64_t> *>(next_meta);
                                 bool lock_success = false;
-                                write_lock(meta, table->value_size(), lock_success);
+                                write_lock(meta, next_data, table->value_size(), lock_success);
                                 if (lock_success == true) {
                                         ITable::row_entity next_row(next_key, table->key_size(), &meta, next_data, table->value_size());
                                         next_row_entity = next_row;
